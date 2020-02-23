@@ -1,27 +1,63 @@
-import {wait} from '../src/wait'
-import * as process from 'process'
-import * as cp from 'child_process'
+import * as fs from 'fs'
 import * as path from 'path'
 
-test('throws invalid number', async () => {
-  const input = parseInt('foo', 10)
-  await expect(wait(input)).rejects.toThrow('milliseconds not a number')
+import fetch from 'node-fetch'
+import tmp from 'tmp'
+
+import * as gcc from '../src/gcc'
+import * as setup from '../src/setup'
+
+test('count gcc versions', () => {
+  expect(gcc.availableVersions().length).toBeGreaterThan(0)
 })
 
-test('wait 500 ms', async () => {
-  const start = new Date()
-  await wait(500)
-  const end = new Date()
-  var delta = Math.abs(end.getTime() - start.getTime())
-  expect(delta).toBeGreaterThan(450)
+test('test url', () => {
+  expect(gcc.distributionUrl('6-2017-q1', 'darwin')).toStrictEqual(
+    'https://developer.arm.com/-/media/Files/downloads/gnu-rm/6_1-2017q1/gcc-arm-none-eabi-6-2017-q1-update-mac.tar.bz2'
+  )
+  expect(gcc.distributionUrl('6-2017-q1', 'linux')).toStrictEqual(
+    'https://developer.arm.com/-/media/Files/downloads/gnu-rm/6_1-2017q1/gcc-arm-none-eabi-6-2017-q1-update-linux.tar.bz2'
+  )
+  expect(gcc.distributionUrl('6-2017-q1', 'win32')).toStrictEqual(
+    'https://developer.arm.com/-/media/Files/downloads/gnu-rm/6_1-2017q1/gcc-arm-none-eabi-6-2017-q1-update-win32-zip.zip'
+  )
+  expect(gcc.distributionUrl('9-2019-q4', 'linux')).toStrictEqual(
+    'https://developer.arm.com/-/media/Files/downloads/gnu-rm/9-2019q4/gcc-arm-none-eabi-9-2019-q4-major-x86_64-linux.tar.bz2'
+  )
 })
 
-// shows how the runner will run a javascript action with env / stdout protocol
-test('test runs', () => {
-  process.env['INPUT_MILLISECONDS'] = '500'
-  const ip = path.join(__dirname, '..', 'lib', 'main.js')
-  const options: cp.ExecSyncOptions = {
-    env: process.env
+test('test url response', async () => {
+  const url = gcc.distributionUrl('6-2017-q1', 'darwin')
+  const resp = await fetch(url)
+  expect(resp.status).toStrictEqual(200)
+  expect(Number(resp.headers.get('Content-Length'))).toEqual(104170189)
+})
+
+function hasGcc(dir: string): boolean {
+  for (const filename of ['arm-none-eabi-gcc', 'arm-none-eabi-gcc.exe']) {
+    const exe = path.join(dir, 'bin', filename)
+    if (fs.existsSync(exe)) {
+      console.log(`${exe} exists`)
+      return true
+    }
   }
-  console.log(cp.execSync(`node ${ip}`, options).toString())
-})
+  return false
+}
+
+async function tmpInstall(release: string, platform?: string): Promise<void> {
+  const dir = tmp.dirSync()
+  const gccDir = path.join(dir.name, `gcc-${release}`)
+  await setup.install(release, gccDir, platform)
+  // make sure there's a bin/arm-none-eabi-gcc[.exe] at gccDir
+  expect(hasGcc(gccDir)).toEqual(true)
+  dir.removeCallback()
+}
+
+test(
+  'install',
+  async () => {
+    await tmpInstall('9-2019-q4', 'darwin')
+    await tmpInstall('6-2017-q1', 'win32')
+  },
+  10 * 60 * 1000
+)

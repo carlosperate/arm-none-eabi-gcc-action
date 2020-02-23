@@ -1,4 +1,4 @@
-name: "build-test"
+name: CI
 on: # rebuild any PRs and main branch changes
   pull_request:
   push:
@@ -10,14 +10,19 @@ jobs:
   build: # make sure build/ci work properly
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
-    - run: |
-        npm install
-        npm run all
+    - uses: actions/checkout@v2
+    - run: npm install
+    - run: npm run all
   test: # make sure the action works on a clean machine without building
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    name: Test @ ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
     - uses: ./
       with: 
-        milliseconds: 1000
+        release: 9-2019-q4
+    - run: arm-none-eabi-gcc -v
