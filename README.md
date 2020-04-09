@@ -11,7 +11,6 @@ works on Windows, Linux and macOS.
 
 ```yaml
 steps:
-- uses: actions/checkout@v2
 - name: arm-none-eabi-gcc
 - uses: fiam/arm-none-eabi-gcc@v1
   with:
