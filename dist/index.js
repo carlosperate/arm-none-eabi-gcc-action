@@ -1479,7 +1479,7 @@ ProxyReader.prototype.resume = function () {
 module.exports = LinkWriter
 
 var fs = __webpack_require__(598)
-var Writer = __webpack_require__(82)
+var Writer = __webpack_require__(368)
 var inherits = __webpack_require__(689)
 var path = __webpack_require__(622)
 var rimraf = __webpack_require__(569)
@@ -1576,399 +1576,28 @@ LinkWriter.prototype.end = function () {
 /***/ }),
 
 /***/ 82:
-/***/ (function(module, __unusedexports, __webpack_require__) {
+/***/ (function(__unusedmodule, exports) {
 
-module.exports = Writer
+"use strict";
 
-var fs = __webpack_require__(598)
-var inherits = __webpack_require__(689)
-var rimraf = __webpack_require__(569)
-var mkdir = __webpack_require__(289)
-var path = __webpack_require__(622)
-var umask = process.platform === 'win32' ? 0 : process.umask()
-var getType = __webpack_require__(716)
-var Abstract = __webpack_require__(394)
-
-// Must do this *before* loading the child classes
-inherits(Writer, Abstract)
-
-Writer.dirmode = parseInt('0777', 8) & (~umask)
-Writer.filemode = parseInt('0666', 8) & (~umask)
-
-var DirWriter = __webpack_require__(252)
-var LinkWriter = __webpack_require__(78)
-var FileWriter = __webpack_require__(787)
-var ProxyWriter = __webpack_require__(441)
-
-// props is the desired state.  current is optionally the current stat,
-// provided here so that subclasses can avoid statting the target
-// more than necessary.
-function Writer (props, current) {
-  var self = this
-
-  if (typeof props === 'string') {
-    props = { path: props }
-  }
-
-  // polymorphism.
-  // call fstream.Writer(dir) to get a DirWriter object, etc.
-  var type = getType(props)
-  var ClassType = Writer
-
-  switch (type) {
-    case 'Directory':
-      ClassType = DirWriter
-      break
-    case 'File':
-      ClassType = FileWriter
-      break
-    case 'Link':
-    case 'SymbolicLink':
-      ClassType = LinkWriter
-      break
-    case null:
-    default:
-      // Don't know yet what type to create, so we wrap in a proxy.
-      ClassType = ProxyWriter
-      break
-  }
-
-  if (!(self instanceof ClassType)) return new ClassType(props)
-
-  // now get down to business.
-
-  Abstract.call(self)
-
-  if (!props.path) self.error('Must provide a path', null, true)
-
-  // props is what we want to set.
-  // set some convenience properties as well.
-  self.type = props.type
-  self.props = props
-  self.depth = props.depth || 0
-  self.clobber = props.clobber === false ? props.clobber : true
-  self.parent = props.parent || null
-  self.root = props.root || (props.parent && props.parent.root) || self
-
-  self._path = self.path = path.resolve(props.path)
-  if (process.platform === 'win32') {
-    self.path = self._path = self.path.replace(/\?/g, '_')
-    if (self._path.length >= 260) {
-      self._swallowErrors = true
-      self._path = '\\\\?\\' + self.path.replace(/\//g, '\\')
+// We use any as a valid input type
+/* eslint-disable @typescript-eslint/no-explicit-any */
+Object.defineProperty(exports, "__esModule", { value: true });
+/**
+ * Sanitizes an input into a string so it can be passed into issueCommand safely
+ * @param input input to sanitize into a string
+ */
+function toCommandValue(input) {
+    if (input === null || input === undefined) {
+        return '';
     }
-  }
-  self.basename = path.basename(props.path)
-  self.dirname = path.dirname(props.path)
-  self.linkpath = props.linkpath || null
-
-  props.parent = props.root = null
-
-  // console.error("\n\n\n%s setting size to", props.path, props.size)
-  self.size = props.size
-
-  if (typeof props.mode === 'string') {
-    props.mode = parseInt(props.mode, 8)
-  }
-
-  self.readable = false
-  self.writable = true
-
-  // buffer until ready, or while handling another entry
-  self._buffer = []
-  self.ready = false
-
-  self.filter = typeof props.filter === 'function' ? props.filter : null
-
-  // start the ball rolling.
-  // this checks what's there already, and then calls
-  // self._create() to call the impl-specific creation stuff.
-  self._stat(current)
-}
-
-// Calling this means that it's something we can't create.
-// Just assert that it's already there, otherwise raise a warning.
-Writer.prototype._create = function () {
-  var self = this
-  fs[self.props.follow ? 'stat' : 'lstat'](self._path, function (er) {
-    if (er) {
-      return self.warn('Cannot create ' + self._path + '\n' +
-        'Unsupported type: ' + self.type, 'ENOTSUP')
+    else if (typeof input === 'string' || input instanceof String) {
+        return input;
     }
-    self._finish()
-  })
+    return JSON.stringify(input);
 }
-
-Writer.prototype._stat = function (current) {
-  var self = this
-  var props = self.props
-  var stat = props.follow ? 'stat' : 'lstat'
-  var who = self._proxy || self
-
-  if (current) statCb(null, current)
-  else fs[stat](self._path, statCb)
-
-  function statCb (er, current) {
-    if (self.filter && !self.filter.call(who, who, current)) {
-      self._aborted = true
-      self.emit('end')
-      self.emit('close')
-      return
-    }
-
-    // if it's not there, great.  We'll just create it.
-    // if it is there, then we'll need to change whatever differs
-    if (er || !current) {
-      return create(self)
-    }
-
-    self._old = current
-    var currentType = getType(current)
-
-    // if it's a type change, then we need to clobber or error.
-    // if it's not a type change, then let the impl take care of it.
-    if (currentType !== self.type || self.type === 'File' && current.nlink > 1) {
-      return rimraf(self._path, function (er) {
-        if (er) return self.error(er)
-        self._old = null
-        create(self)
-      })
-    }
-
-    // otherwise, just handle in the app-specific way
-    // this creates a fs.WriteStream, or mkdir's, or whatever
-    create(self)
-  }
-}
-
-function create (self) {
-  // console.error("W create", self._path, Writer.dirmode)
-
-  // XXX Need to clobber non-dirs that are in the way,
-  // unless { clobber: false } in the props.
-  mkdir(path.dirname(self._path), Writer.dirmode, function (er, made) {
-    // console.error("W created", path.dirname(self._path), er)
-    if (er) return self.error(er)
-
-    // later on, we have to set the mode and owner for these
-    self._madeDir = made
-    return self._create()
-  })
-}
-
-function endChmod (self, want, current, path, cb) {
-  var wantMode = want.mode
-  var chmod = want.follow || self.type !== 'SymbolicLink'
-    ? 'chmod' : 'lchmod'
-
-  if (!fs[chmod]) return cb()
-  if (typeof wantMode !== 'number') return cb()
-
-  var curMode = current.mode & parseInt('0777', 8)
-  wantMode = wantMode & parseInt('0777', 8)
-  if (wantMode === curMode) return cb()
-
-  fs[chmod](path, wantMode, cb)
-}
-
-function endChown (self, want, current, path, cb) {
-  // Don't even try it unless root.  Too easy to EPERM.
-  if (process.platform === 'win32') return cb()
-  if (!process.getuid || process.getuid() !== 0) return cb()
-  if (typeof want.uid !== 'number' &&
-    typeof want.gid !== 'number') return cb()
-
-  if (current.uid === want.uid &&
-    current.gid === want.gid) return cb()
-
-  var chown = (self.props.follow || self.type !== 'SymbolicLink')
-    ? 'chown' : 'lchown'
-  if (!fs[chown]) return cb()
-
-  if (typeof want.uid !== 'number') want.uid = current.uid
-  if (typeof want.gid !== 'number') want.gid = current.gid
-
-  fs[chown](path, want.uid, want.gid, cb)
-}
-
-function endUtimes (self, want, current, path, cb) {
-  if (!fs.utimes || process.platform === 'win32') return cb()
-
-  var utimes = (want.follow || self.type !== 'SymbolicLink')
-    ? 'utimes' : 'lutimes'
-
-  if (utimes === 'lutimes' && !fs[utimes]) {
-    utimes = 'utimes'
-  }
-
-  if (!fs[utimes]) return cb()
-
-  var curA = current.atime
-  var curM = current.mtime
-  var meA = want.atime
-  var meM = want.mtime
-
-  if (meA === undefined) meA = curA
-  if (meM === undefined) meM = curM
-
-  if (!isDate(meA)) meA = new Date(meA)
-  if (!isDate(meM)) meA = new Date(meM)
-
-  if (meA.getTime() === curA.getTime() &&
-    meM.getTime() === curM.getTime()) return cb()
-
-  fs[utimes](path, meA, meM, cb)
-}
-
-// XXX This function is beastly.  Break it up!
-Writer.prototype._finish = function () {
-  var self = this
-
-  if (self._finishing) return
-  self._finishing = true
-
-  // console.error(" W Finish", self._path, self.size)
-
-  // set up all the things.
-  // At this point, we're already done writing whatever we've gotta write,
-  // adding files to the dir, etc.
-  var todo = 0
-  var errState = null
-  var done = false
-
-  if (self._old) {
-    // the times will almost *certainly* have changed.
-    // adds the utimes syscall, but remove another stat.
-    self._old.atime = new Date(0)
-    self._old.mtime = new Date(0)
-    // console.error(" W Finish Stale Stat", self._path, self.size)
-    setProps(self._old)
-  } else {
-    var stat = self.props.follow ? 'stat' : 'lstat'
-    // console.error(" W Finish Stating", self._path, self.size)
-    fs[stat](self._path, function (er, current) {
-      // console.error(" W Finish Stated", self._path, self.size, current)
-      if (er) {
-        // if we're in the process of writing out a
-        // directory, it's very possible that the thing we're linking to
-        // doesn't exist yet (especially if it was intended as a symlink),
-        // so swallow ENOENT errors here and just soldier on.
-        if (er.code === 'ENOENT' &&
-          (self.type === 'Link' || self.type === 'SymbolicLink') &&
-          process.platform === 'win32') {
-          self.ready = true
-          self.emit('ready')
-          self.emit('end')
-          self.emit('close')
-          self.end = self._finish = function () {}
-          return
-        } else return self.error(er)
-      }
-      setProps(self._old = current)
-    })
-  }
-
-  return
-
-  function setProps (current) {
-    todo += 3
-    endChmod(self, self.props, current, self._path, next('chmod'))
-    endChown(self, self.props, current, self._path, next('chown'))
-    endUtimes(self, self.props, current, self._path, next('utimes'))
-  }
-
-  function next (what) {
-    return function (er) {
-      // console.error("   W Finish", what, todo)
-      if (errState) return
-      if (er) {
-        er.fstream_finish_call = what
-        return self.error(errState = er)
-      }
-      if (--todo > 0) return
-      if (done) return
-      done = true
-
-      // we may still need to set the mode/etc. on some parent dirs
-      // that were created previously.  delay end/close until then.
-      if (!self._madeDir) return end()
-      else endMadeDir(self, self._path, end)
-
-      function end (er) {
-        if (er) {
-          er.fstream_finish_call = 'setupMadeDir'
-          return self.error(er)
-        }
-        // all the props have been set, so we're completely done.
-        self.emit('end')
-        self.emit('close')
-      }
-    }
-  }
-}
-
-function endMadeDir (self, p, cb) {
-  var made = self._madeDir
-  // everything *between* made and path.dirname(self._path)
-  // needs to be set up.  Note that this may just be one dir.
-  var d = path.dirname(p)
-
-  endMadeDir_(self, d, function (er) {
-    if (er) return cb(er)
-    if (d === made) {
-      return cb()
-    }
-    endMadeDir(self, d, cb)
-  })
-}
-
-function endMadeDir_ (self, p, cb) {
-  var dirProps = {}
-  Object.keys(self.props).forEach(function (k) {
-    dirProps[k] = self.props[k]
-
-    // only make non-readable dirs if explicitly requested.
-    if (k === 'mode' && self.type !== 'Directory') {
-      dirProps[k] = dirProps[k] | parseInt('0111', 8)
-    }
-  })
-
-  var todo = 3
-  var errState = null
-  fs.stat(p, function (er, current) {
-    if (er) return cb(errState = er)
-    endChmod(self, dirProps, current, p, next)
-    endChown(self, dirProps, current, p, next)
-    endUtimes(self, dirProps, current, p, next)
-  })
-
-  function next (er) {
-    if (errState) return
-    if (er) return cb(errState = er)
-    if (--todo === 0) return cb()
-  }
-}
-
-Writer.prototype.pipe = function () {
-  this.error("Can't pipe from writable stream")
-}
-
-Writer.prototype.add = function () {
-  this.error("Can't add to non-Directory type")
-}
-
-Writer.prototype.write = function () {
-  return true
-}
-
-function objectToString (d) {
-  return Object.prototype.toString.call(d)
-}
-
-function isDate (d) {
-  return typeof d === 'object' && objectToString(d) === '[object Date]'
-}
-
+exports.toCommandValue = toCommandValue;
+//# sourceMappingURL=utils.js.map
 
 /***/ }),
 
@@ -3051,6 +2680,42 @@ if (Buffer.prototype.lastIndexOf) {
     Buffer.prototype.lastIndexOf = bufferLastIndexOf;
 }
 
+
+/***/ }),
+
+/***/ 102:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+// For internal use, subject to change.
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
+    result["default"] = mod;
+    return result;
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+// We use any as a valid input type
+/* eslint-disable @typescript-eslint/no-explicit-any */
+const fs = __importStar(__webpack_require__(747));
+const os = __importStar(__webpack_require__(87));
+const utils_1 = __webpack_require__(82);
+function issueCommand(command, message) {
+    const filePath = process.env[`GITHUB_${command}`];
+    if (!filePath) {
+        throw new Error(`Unable to find environment variable for file command ${command}`);
+    }
+    if (!fs.existsSync(filePath)) {
+        throw new Error(`Missing file at path: ${filePath}`);
+    }
+    fs.appendFileSync(filePath, `${utils_1.toCommandValue(message)}${os.EOL}`, {
+        encoding: 'utf8'
+    });
+}
+exports.issueCommand = issueCommand;
+//# sourceMappingURL=file-command.js.map
 
 /***/ }),
 
@@ -9301,7 +8966,7 @@ function patch (fs) {
 
 module.exports = DirWriter
 
-var Writer = __webpack_require__(82)
+var Writer = __webpack_require__(368)
 var inherits = __webpack_require__(689)
 var mkdir = __webpack_require__(289)
 var path = __webpack_require__(622)
@@ -11501,7 +11166,7 @@ function expand(str, isTop) {
 
 exports.Abstract = __webpack_require__(394)
 exports.Reader = __webpack_require__(806)
-exports.Writer = __webpack_require__(82)
+exports.Writer = __webpack_require__(368)
 
 exports.File = {
   Reader: __webpack_require__(58),
@@ -11911,6 +11576,403 @@ exports.Parse = __webpack_require__(379);
 exports.ParseOne = __webpack_require__(89);
 exports.Extract = __webpack_require__(841);
 exports.Open = __webpack_require__(570);
+
+/***/ }),
+
+/***/ 368:
+/***/ (function(module, __unusedexports, __webpack_require__) {
+
+module.exports = Writer
+
+var fs = __webpack_require__(598)
+var inherits = __webpack_require__(689)
+var rimraf = __webpack_require__(569)
+var mkdir = __webpack_require__(289)
+var path = __webpack_require__(622)
+var umask = process.platform === 'win32' ? 0 : process.umask()
+var getType = __webpack_require__(716)
+var Abstract = __webpack_require__(394)
+
+// Must do this *before* loading the child classes
+inherits(Writer, Abstract)
+
+Writer.dirmode = parseInt('0777', 8) & (~umask)
+Writer.filemode = parseInt('0666', 8) & (~umask)
+
+var DirWriter = __webpack_require__(252)
+var LinkWriter = __webpack_require__(78)
+var FileWriter = __webpack_require__(787)
+var ProxyWriter = __webpack_require__(441)
+
+// props is the desired state.  current is optionally the current stat,
+// provided here so that subclasses can avoid statting the target
+// more than necessary.
+function Writer (props, current) {
+  var self = this
+
+  if (typeof props === 'string') {
+    props = { path: props }
+  }
+
+  // polymorphism.
+  // call fstream.Writer(dir) to get a DirWriter object, etc.
+  var type = getType(props)
+  var ClassType = Writer
+
+  switch (type) {
+    case 'Directory':
+      ClassType = DirWriter
+      break
+    case 'File':
+      ClassType = FileWriter
+      break
+    case 'Link':
+    case 'SymbolicLink':
+      ClassType = LinkWriter
+      break
+    case null:
+    default:
+      // Don't know yet what type to create, so we wrap in a proxy.
+      ClassType = ProxyWriter
+      break
+  }
+
+  if (!(self instanceof ClassType)) return new ClassType(props)
+
+  // now get down to business.
+
+  Abstract.call(self)
+
+  if (!props.path) self.error('Must provide a path', null, true)
+
+  // props is what we want to set.
+  // set some convenience properties as well.
+  self.type = props.type
+  self.props = props
+  self.depth = props.depth || 0
+  self.clobber = props.clobber === false ? props.clobber : true
+  self.parent = props.parent || null
+  self.root = props.root || (props.parent && props.parent.root) || self
+
+  self._path = self.path = path.resolve(props.path)
+  if (process.platform === 'win32') {
+    self.path = self._path = self.path.replace(/\?/g, '_')
+    if (self._path.length >= 260) {
+      self._swallowErrors = true
+      self._path = '\\\\?\\' + self.path.replace(/\//g, '\\')
+    }
+  }
+  self.basename = path.basename(props.path)
+  self.dirname = path.dirname(props.path)
+  self.linkpath = props.linkpath || null
+
+  props.parent = props.root = null
+
+  // console.error("\n\n\n%s setting size to", props.path, props.size)
+  self.size = props.size
+
+  if (typeof props.mode === 'string') {
+    props.mode = parseInt(props.mode, 8)
+  }
+
+  self.readable = false
+  self.writable = true
+
+  // buffer until ready, or while handling another entry
+  self._buffer = []
+  self.ready = false
+
+  self.filter = typeof props.filter === 'function' ? props.filter : null
+
+  // start the ball rolling.
+  // this checks what's there already, and then calls
+  // self._create() to call the impl-specific creation stuff.
+  self._stat(current)
+}
+
+// Calling this means that it's something we can't create.
+// Just assert that it's already there, otherwise raise a warning.
+Writer.prototype._create = function () {
+  var self = this
+  fs[self.props.follow ? 'stat' : 'lstat'](self._path, function (er) {
+    if (er) {
+      return self.warn('Cannot create ' + self._path + '\n' +
+        'Unsupported type: ' + self.type, 'ENOTSUP')
+    }
+    self._finish()
+  })
+}
+
+Writer.prototype._stat = function (current) {
+  var self = this
+  var props = self.props
+  var stat = props.follow ? 'stat' : 'lstat'
+  var who = self._proxy || self
+
+  if (current) statCb(null, current)
+  else fs[stat](self._path, statCb)
+
+  function statCb (er, current) {
+    if (self.filter && !self.filter.call(who, who, current)) {
+      self._aborted = true
+      self.emit('end')
+      self.emit('close')
+      return
+    }
+
+    // if it's not there, great.  We'll just create it.
+    // if it is there, then we'll need to change whatever differs
+    if (er || !current) {
+      return create(self)
+    }
+
+    self._old = current
+    var currentType = getType(current)
+
+    // if it's a type change, then we need to clobber or error.
+    // if it's not a type change, then let the impl take care of it.
+    if (currentType !== self.type || self.type === 'File' && current.nlink > 1) {
+      return rimraf(self._path, function (er) {
+        if (er) return self.error(er)
+        self._old = null
+        create(self)
+      })
+    }
+
+    // otherwise, just handle in the app-specific way
+    // this creates a fs.WriteStream, or mkdir's, or whatever
+    create(self)
+  }
+}
+
+function create (self) {
+  // console.error("W create", self._path, Writer.dirmode)
+
+  // XXX Need to clobber non-dirs that are in the way,
+  // unless { clobber: false } in the props.
+  mkdir(path.dirname(self._path), Writer.dirmode, function (er, made) {
+    // console.error("W created", path.dirname(self._path), er)
+    if (er) return self.error(er)
+
+    // later on, we have to set the mode and owner for these
+    self._madeDir = made
+    return self._create()
+  })
+}
+
+function endChmod (self, want, current, path, cb) {
+  var wantMode = want.mode
+  var chmod = want.follow || self.type !== 'SymbolicLink'
+    ? 'chmod' : 'lchmod'
+
+  if (!fs[chmod]) return cb()
+  if (typeof wantMode !== 'number') return cb()
+
+  var curMode = current.mode & parseInt('0777', 8)
+  wantMode = wantMode & parseInt('0777', 8)
+  if (wantMode === curMode) return cb()
+
+  fs[chmod](path, wantMode, cb)
+}
+
+function endChown (self, want, current, path, cb) {
+  // Don't even try it unless root.  Too easy to EPERM.
+  if (process.platform === 'win32') return cb()
+  if (!process.getuid || process.getuid() !== 0) return cb()
+  if (typeof want.uid !== 'number' &&
+    typeof want.gid !== 'number') return cb()
+
+  if (current.uid === want.uid &&
+    current.gid === want.gid) return cb()
+
+  var chown = (self.props.follow || self.type !== 'SymbolicLink')
+    ? 'chown' : 'lchown'
+  if (!fs[chown]) return cb()
+
+  if (typeof want.uid !== 'number') want.uid = current.uid
+  if (typeof want.gid !== 'number') want.gid = current.gid
+
+  fs[chown](path, want.uid, want.gid, cb)
+}
+
+function endUtimes (self, want, current, path, cb) {
+  if (!fs.utimes || process.platform === 'win32') return cb()
+
+  var utimes = (want.follow || self.type !== 'SymbolicLink')
+    ? 'utimes' : 'lutimes'
+
+  if (utimes === 'lutimes' && !fs[utimes]) {
+    utimes = 'utimes'
+  }
+
+  if (!fs[utimes]) return cb()
+
+  var curA = current.atime
+  var curM = current.mtime
+  var meA = want.atime
+  var meM = want.mtime
+
+  if (meA === undefined) meA = curA
+  if (meM === undefined) meM = curM
+
+  if (!isDate(meA)) meA = new Date(meA)
+  if (!isDate(meM)) meA = new Date(meM)
+
+  if (meA.getTime() === curA.getTime() &&
+    meM.getTime() === curM.getTime()) return cb()
+
+  fs[utimes](path, meA, meM, cb)
+}
+
+// XXX This function is beastly.  Break it up!
+Writer.prototype._finish = function () {
+  var self = this
+
+  if (self._finishing) return
+  self._finishing = true
+
+  // console.error(" W Finish", self._path, self.size)
+
+  // set up all the things.
+  // At this point, we're already done writing whatever we've gotta write,
+  // adding files to the dir, etc.
+  var todo = 0
+  var errState = null
+  var done = false
+
+  if (self._old) {
+    // the times will almost *certainly* have changed.
+    // adds the utimes syscall, but remove another stat.
+    self._old.atime = new Date(0)
+    self._old.mtime = new Date(0)
+    // console.error(" W Finish Stale Stat", self._path, self.size)
+    setProps(self._old)
+  } else {
+    var stat = self.props.follow ? 'stat' : 'lstat'
+    // console.error(" W Finish Stating", self._path, self.size)
+    fs[stat](self._path, function (er, current) {
+      // console.error(" W Finish Stated", self._path, self.size, current)
+      if (er) {
+        // if we're in the process of writing out a
+        // directory, it's very possible that the thing we're linking to
+        // doesn't exist yet (especially if it was intended as a symlink),
+        // so swallow ENOENT errors here and just soldier on.
+        if (er.code === 'ENOENT' &&
+          (self.type === 'Link' || self.type === 'SymbolicLink') &&
+          process.platform === 'win32') {
+          self.ready = true
+          self.emit('ready')
+          self.emit('end')
+          self.emit('close')
+          self.end = self._finish = function () {}
+          return
+        } else return self.error(er)
+      }
+      setProps(self._old = current)
+    })
+  }
+
+  return
+
+  function setProps (current) {
+    todo += 3
+    endChmod(self, self.props, current, self._path, next('chmod'))
+    endChown(self, self.props, current, self._path, next('chown'))
+    endUtimes(self, self.props, current, self._path, next('utimes'))
+  }
+
+  function next (what) {
+    return function (er) {
+      // console.error("   W Finish", what, todo)
+      if (errState) return
+      if (er) {
+        er.fstream_finish_call = what
+        return self.error(errState = er)
+      }
+      if (--todo > 0) return
+      if (done) return
+      done = true
+
+      // we may still need to set the mode/etc. on some parent dirs
+      // that were created previously.  delay end/close until then.
+      if (!self._madeDir) return end()
+      else endMadeDir(self, self._path, end)
+
+      function end (er) {
+        if (er) {
+          er.fstream_finish_call = 'setupMadeDir'
+          return self.error(er)
+        }
+        // all the props have been set, so we're completely done.
+        self.emit('end')
+        self.emit('close')
+      }
+    }
+  }
+}
+
+function endMadeDir (self, p, cb) {
+  var made = self._madeDir
+  // everything *between* made and path.dirname(self._path)
+  // needs to be set up.  Note that this may just be one dir.
+  var d = path.dirname(p)
+
+  endMadeDir_(self, d, function (er) {
+    if (er) return cb(er)
+    if (d === made) {
+      return cb()
+    }
+    endMadeDir(self, d, cb)
+  })
+}
+
+function endMadeDir_ (self, p, cb) {
+  var dirProps = {}
+  Object.keys(self.props).forEach(function (k) {
+    dirProps[k] = self.props[k]
+
+    // only make non-readable dirs if explicitly requested.
+    if (k === 'mode' && self.type !== 'Directory') {
+      dirProps[k] = dirProps[k] | parseInt('0111', 8)
+    }
+  })
+
+  var todo = 3
+  var errState = null
+  fs.stat(p, function (er, current) {
+    if (er) return cb(errState = er)
+    endChmod(self, dirProps, current, p, next)
+    endChown(self, dirProps, current, p, next)
+    endUtimes(self, dirProps, current, p, next)
+  })
+
+  function next (er) {
+    if (errState) return
+    if (er) return cb(errState = er)
+    if (--todo === 0) return cb()
+  }
+}
+
+Writer.prototype.pipe = function () {
+  this.error("Can't pipe from writable stream")
+}
+
+Writer.prototype.add = function () {
+  this.error("Can't add to non-Directory type")
+}
+
+Writer.prototype.write = function () {
+  return true
+}
+
+function objectToString (d) {
+  return Object.prototype.toString.call(d)
+}
+
+function isDate (d) {
+  return typeof d === 'object' && objectToString(d) === '[object Date]'
+}
+
 
 /***/ }),
 
@@ -14087,17 +14149,25 @@ module.exports = __webpack_require__(413);
 
 "use strict";
 
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
+    result["default"] = mod;
+    return result;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-const os = __webpack_require__(87);
+const os = __importStar(__webpack_require__(87));
+const utils_1 = __webpack_require__(82);
 /**
  * Commands
  *
  * Command Format:
- *   ##[name key=value;key=value]message
+ *   ::name key=value,key=value::message
  *
  * Examples:
- *   ##[warning]This is the user warning message
- *   ##[set-secret name=mypassword]definitelyNotAPassword!
+ *   ::warning::This is the message
+ *   ::set-env name=MY_VAR::some value
  */
 function issueCommand(command, properties, message) {
     const cmd = new Command(command, properties, message);
@@ -14122,34 +14192,39 @@ class Command {
         let cmdStr = CMD_STRING + this.command;
         if (this.properties && Object.keys(this.properties).length > 0) {
             cmdStr += ' ';
+            let first = true;
             for (const key in this.properties) {
                 if (this.properties.hasOwnProperty(key)) {
                     const val = this.properties[key];
                     if (val) {
-                        // safely append the val - avoid blowing up when attempting to
-                        // call .replace() if message is not a string for some reason
-                        cmdStr += `${key}=${escape(`${val || ''}`)},`;
+                        if (first) {
+                            first = false;
+                        }
+                        else {
+                            cmdStr += ',';
+                        }
+                        cmdStr += `${key}=${escapeProperty(val)}`;
                     }
                 }
             }
         }
-        cmdStr += CMD_STRING;
-        // safely append the message - avoid blowing up when attempting to
-        // call .replace() if message is not a string for some reason
-        const message = `${this.message || ''}`;
-        cmdStr += escapeData(message);
+        cmdStr += `${CMD_STRING}${escapeData(this.message)}`;
         return cmdStr;
     }
 }
 function escapeData(s) {
-    return s.replace(/\r/g, '%0D').replace(/\n/g, '%0A');
+    return utils_1.toCommandValue(s)
+        .replace(/%/g, '%25')
+        .replace(/\r/g, '%0D')
+        .replace(/\n/g, '%0A');
 }
-function escape(s) {
-    return s
+function escapeProperty(s) {
+    return utils_1.toCommandValue(s)
+        .replace(/%/g, '%25')
         .replace(/\r/g, '%0D')
         .replace(/\n/g, '%0A')
-        .replace(/]/g, '%5D')
-        .replace(/;/g, '%3B');
+        .replace(/:/g, '%3A')
+        .replace(/,/g, '%2C');
 }
 //# sourceMappingURL=command.js.map
 
@@ -14489,7 +14564,7 @@ module.exports = bluebird;
 
 module.exports = ProxyWriter
 
-var Writer = __webpack_require__(82)
+var Writer = __webpack_require__(368)
 var getType = __webpack_require__(716)
 var inherits = __webpack_require__(689)
 var collect = __webpack_require__(137)
@@ -15096,6 +15171,12 @@ function convertBody(buffer, headers) {
 	// html4
 	if (!res && str) {
 		res = /<meta[\s]+?http-equiv=(['"])content-type\1[\s]+?content=(['"])(.+?)\2/i.exec(str);
+		if (!res) {
+			res = /<meta[\s]+?content=(['"])(.+?)\1[\s]+?http-equiv=(['"])content-type\3/i.exec(str);
+			if (res) {
+				res.pop(); // drop last quote
+			}
+		}
 
 		if (res) {
 			res = /charset=(.*)/i.exec(res.pop());
@@ -16103,7 +16184,7 @@ function fetch(url, opts) {
 				// HTTP fetch step 5.5
 				switch (request.redirect) {
 					case 'error':
-						reject(new FetchError(`redirect mode is set to error: ${request.url}`, 'no-redirect'));
+						reject(new FetchError(`uri requested responds with a redirect, redirect mode is set to error: ${request.url}`, 'no-redirect'));
 						finalize();
 						return;
 					case 'manual':
@@ -16142,7 +16223,8 @@ function fetch(url, opts) {
 							method: request.method,
 							body: request.body,
 							signal: request.signal,
-							timeout: request.timeout
+							timeout: request.timeout,
+							size: request.size
 						};
 
 						// HTTP-redirect fetch step 9
@@ -16607,10 +16689,19 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
+    result["default"] = mod;
+    return result;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const command_1 = __webpack_require__(431);
-const os = __webpack_require__(87);
-const path = __webpack_require__(622);
+const file_command_1 = __webpack_require__(102);
+const utils_1 = __webpack_require__(82);
+const os = __importStar(__webpack_require__(87));
+const path = __importStar(__webpack_require__(622));
 /**
  * The code to exit an action
  */
@@ -16631,11 +16722,21 @@ var ExitCode;
 /**
  * Sets env variable for this action and future actions in the job
  * @param name the name of the variable to set
- * @param val the value of the variable
+ * @param val the value of the variable. Non-string values will be converted to a string via JSON.stringify
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function exportVariable(name, val) {
-    process.env[name] = val;
-    command_1.issueCommand('set-env', { name }, val);
+    const convertedVal = utils_1.toCommandValue(val);
+    process.env[name] = convertedVal;
+    const filePath = process.env['GITHUB_ENV'] || '';
+    if (filePath) {
+        const delimiter = '_GitHubActionsFileCommandDelimeter_';
+        const commandValue = `${name}<<${delimiter}${os.EOL}${convertedVal}${os.EOL}${delimiter}`;
+        file_command_1.issueCommand('ENV', commandValue);
+    }
+    else {
+        command_1.issueCommand('set-env', { name }, convertedVal);
+    }
 }
 exports.exportVariable = exportVariable;
 /**
@@ -16651,7 +16752,13 @@ exports.setSecret = setSecret;
  * @param inputPath
  */
 function addPath(inputPath) {
-    command_1.issueCommand('add-path', {}, inputPath);
+    const filePath = process.env['GITHUB_PATH'] || '';
+    if (filePath) {
+        file_command_1.issueCommand('PATH', inputPath);
+    }
+    else {
+        command_1.issueCommand('add-path', {}, inputPath);
+    }
     process.env['PATH'] = `${inputPath}${path.delimiter}${process.env['PATH']}`;
 }
 exports.addPath = addPath;
@@ -16674,12 +16781,22 @@ exports.getInput = getInput;
  * Sets the value of an output.
  *
  * @param     name     name of the output to set
- * @param     value    value to store
+ * @param     value    value to store. Non-string values will be converted to a string via JSON.stringify
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function setOutput(name, value) {
     command_1.issueCommand('set-output', { name }, value);
 }
 exports.setOutput = setOutput;
+/**
+ * Enables or disables the echoing of commands into stdout for the rest of the step.
+ * Echoing is disabled by default if ACTIONS_STEP_DEBUG is not set.
+ *
+ */
+function setCommandEcho(enabled) {
+    command_1.issue('echo', enabled ? 'on' : 'off');
+}
+exports.setCommandEcho = setCommandEcho;
 //-----------------------------------------------------------------------
 // Results
 //-----------------------------------------------------------------------
@@ -16697,6 +16814,13 @@ exports.setFailed = setFailed;
 // Logging Commands
 //-----------------------------------------------------------------------
 /**
+ * Gets whether Actions Step Debug is on or not
+ */
+function isDebug() {
+    return process.env['RUNNER_DEBUG'] === '1';
+}
+exports.isDebug = isDebug;
+/**
  * Writes debug message to user log
  * @param message debug message
  */
@@ -16706,18 +16830,18 @@ function debug(message) {
 exports.debug = debug;
 /**
  * Adds an error issue
- * @param message error issue message
+ * @param message error issue message. Errors will be converted to string via toString()
  */
 function error(message) {
-    command_1.issue('error', message);
+    command_1.issue('error', message instanceof Error ? message.toString() : message);
 }
 exports.error = error;
 /**
  * Adds an warning issue
- * @param message warning issue message
+ * @param message warning issue message. Errors will be converted to string via toString()
  */
 function warning(message) {
-    command_1.issue('warning', message);
+    command_1.issue('warning', message instanceof Error ? message.toString() : message);
 }
 exports.warning = warning;
 /**
@@ -16775,8 +16899,9 @@ exports.group = group;
  * Saves state for current action, the state can only be retrieved by this action's post job execution.
  *
  * @param     name     name of the state to store
- * @param     value    value to store
+ * @param     value    value to store. Non-string values will be converted to a string via JSON.stringify
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function saveState(name, value) {
     command_1.issueCommand('save-state', { name }, value);
 }
@@ -23316,7 +23441,7 @@ module.exports = function (Promise, apiRejection, tryConvertToPromise,
 module.exports = FileWriter
 
 var fs = __webpack_require__(598)
-var Writer = __webpack_require__(82)
+var Writer = __webpack_require__(368)
 var inherits = __webpack_require__(689)
 var EOF = {}
 
