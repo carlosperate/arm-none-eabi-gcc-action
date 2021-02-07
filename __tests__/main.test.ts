@@ -24,6 +24,9 @@ test('test url', () => {
   expect(gcc.distributionUrl('9-2019-q4', 'linux')).toStrictEqual(
     'https://developer.arm.com/-/media/Files/downloads/gnu-rm/9-2019q4/gcc-arm-none-eabi-9-2019-q4-major-x86_64-linux.tar.bz2'
   )
+  expect(gcc.distributionUrl('4.8-2013-q4', 'darwin')).toStrictEqual(
+    'https://launchpad.net/gcc-arm-embedded/4.8/4.8-2013-q4-major/+download/gcc-arm-none-eabi-4_8-2013q4-20131218-mac.tar.bz2'
+  )
 })
 
 test('test url response', async () => {
