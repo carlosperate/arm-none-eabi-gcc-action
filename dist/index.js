@@ -4671,6 +4671,25 @@ module.exports = function unzip(source,offset,_password, directoryVars) {
 
 "use strict";
 
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -4679,13 +4698,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
-};
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
-    result["default"] = mod;
-    return result;
 };
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
@@ -17616,6 +17628,25 @@ Promise.prototype._resultCancelled = function() {
 
 "use strict";
 
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -17625,17 +17656,11 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
-    result["default"] = mod;
-    return result;
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.findGcc = exports.install = void 0;
 /* eslint-disable no-console */
 const fs = __importStar(__webpack_require__(747));
 const path = __importStar(__webpack_require__(622));
@@ -17646,11 +17671,11 @@ const unbzip2_stream_1 = __importDefault(__webpack_require__(849));
 const unzipper = __importStar(__webpack_require__(360));
 const gcc = __importStar(__webpack_require__(845));
 function urlExt(s) {
-    var _a, _b, _c;
+    var _a;
     const u = url.parse(s);
     const components = (_a = u.path) === null || _a === void 0 ? void 0 : _a.split('/');
-    if (components && ((_b = components) === null || _b === void 0 ? void 0 : _b.length) > 0) {
-        const last = components[((_c = components) === null || _c === void 0 ? void 0 : _c.length) - 1];
+    if (components && (components === null || components === void 0 ? void 0 : components.length) > 0) {
+        const last = components[(components === null || components === void 0 ? void 0 : components.length) - 1];
         const dot = last.indexOf('.');
         if (dot >= 0) {
             return last.substr(dot).toLowerCase();
@@ -17659,6 +17684,13 @@ function urlExt(s) {
     return '';
 }
 function install(release, directory, platform) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const maxRetries = 5;
+        return retryInstall(maxRetries, release, directory, platform);
+    });
+}
+exports.install = install;
+function retryInstall(maxRetries, release, directory, platform) {
     return __awaiter(this, void 0, void 0, function* () {
         const distUrl = gcc.distributionUrl(release, platform || process.platform);
         console.log(`downloading gcc ${release} from ${distUrl}`);
@@ -17688,10 +17720,19 @@ function install(release, directory, platform) {
             // tar
             extractor.on('end', resolve);
             extractor.on('error', reject);
+        }).catch(function (err) {
+            return __awaiter(this, void 0, void 0, function* () {
+                if (maxRetries > 0) {
+                    console.log(`retrying ${distUrl}`);
+                    return retryInstall(maxRetries - 1, release, directory, platform);
+                }
+                else {
+                    throw err;
+                }
+            });
         });
     });
 }
-exports.install = install;
 function findGccWindows(dir) {
     const entries = fs.readdirSync(dir);
     for (const name of entries) {
@@ -24983,6 +25024,7 @@ function Extract (opts) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.distributionUrl = exports.availableVersions = void 0;
 const versions = {
     '9-2020-q2': 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/9-2020q2/gcc-arm-none-eabi-9-2020-q2-update-${ARCH_OS}.${EXT}',
     '9-2019-q4': 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/9-2019q4/gcc-arm-none-eabi-9-2019-q4-major-${ARCH_OS}.${EXT}',

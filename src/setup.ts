@@ -23,6 +23,11 @@ function urlExt(s: string): string {
 }
 
 export async function install(release: string, directory: string, platform?: string): Promise<void> {
+  const maxRetries = 5
+  return retryInstall(maxRetries, release, directory, platform)
+}
+
+async function retryInstall(maxRetries: number, release: string, directory: string, platform?: string): Promise<void> {
   const distUrl = gcc.distributionUrl(release, platform || process.platform)
   console.log(`downloading gcc ${release} from ${distUrl}`)
   const resp = await fetch(distUrl)
@@ -51,6 +56,13 @@ export async function install(release: string, directory: string, platform?: str
     // tar
     extractor.on('end', resolve)
     extractor.on('error', reject)
+  }).catch(async function(err: Error) {
+    if (maxRetries > 0) {
+      console.log(`retrying ${distUrl}`)
+      return retryInstall(maxRetries - 1, release, directory, platform)
+    } else {
+      throw err
+    }
   })
 }
 
