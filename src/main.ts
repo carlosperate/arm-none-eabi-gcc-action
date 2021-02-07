@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import * as core from '@actions/core'
 import * as path from 'path'
 
@@ -17,7 +18,12 @@ async function run(): Promise<void> {
       directory = path.join(tmpDir.name, `gcc-${release}`)
     }
     await setup.install(release, directory)
-    core.addPath(path.join(directory, 'bin'))
+    const gccPath = setup.findGcc(directory)
+    if (!gccPath) {
+      throw new Error(`could not find gcc executable in ${directory}`)
+    }
+    console.log(`adding ${gccPath} to PATH`)
+    core.addPath(gccPath)
   } catch (error) {
     core.setFailed(error.message)
   }

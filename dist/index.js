@@ -4671,6 +4671,25 @@ module.exports = function unzip(source,offset,_password, directoryVars) {
 
 "use strict";
 
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -4680,17 +4699,11 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
-    result["default"] = mod;
-    return result;
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+/* eslint-disable no-console */
 const core = __importStar(__webpack_require__(470));
 const path = __importStar(__webpack_require__(622));
 const tmp_1 = __importDefault(__webpack_require__(150));
@@ -4708,7 +4721,12 @@ function run() {
                 directory = path.join(tmpDir.name, `gcc-${release}`);
             }
             yield setup.install(release, directory);
-            core.addPath(path.join(directory, 'bin'));
+            const gccPath = setup.findGcc(directory);
+            if (!gccPath) {
+                throw new Error(`could not find gcc executable in ${directory}`);
+            }
+            console.log(`adding ${gccPath} to PATH`);
+            core.addPath(gccPath);
         }
         catch (error) {
             core.setFailed(error.message);
@@ -17610,6 +17628,25 @@ Promise.prototype._resultCancelled = function() {
 
 "use strict";
 
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -17619,19 +17656,14 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
-    result["default"] = mod;
-    return result;
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.findGcc = exports.install = void 0;
 /* eslint-disable no-console */
 const fs = __importStar(__webpack_require__(747));
+const path = __importStar(__webpack_require__(622));
 const url = __importStar(__webpack_require__(835));
 const node_fetch_1 = __importDefault(__webpack_require__(454));
 const tar_1 = __importDefault(__webpack_require__(885));
@@ -17639,11 +17671,11 @@ const unbzip2_stream_1 = __importDefault(__webpack_require__(849));
 const unzipper = __importStar(__webpack_require__(360));
 const gcc = __importStar(__webpack_require__(845));
 function urlExt(s) {
-    var _a, _b, _c;
+    var _a;
     const u = url.parse(s);
     const components = (_a = u.path) === null || _a === void 0 ? void 0 : _a.split('/');
-    if (components && ((_b = components) === null || _b === void 0 ? void 0 : _b.length) > 0) {
-        const last = components[((_c = components) === null || _c === void 0 ? void 0 : _c.length) - 1];
+    if (components && (components === null || components === void 0 ? void 0 : components.length) > 0) {
+        const last = components[(components === null || components === void 0 ? void 0 : components.length) - 1];
         const dot = last.indexOf('.');
         if (dot >= 0) {
             return last.substr(dot).toLowerCase();
@@ -17652,6 +17684,13 @@ function urlExt(s) {
     return '';
 }
 function install(release, directory, platform) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const maxRetries = 5;
+        return retryInstall(maxRetries, release, directory, platform);
+    });
+}
+exports.install = install;
+function retryInstall(maxRetries, release, directory, platform) {
     return __awaiter(this, void 0, void 0, function* () {
         const distUrl = gcc.distributionUrl(release, platform || process.platform);
         console.log(`downloading gcc ${release} from ${distUrl}`);
@@ -17681,10 +17720,46 @@ function install(release, directory, platform) {
             // tar
             extractor.on('end', resolve);
             extractor.on('error', reject);
+        }).catch(function (err) {
+            return __awaiter(this, void 0, void 0, function* () {
+                if (maxRetries > 0) {
+                    console.log(`retrying ${distUrl}`);
+                    return retryInstall(maxRetries - 1, release, directory, platform);
+                }
+                else {
+                    throw err;
+                }
+            });
         });
     });
 }
-exports.install = install;
+function findGccWindows(dir) {
+    const entries = fs.readdirSync(dir);
+    for (const name of entries) {
+        if (name === 'arm-none-eabi-gcc.exe') {
+            return dir;
+        }
+        const p = path.join(dir, name);
+        const st = fs.lstatSync(p);
+        if (st.isDirectory()) {
+            const result = findGccWindows(p);
+            if (result !== '') {
+                return result;
+            }
+        }
+    }
+    return '';
+}
+function findGcc(root, platform) {
+    platform = platform || process.platform;
+    // Linux and macOS releases always have a /bin directory at the
+    // root. However, some Windows releases might have a different structure.
+    if (platform === 'win32') {
+        return findGccWindows(root);
+    }
+    return path.join(root, 'bin');
+}
+exports.findGcc = findGcc;
 
 
 /***/ }),
@@ -24949,13 +25024,14 @@ function Extract (opts) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.distributionUrl = exports.availableVersions = void 0;
 const versions = {
     '9-2020-q2': 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/9-2020q2/gcc-arm-none-eabi-9-2020-q2-update-${ARCH_OS}.${EXT}',
     '9-2019-q4': 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/9-2019q4/gcc-arm-none-eabi-9-2019-q4-major-${ARCH_OS}.${EXT}',
     '8-2019-q3': 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/8-2019q3/RC1.1/gcc-arm-none-eabi-8-2019-q3-update-${OS}.${EXT}',
     '8-2018-q4': 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/8-2018q4/gcc-arm-none-eabi-8-2018-q4-major-${OS}.${EXT}',
     '7-2018-q2': 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/7-2018q2/gcc-arm-none-eabi-7-2018-q2-update-${OS}.${EXT}',
-    '7-2017-q4': 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/7-2017q4/gcc-arm-none-eabi-7-2017-q4-major-win32-${OS}.${EXT}',
+    '7-2017-q4': 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/7-2017q4/gcc-arm-none-eabi-7-2017-q4-major-${OS}.${EXT}',
     '6-2017-q2': 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/6-2017q2/gcc-arm-none-eabi-6-2017-q2-update-${OS}.${EXT}',
     '6-2017-q1': 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/6_1-2017q1/gcc-arm-none-eabi-6-2017-q1-update-${OS}${WIN_EXTRA_EXT}.${EXT}',
     '6-2016-q4': 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/6-2016q4/gcc-arm-none-eabi-6_2-2016q4-20161216-${OS}${WIN_EXTRA_EXT}.${EXT}',
@@ -24972,6 +25048,7 @@ const versions = {
     '4.8-2014-q1': 'https://launchpad.net/gcc-arm-embedded/4.8/4.8-2014-q1-update/+download/gcc-arm-none-eabi-4_8-2014q1-20140314-${OS}.${EXT}',
     '4.7-2014-q2': 'https://launchpad.net/gcc-arm-embedded/4.7/4.7-2014-q2-update/+download/gcc-arm-none-eabi-4_7-2014q2-20140408-${OS}.${EXT}',
     '4.8-2013-q4': 'https://launchpad.net/gcc-arm-embedded/4.8/4.8-2013-q4-major/+download/gcc-arm-none-eabi-4_8-2013q4-20131204-${OS}.${EXT}',
+    '4.8-2013-q4-darwin': 'https://launchpad.net/gcc-arm-embedded/4.8/4.8-2013-q4-major/+download/gcc-arm-none-eabi-4_8-2013q4-20131218-${OS}.${EXT}',
     '4.7-2013-q3': 'https://launchpad.net/gcc-arm-embedded/4.7/4.7-2013-q3-update/+download/gcc-arm-none-eabi-4_7-2013q3-20130916-${OS}.${EXT}',
     '4.7-2013-q2': 'https://launchpad.net/gcc-arm-embedded/4.7/4.7-2013-q2-update/+download/gcc-arm-none-eabi-4_7-2013q2-20130614-${OS}.${EXT}',
     '4.7-2013-q1': 'https://launchpad.net/gcc-arm-embedded/4.7/4.7-2013-q1-update/+download/gcc-arm-none-eabi-4_7-2013q1-20130313-${OS}.${EXT}',
@@ -25011,9 +25088,13 @@ function distributionUrl(version, platform) {
     if (parts.length !== 3) {
         throw new Error(`invalid version ${version}. Available: ${availableVersions()}`);
     }
-    const url = versions[version];
+    // Try platform specific URL first
+    let url = versions[`${version}-${platform}`];
     if (!url) {
-        throw new Error(`gcc version ${version} is not supported`);
+        url = versions[version];
+        if (!url) {
+            throw new Error(`gcc version ${version} is not supported`);
+        }
     }
     return url.replace(/\$\{(.*?)\}/g, (_, p1) => {
         switch (p1) {

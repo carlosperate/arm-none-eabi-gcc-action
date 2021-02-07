@@ -10,7 +10,7 @@ const versions: {[key: string]: string} = {
   '7-2018-q2':
     'https://developer.arm.com/-/media/Files/downloads/gnu-rm/7-2018q2/gcc-arm-none-eabi-7-2018-q2-update-${OS}.${EXT}',
   '7-2017-q4':
-    'https://developer.arm.com/-/media/Files/downloads/gnu-rm/7-2017q4/gcc-arm-none-eabi-7-2017-q4-major-win32-${OS}.${EXT}',
+    'https://developer.arm.com/-/media/Files/downloads/gnu-rm/7-2017q4/gcc-arm-none-eabi-7-2017-q4-major-${OS}.${EXT}',
   '6-2017-q2':
     'https://developer.arm.com/-/media/Files/downloads/gnu-rm/6-2017q2/gcc-arm-none-eabi-6-2017-q2-update-${OS}.${EXT}',
   '6-2017-q1':
@@ -43,6 +43,8 @@ const versions: {[key: string]: string} = {
     'https://launchpad.net/gcc-arm-embedded/4.7/4.7-2014-q2-update/+download/gcc-arm-none-eabi-4_7-2014q2-20140408-${OS}.${EXT}',
   '4.8-2013-q4':
     'https://launchpad.net/gcc-arm-embedded/4.8/4.8-2013-q4-major/+download/gcc-arm-none-eabi-4_8-2013q4-20131204-${OS}.${EXT}',
+  '4.8-2013-q4-darwin':
+    'https://launchpad.net/gcc-arm-embedded/4.8/4.8-2013-q4-major/+download/gcc-arm-none-eabi-4_8-2013q4-20131218-${OS}.${EXT}',
   '4.7-2013-q3':
     'https://launchpad.net/gcc-arm-embedded/4.7/4.7-2013-q3-update/+download/gcc-arm-none-eabi-4_7-2013q3-20130916-${OS}.${EXT}',
   '4.7-2013-q2':
@@ -87,9 +89,13 @@ export function distributionUrl(version: string, platform: string): string {
   if (parts.length !== 3) {
     throw new Error(`invalid version ${version}. Available: ${availableVersions()}`)
   }
-  const url = versions[version]
+  // Try platform specific URL first
+  let url = versions[`${version}-${platform}`]
   if (!url) {
-    throw new Error(`gcc version ${version} is not supported`)
+    url = versions[version]
+    if (!url) {
+      throw new Error(`gcc version ${version} is not supported`)
+    }
   }
   return url.replace(/\$\{(.*?)\}/g, (_, p1) => {
     switch (p1) {
