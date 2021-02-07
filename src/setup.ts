@@ -1,5 +1,6 @@
 /* eslint-disable no-console */
 import * as fs from 'fs'
+import * as path from 'path'
 import * as url from 'url'
 import fetch from 'node-fetch'
 import tar from 'tar'
@@ -51,4 +52,32 @@ export async function install(release: string, directory: string, platform?: str
     extractor.on('end', resolve)
     extractor.on('error', reject)
   })
+}
+
+function findGccWindows(dir: string): string {
+  const entries = fs.readdirSync(dir)
+  for (const name of entries) {
+    if (name === 'arm-none-eabi-gcc.exe') {
+      return dir
+    }
+    const p = path.join(dir, name)
+    const st = fs.lstatSync(p)
+    if (st.isDirectory()) {
+      const result = findGccWindows(p)
+      if (result !== '') {
+        return result
+      }
+    }
+  }
+  return ''
+}
+
+export function findGcc(root: string, platform?: string): string {
+  platform = platform || process.platform
+  // Linux and macOS releases always have a /bin directory at the
+  // root. However, some Windows releases might have a different structure.
+  if (platform === 'win32') {
+    return findGccWindows(root)
+  }
+  return path.join(root, 'bin')
 }

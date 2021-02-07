@@ -4691,6 +4691,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+/* eslint-disable no-console */
 const core = __importStar(__webpack_require__(470));
 const path = __importStar(__webpack_require__(622));
 const tmp_1 = __importDefault(__webpack_require__(150));
@@ -4708,7 +4709,12 @@ function run() {
                 directory = path.join(tmpDir.name, `gcc-${release}`);
             }
             yield setup.install(release, directory);
-            core.addPath(path.join(directory, 'bin'));
+            const gccPath = setup.findGcc(directory);
+            if (!gccPath) {
+                throw new Error(`could not find gcc executable in ${directory}`);
+            }
+            console.log(`adding ${gccPath} to PATH`);
+            core.addPath(gccPath);
         }
         catch (error) {
             core.setFailed(error.message);
@@ -17632,6 +17638,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 /* eslint-disable no-console */
 const fs = __importStar(__webpack_require__(747));
+const path = __importStar(__webpack_require__(622));
 const url = __importStar(__webpack_require__(835));
 const node_fetch_1 = __importDefault(__webpack_require__(454));
 const tar_1 = __importDefault(__webpack_require__(885));
@@ -17685,6 +17692,33 @@ function install(release, directory, platform) {
     });
 }
 exports.install = install;
+function findGccWindows(dir) {
+    const entries = fs.readdirSync(dir);
+    for (const name of entries) {
+        if (name === 'arm-none-eabi-gcc.exe') {
+            return dir;
+        }
+        const p = path.join(dir, name);
+        const st = fs.lstatSync(p);
+        if (st.isDirectory()) {
+            const result = findGccWindows(p);
+            if (result !== '') {
+                return result;
+            }
+        }
+    }
+    return '';
+}
+function findGcc(root, platform) {
+    platform = platform || process.platform;
+    // Linux and macOS releases always have a /bin directory at the
+    // root. However, some Windows releases might have a different structure.
+    if (platform === 'win32') {
+        return findGccWindows(root);
+    }
+    return path.join(root, 'bin');
+}
+exports.findGcc = findGcc;
 
 
 /***/ }),

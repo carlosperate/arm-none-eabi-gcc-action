@@ -35,7 +35,7 @@ test('test url response', async () => {
 
 function hasGcc(dir: string): boolean {
   for (const filename of ['arm-none-eabi-gcc', 'arm-none-eabi-gcc.exe']) {
-    const exe = path.join(dir, 'bin', filename)
+    const exe = path.join(dir, filename)
     if (fs.existsSync(exe)) {
       console.log(`${exe} exists`)
       return true
@@ -48,8 +48,10 @@ async function tmpInstall(release: string, platform?: string): Promise<void> {
   const dir = tmp.dirSync()
   const gccDir = path.join(dir.name, `gcc-${release}`)
   await setup.install(release, gccDir, platform)
-  // make sure there's a bin/arm-none-eabi-gcc[.exe] at gccDir
-  expect(hasGcc(gccDir)).toEqual(true)
+  const gccPath = setup.findGcc(gccDir, platform)
+  console.log(`gcc is at ${gccPath}`)
+  expect(gccPath).not.toBe('')
+  expect(hasGcc(gccPath)).toEqual(true)
   dir.removeCallback()
 }
 
@@ -58,6 +60,7 @@ test(
   async () => {
     await tmpInstall('9-2019-q4', 'darwin')
     await tmpInstall('6-2017-q1', 'win32')
+    await tmpInstall('4.7-2013-q1', 'win32')
   },
   10 * 60 * 1000
 )
