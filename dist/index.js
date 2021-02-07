@@ -25026,6 +25026,7 @@ function Extract (opts) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.distributionUrl = exports.availableVersions = void 0;
 const versions = {
+    '10-2020-q4': 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/10-2020q4/gcc-arm-none-eabi-10-2020-q4-major-${ARCH_OS}.${EXT}',
     '9-2020-q2': 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/9-2020q2/gcc-arm-none-eabi-9-2020-q2-update-${ARCH_OS}.${EXT}',
     '9-2019-q4': 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/9-2019q4/gcc-arm-none-eabi-9-2019-q4-major-${ARCH_OS}.${EXT}',
     '8-2019-q3': 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/8-2019q3/RC1.1/gcc-arm-none-eabi-8-2019-q3-update-${OS}.${EXT}',
