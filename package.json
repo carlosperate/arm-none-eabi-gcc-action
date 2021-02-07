@@ -1,6 +1,6 @@
 {
   "name": "arm-none-eabi-gcc",
-  "version": "1.0.2",
+  "version": "1.0.4",
   "private": true,
   "description": "Action for installing arm-none-eabi-gcc",
   "main": "lib/main.js",
