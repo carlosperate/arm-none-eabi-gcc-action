@@ -45,6 +45,9 @@ jobs:
           - '4.7-2013-q2'
           - '4.7-2013-q1'
           - '4.7-2012-q4'
+        exclude:
+          - os: windows-latest
+            release: '4.7-2012-q4' # There's no .zip release for Windows for this version
 
     name: Test ${{ matrix.release }} @ ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
