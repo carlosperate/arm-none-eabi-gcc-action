@@ -17676,7 +17676,7 @@ function urlExt(s) {
     const components = (_a = u.path) === null || _a === void 0 ? void 0 : _a.split('/');
     if (components && (components === null || components === void 0 ? void 0 : components.length) > 0) {
         const last = components[(components === null || components === void 0 ? void 0 : components.length) - 1];
-        const dot = last.indexOf('.');
+        const dot = last.lastIndexOf('.');
         if (dot >= 0) {
             return last.substr(dot).toLowerCase();
         }
@@ -17707,7 +17707,7 @@ function retryInstall(maxRetries, release, directory, platform) {
                 extractor = unzipper.Extract({ path: directory });
                 resp.body.pipe(extractor);
                 break;
-            case '.tar.bz2':
+            case '.bz2':
                 extractor = tar_1.default.x({ strip: 1, C: directory });
                 resp.body.pipe(unbzip2_stream_1.default()).pipe(extractor);
                 break;
@@ -25026,6 +25026,7 @@ function Extract (opts) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.distributionUrl = exports.availableVersions = void 0;
 const versions = {
+    '10.3-2021.07': 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/10.3-2021.07/gcc-arm-none-eabi-10.3-2021.07-${ARCH_OS}${MAC_EXTRA_OS}.${EXT}',
     '10-2020-q4': 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/10-2020q4/gcc-arm-none-eabi-10-2020-q4-major-${ARCH_OS}.${EXT}',
     '9-2020-q2': 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/9-2020q2/gcc-arm-none-eabi-9-2020-q2-update-${ARCH_OS}.${EXT}',
     '9-2019-q4': 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/9-2019q4/gcc-arm-none-eabi-9-2019-q4-major-${ARCH_OS}.${EXT}',
@@ -25065,11 +25066,13 @@ function distributionUrl(version, platform) {
     let archOs;
     let ext;
     let winExtraExt = '';
+    let macExtraOS = '';
     switch (platform) {
         case 'darwin':
             osName = 'mac';
             archOs = 'mac';
             ext = 'tar.bz2';
+            macExtraOS = '-10.14.6';
             break;
         case 'linux':
             osName = 'linux';
@@ -25085,8 +25088,7 @@ function distributionUrl(version, platform) {
         default:
             throw new Error(`platform ${platform} is not supported`);
     }
-    const parts = version.split('-');
-    if (parts.length !== 3) {
+    if (!versions.hasOwnProperty(version)) {
         throw new Error(`invalid version ${version}. Available: ${availableVersions()}`);
     }
     // Try platform specific URL first
@@ -25107,6 +25109,8 @@ function distributionUrl(version, platform) {
                 return ext;
             case 'WIN_EXTRA_EXT':
                 return winExtraExt;
+            case 'MAC_EXTRA_OS':
+                return macExtraOS;
         }
         throw new Error(`unknown replacement ${p1}`);
     });

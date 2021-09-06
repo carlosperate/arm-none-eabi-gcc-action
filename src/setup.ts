@@ -14,7 +14,7 @@ function urlExt(s: string): string {
   const components = u.path?.split('/')
   if (components && components?.length > 0) {
     const last = components[components?.length - 1]
-    const dot = last.indexOf('.')
+    const dot = last.lastIndexOf('.')
     if (dot >= 0) {
       return last.substr(dot).toLowerCase()
     }
@@ -43,7 +43,7 @@ async function retryInstall(maxRetries: number, release: string, directory: stri
       extractor = unzipper.Extract({path: directory})
       resp.body.pipe(extractor)
       break
-    case '.tar.bz2':
+    case '.bz2':
       extractor = tar.x({strip: 1, C: directory})
       resp.body.pipe(bz2()).pipe(extractor)
       break

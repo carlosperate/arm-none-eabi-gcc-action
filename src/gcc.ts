@@ -1,4 +1,6 @@
 const versions: {[key: string]: string} = {
+  '10.3-2021.07':
+    'https://developer.arm.com/-/media/Files/downloads/gnu-rm/10.3-2021.07/gcc-arm-none-eabi-10.3-2021.07-${ARCH_OS}${MAC_EXTRA_OS}.${EXT}',
   '10-2020-q4':
     'https://developer.arm.com/-/media/Files/downloads/gnu-rm/10-2020q4/gcc-arm-none-eabi-10-2020-q4-major-${ARCH_OS}.${EXT}',
   '9-2020-q2':
@@ -67,11 +69,13 @@ export function distributionUrl(version: string, platform: string): string {
   let archOs: string
   let ext: string
   let winExtraExt = ''
+  let macExtraOS = ''
   switch (platform) {
     case 'darwin':
       osName = 'mac'
       archOs = 'mac'
       ext = 'tar.bz2'
+      macExtraOS = '-10.14.6'
       break
     case 'linux':
       osName = 'linux'
@@ -87,8 +91,7 @@ export function distributionUrl(version: string, platform: string): string {
     default:
       throw new Error(`platform ${platform} is not supported`)
   }
-  const parts = version.split('-')
-  if (parts.length !== 3) {
+  if (!versions.hasOwnProperty(version)) {
     throw new Error(`invalid version ${version}. Available: ${availableVersions()}`)
   }
   // Try platform specific URL first
@@ -109,6 +112,8 @@ export function distributionUrl(version: string, platform: string): string {
         return ext
       case 'WIN_EXTRA_EXT':
         return winExtraExt
+      case 'MAC_EXTRA_OS':
+        return macExtraOS
     }
     throw new Error(`unknown replacement ${p1}`)
   })

@@ -19,6 +19,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         release:
+          - '10.3-2021.07'
           - '10-2020-q4'
           - '9-2020-q2'
           - '9-2019-q4'
