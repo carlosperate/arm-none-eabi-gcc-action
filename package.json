@@ -1,8 +1,8 @@
 {
-  "name": "arm-none-eabi-gcc",
-  "version": "1.0.4",
+  "name": "arm-none-eabi-gcc-action",
+  "version": "1.0.0",
   "private": true,
-  "description": "Action for installing arm-none-eabi-gcc",
+  "description": "GitHub Action to install arm-none-eabi-gcc",
   "main": "lib/main.js",
   "scripts": {
     "build": "tsc",
@@ -15,14 +15,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/actions/typescript-action.git"
+    "url": "git+https://github.com/carlosperate/arm-none-eabi-gcc-action.git"
   },
   "keywords": [
     "actions",
-    "node",
-    "setup"
+    "gcc",
+    "arm",
+    "arm-none-eabi-gcc"
   ],
-  "author": "YourNameOrOrganization",
+  "author": "Carlos Pereira Atencio",
   "license": "MIT",
   "dependencies": {
     "@actions/core": "^1.2.6",
