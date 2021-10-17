@@ -1,19 +1,24 @@
-name: CI
-on: # rebuild any PRs and main branch changes
+name: Build & Test Action
+
+on:
   pull_request:
   push:
     branches:
-      - master
+      - main
+      - ci
       - 'releases/*'
 
 jobs:
-  build: # make sure build/ci work properly
+  # Test for build errors
+  build:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
     - run: npm install
     - run: npm run all
-  test: # make sure the action works on a clean machine without building
+
+  # Run Action with all GCC versions and in all environments
+  test:
     strategy:
       fail-fast: false
       matrix:
@@ -50,12 +55,19 @@ jobs:
         exclude:
           - os: windows-latest
             release: '4.7-2012-q4' # There's no .zip release for Windows for this version
-
     name: Test ${{ matrix.release }} @ ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v2
     - uses: ./
-      with: 
+      with:
         release: ${{ matrix.release }}
-    - run: arm-none-eabi-gcc -v
+    - name: Print out programs invoked by the compiler
+      run: arm-none-eabi-gcc -v
+    - name: Print out version
+      run: arm-none-eabi-gcc --version
+    - name: Check the version matches
+      if: |
+        (!contains(matrix.release, '2012') && !contains(matrix.release, '2013') &&  !contains(matrix.release, '2014')
+        && !contains(matrix.release, '2015') && !contains(matrix.release, '2016'))
+      run: arm-none-eabi-gcc --version | grep -q ${{ matrix.release }}
