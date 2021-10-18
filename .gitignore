@@ -99,3 +99,4 @@ __tests__/runner/*
 lib/**/*
 
 /.vscode
+TESTS_TEMP_DELETE/*
