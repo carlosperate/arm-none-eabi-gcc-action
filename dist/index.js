@@ -14204,25 +14204,11 @@ exports.findGcc = exports.install = void 0;
 /* eslint-disable no-console */
 const fs = __importStar(__webpack_require__(747));
 const path = __importStar(__webpack_require__(622));
-const url = __importStar(__webpack_require__(835));
 const node_fetch_1 = __importDefault(__webpack_require__(454));
 const tar_1 = __importDefault(__webpack_require__(885));
 const unbzip2_stream_1 = __importDefault(__webpack_require__(849));
 const unzipper = __importStar(__webpack_require__(360));
 const gcc = __importStar(__webpack_require__(845));
-function urlExt(s) {
-    var _a;
-    const u = url.parse(s);
-    const components = (_a = u.path) === null || _a === void 0 ? void 0 : _a.split('/');
-    if (components && (components === null || components === void 0 ? void 0 : components.length) > 0) {
-        const last = components[(components === null || components === void 0 ? void 0 : components.length) - 1];
-        const dot = last.lastIndexOf('.');
-        if (dot >= 0) {
-            return last.substr(dot).toLowerCase();
-        }
-    }
-    return '';
-}
 function install(release, directory, platform) {
     return __awaiter(this, void 0, void 0, function* () {
         const maxRetries = 5;
@@ -14242,17 +14228,16 @@ function retryInstall(maxRetries, release, directory, platform) {
         yield fs.promises.mkdir(directory, { recursive: true });
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let extractor;
-        switch (urlExt(distUrl)) {
-            case '.zip':
-                extractor = unzipper.Extract({ path: directory });
-                resp.body.pipe(extractor);
-                break;
-            case '.bz2':
-                extractor = tar_1.default.x({ strip: 1, C: directory });
-                resp.body.pipe(unbzip2_stream_1.default()).pipe(extractor);
-                break;
-            default:
-                throw new Error(`can't decompress ${urlExt(distUrl)}`);
+        if (distUrl.endsWith('.zip')) {
+            extractor = unzipper.Extract({ path: directory });
+            resp.body.pipe(extractor);
+        }
+        else if (distUrl.endsWith('.tar.bz2')) {
+            extractor = tar_1.default.x({ strip: 1, C: directory });
+            resp.body.pipe(unbzip2_stream_1.default()).pipe(extractor);
+        }
+        else {
+            throw new Error(`Can't decompress ${distUrl}`);
         }
         yield new Promise(function (resolve, reject) {
             // unzipper
@@ -14263,7 +14248,7 @@ function retryInstall(maxRetries, release, directory, platform) {
         }).catch(function (err) {
             return __awaiter(this, void 0, void 0, function* () {
                 if (maxRetries > 0) {
-                    console.log(`retrying ${distUrl}`);
+                    console.log(`Retrying ${distUrl}`);
                     return retryInstall(maxRetries - 1, release, directory, platform);
                 }
                 else {

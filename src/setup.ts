@@ -1,26 +1,12 @@
 /* eslint-disable no-console */
 import * as fs from 'fs'
 import * as path from 'path'
-import * as url from 'url'
 import fetch from 'node-fetch'
 import tar from 'tar'
 import bz2 from 'unbzip2-stream'
 import * as unzipper from 'unzipper'
 
 import * as gcc from '../src/gcc'
-
-function urlExt(s: string): string {
-  const u = url.parse(s)
-  const components = u.path?.split('/')
-  if (components && components?.length > 0) {
-    const last = components[components?.length - 1]
-    const dot = last.lastIndexOf('.')
-    if (dot >= 0) {
-      return last.substr(dot).toLowerCase()
-    }
-  }
-  return ''
-}
 
 export async function install(release: string, directory: string, platform?: string): Promise<void> {
   const maxRetries = 5
@@ -38,17 +24,14 @@ async function retryInstall(maxRetries: number, release: string, directory: stri
   await fs.promises.mkdir(directory, {recursive: true})
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let extractor: any
-  switch (urlExt(distUrl)) {
-    case '.zip':
-      extractor = unzipper.Extract({path: directory})
-      resp.body.pipe(extractor)
-      break
-    case '.bz2':
-      extractor = tar.x({strip: 1, C: directory})
-      resp.body.pipe(bz2()).pipe(extractor)
-      break
-    default:
-      throw new Error(`can't decompress ${urlExt(distUrl)}`)
+  if (distUrl.endsWith('.zip')) {
+    extractor = unzipper.Extract({path: directory})
+    resp.body.pipe(extractor)
+  } else if (distUrl.endsWith('.tar.bz2')) {
+    extractor = tar.x({strip: 1, C: directory})
+    resp.body.pipe(bz2()).pipe(extractor)
+  } else {
+    throw new Error(`Can't decompress ${distUrl}`)
   }
   await new Promise(function(resolve, reject) {
     // unzipper
@@ -58,7 +41,7 @@ async function retryInstall(maxRetries: number, release: string, directory: stri
     extractor.on('error', reject)
   }).catch(async function(err: Error) {
     if (maxRetries > 0) {
-      console.log(`retrying ${distUrl}`)
+      console.log(`Retrying ${distUrl}`)
       return retryInstall(maxRetries - 1, release, directory, platform)
     } else {
       throw err
