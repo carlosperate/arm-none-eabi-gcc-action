@@ -4707,13 +4707,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const core = __importStar(__webpack_require__(470));
 const path = __importStar(__webpack_require__(622));
 const tmp_1 = __importDefault(__webpack_require__(150));
-const setup = __importStar(__webpack_require__(526));
+const setup = __importStar(__webpack_require__(429));
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             const release = core.getInput('release');
             if (!release) {
-                throw new Error('missing release');
+                throw new Error('Missing release input.');
             }
             let directory = core.getInput('directory');
             if (!directory) {
@@ -4723,13 +4723,14 @@ function run() {
             yield setup.install(release, directory);
             const gccPath = setup.findGcc(directory);
             if (!gccPath) {
-                throw new Error(`could not find gcc executable in ${directory}`);
+                throw new Error(`Could not find gcc executable in ${directory}`);
             }
-            console.log(`adding ${gccPath} to PATH`);
+            console.log(`Adding ${gccPath} to PATH.`);
             core.addPath(gccPath);
         }
         catch (error) {
-            core.setFailed(error.message);
+            if (error instanceof Error)
+                core.setFailed(error.message);
         }
     });
 }
@@ -14162,6 +14163,147 @@ module.exports = __webpack_require__(413);
 
 /***/ }),
 
+/***/ 429:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.findGcc = exports.install = void 0;
+/* eslint-disable no-console */
+const fs = __importStar(__webpack_require__(747));
+const path = __importStar(__webpack_require__(622));
+const url = __importStar(__webpack_require__(835));
+const node_fetch_1 = __importDefault(__webpack_require__(454));
+const tar_1 = __importDefault(__webpack_require__(885));
+const unbzip2_stream_1 = __importDefault(__webpack_require__(849));
+const unzipper = __importStar(__webpack_require__(360));
+const gcc = __importStar(__webpack_require__(845));
+function urlExt(s) {
+    var _a;
+    const u = url.parse(s);
+    const components = (_a = u.path) === null || _a === void 0 ? void 0 : _a.split('/');
+    if (components && (components === null || components === void 0 ? void 0 : components.length) > 0) {
+        const last = components[(components === null || components === void 0 ? void 0 : components.length) - 1];
+        const dot = last.lastIndexOf('.');
+        if (dot >= 0) {
+            return last.substr(dot).toLowerCase();
+        }
+    }
+    return '';
+}
+function install(release, directory, platform) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const maxRetries = 5;
+        return retryInstall(maxRetries, release, directory, platform);
+    });
+}
+exports.install = install;
+function retryInstall(maxRetries, release, directory, platform) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const distUrl = gcc.distributionUrl(release, platform || process.platform);
+        console.log(`downloading gcc ${release} from ${distUrl}`);
+        const resp = yield node_fetch_1.default(distUrl);
+        if (resp.status !== 200) {
+            throw new Error(`invalid HTTP response code ${resp.status}`);
+        }
+        console.log(`extracting to ${directory}`);
+        yield fs.promises.mkdir(directory, { recursive: true });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let extractor;
+        switch (urlExt(distUrl)) {
+            case '.zip':
+                extractor = unzipper.Extract({ path: directory });
+                resp.body.pipe(extractor);
+                break;
+            case '.bz2':
+                extractor = tar_1.default.x({ strip: 1, C: directory });
+                resp.body.pipe(unbzip2_stream_1.default()).pipe(extractor);
+                break;
+            default:
+                throw new Error(`can't decompress ${urlExt(distUrl)}`);
+        }
+        yield new Promise(function (resolve, reject) {
+            // unzipper
+            extractor.on('close', resolve);
+            // tar
+            extractor.on('end', resolve);
+            extractor.on('error', reject);
+        }).catch(function (err) {
+            return __awaiter(this, void 0, void 0, function* () {
+                if (maxRetries > 0) {
+                    console.log(`retrying ${distUrl}`);
+                    return retryInstall(maxRetries - 1, release, directory, platform);
+                }
+                else {
+                    throw err;
+                }
+            });
+        });
+    });
+}
+function findGccWindows(dir) {
+    const entries = fs.readdirSync(dir);
+    for (const name of entries) {
+        if (name === 'arm-none-eabi-gcc.exe') {
+            return dir;
+        }
+        const p = path.join(dir, name);
+        const st = fs.lstatSync(p);
+        if (st.isDirectory()) {
+            const result = findGccWindows(p);
+            if (result !== '') {
+                return result;
+            }
+        }
+    }
+    return '';
+}
+function findGcc(root, platform) {
+    platform = platform || process.platform;
+    // Linux and macOS releases always have a /bin directory at the
+    // root. However, some Windows releases might have a different structure.
+    if (platform === 'win32') {
+        return findGccWindows(root);
+    }
+    return path.join(root, 'bin');
+}
+exports.findGcc = findGcc;
+
+
+/***/ }),
+
 /***/ 431:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
@@ -17619,147 +17761,6 @@ Promise.prototype._resultCancelled = function() {
 };
 
 };
-
-
-/***/ }),
-
-/***/ 526:
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.findGcc = exports.install = void 0;
-/* eslint-disable no-console */
-const fs = __importStar(__webpack_require__(747));
-const path = __importStar(__webpack_require__(622));
-const url = __importStar(__webpack_require__(835));
-const node_fetch_1 = __importDefault(__webpack_require__(454));
-const tar_1 = __importDefault(__webpack_require__(885));
-const unbzip2_stream_1 = __importDefault(__webpack_require__(849));
-const unzipper = __importStar(__webpack_require__(360));
-const gcc = __importStar(__webpack_require__(845));
-function urlExt(s) {
-    var _a;
-    const u = url.parse(s);
-    const components = (_a = u.path) === null || _a === void 0 ? void 0 : _a.split('/');
-    if (components && (components === null || components === void 0 ? void 0 : components.length) > 0) {
-        const last = components[(components === null || components === void 0 ? void 0 : components.length) - 1];
-        const dot = last.lastIndexOf('.');
-        if (dot >= 0) {
-            return last.substr(dot).toLowerCase();
-        }
-    }
-    return '';
-}
-function install(release, directory, platform) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const maxRetries = 5;
-        return retryInstall(maxRetries, release, directory, platform);
-    });
-}
-exports.install = install;
-function retryInstall(maxRetries, release, directory, platform) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const distUrl = gcc.distributionUrl(release, platform || process.platform);
-        console.log(`downloading gcc ${release} from ${distUrl}`);
-        const resp = yield node_fetch_1.default(distUrl);
-        if (resp.status !== 200) {
-            throw new Error(`invalid HTTP response code ${resp.status}`);
-        }
-        console.log(`extracting to ${directory}`);
-        yield fs.promises.mkdir(directory, { recursive: true });
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        let extractor;
-        switch (urlExt(distUrl)) {
-            case '.zip':
-                extractor = unzipper.Extract({ path: directory });
-                resp.body.pipe(extractor);
-                break;
-            case '.bz2':
-                extractor = tar_1.default.x({ strip: 1, C: directory });
-                resp.body.pipe(unbzip2_stream_1.default()).pipe(extractor);
-                break;
-            default:
-                throw new Error(`can't decompress ${urlExt(distUrl)}`);
-        }
-        yield new Promise(function (resolve, reject) {
-            // unzipper
-            extractor.on('close', resolve);
-            // tar
-            extractor.on('end', resolve);
-            extractor.on('error', reject);
-        }).catch(function (err) {
-            return __awaiter(this, void 0, void 0, function* () {
-                if (maxRetries > 0) {
-                    console.log(`retrying ${distUrl}`);
-                    return retryInstall(maxRetries - 1, release, directory, platform);
-                }
-                else {
-                    throw err;
-                }
-            });
-        });
-    });
-}
-function findGccWindows(dir) {
-    const entries = fs.readdirSync(dir);
-    for (const name of entries) {
-        if (name === 'arm-none-eabi-gcc.exe') {
-            return dir;
-        }
-        const p = path.join(dir, name);
-        const st = fs.lstatSync(p);
-        if (st.isDirectory()) {
-            const result = findGccWindows(p);
-            if (result !== '') {
-                return result;
-            }
-        }
-    }
-    return '';
-}
-function findGcc(root, platform) {
-    platform = platform || process.platform;
-    // Linux and macOS releases always have a /bin directory at the
-    // root. However, some Windows releases might have a different structure.
-    if (platform === 'win32') {
-        return findGccWindows(root);
-    }
-    return path.join(root, 'bin');
-}
-exports.findGcc = findGcc;
 
 
 /***/ }),
@@ -25025,95 +25026,443 @@ function Extract (opts) {
 
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.distributionUrl = exports.availableVersions = void 0;
+/* eslint-disable @typescript-eslint/camelcase */
 const versions = {
-    '10.3-2021.07': 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/10.3-2021.07/gcc-arm-none-eabi-10.3-2021.07-${ARCH_OS}${MAC_EXTRA_OS}.${EXT}',
-    '10-2020-q4': 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/10-2020q4/gcc-arm-none-eabi-10-2020-q4-major-${ARCH_OS}.${EXT}',
-    '9-2020-q2': 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/9-2020q2/gcc-arm-none-eabi-9-2020-q2-update-${ARCH_OS}.${EXT}',
-    '9-2019-q4': 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/9-2019q4/gcc-arm-none-eabi-9-2019-q4-major-${ARCH_OS}.${EXT}',
-    '8-2019-q3': 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/8-2019q3/RC1.1/gcc-arm-none-eabi-8-2019-q3-update-${OS}.${EXT}',
-    '8-2018-q4': 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/8-2018q4/gcc-arm-none-eabi-8-2018-q4-major-${OS}.${EXT}',
-    '7-2018-q2': 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/7-2018q2/gcc-arm-none-eabi-7-2018-q2-update-${OS}.${EXT}',
-    '7-2017-q4': 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/7-2017q4/gcc-arm-none-eabi-7-2017-q4-major-${OS}.${EXT}',
-    '6-2017-q2': 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/6-2017q2/gcc-arm-none-eabi-6-2017-q2-update-${OS}.${EXT}',
-    '6-2017-q1': 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/6_1-2017q1/gcc-arm-none-eabi-6-2017-q1-update-${OS}${WIN_EXTRA_EXT}.${EXT}',
-    '6-2016-q4': 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/6-2016q4/gcc-arm-none-eabi-6_2-2016q4-20161216-${OS}${WIN_EXTRA_EXT}.${EXT}',
-    '5-2016-q3': 'https://launchpad.net/gcc-arm-embedded/5.0/5-2016-q3-update/+download/gcc-arm-none-eabi-5_4-2016q3-20160926-${OS}.${EXT}',
-    '5-2016-q2': 'https://launchpad.net/gcc-arm-embedded/5.0/5-2016-q2-update/+download/gcc-arm-none-eabi-5_4-2016q2-20160622-${OS}.${EXT}',
-    '5-2016-q1': 'https://launchpad.net/gcc-arm-embedded/5.0/5-2016-q1-update/+download/gcc-arm-none-eabi-5_3-2016q1-20160330-${OS}.${EXT}',
-    '5-2015-q4': 'https://launchpad.net/gcc-arm-embedded/5.0/5-2015-q4-major/+download/gcc-arm-none-eabi-5_2-2015q4-20151219-${OS}.${EXT}',
-    '4.9-2015-q3': 'https://launchpad.net/gcc-arm-embedded/4.9/4.9-2015-q3-update/+download/gcc-arm-none-eabi-4_9-2015q3-20150921-${OS}.${EXT}',
-    '4.9-2015-q2': 'https://launchpad.net/gcc-arm-embedded/4.9/4.9-2015-q2-update/+download/gcc-arm-none-eabi-4_9-2015q2-20150609-${OS}.${EXT}',
-    '4.9-2015-q1': 'https://launchpad.net/gcc-arm-embedded/4.9/4.9-2015-q1-update/+download/gcc-arm-none-eabi-4_9-2015q1-20150306-${OS}.${EXT}',
-    '4.9-2014-q4': 'https://launchpad.net/gcc-arm-embedded/4.9/4.9-2014-q4-major/+download/gcc-arm-none-eabi-4_9-2014q4-20141203-${OS}.${EXT}',
-    '4.8-2014-q3': 'https://launchpad.net/gcc-arm-embedded/4.8/4.8-2014-q3-update/+download/gcc-arm-none-eabi-4_8-2014q3-20140805-${OS}.${EXT}',
-    '4.8-2014-q2': 'https://launchpad.net/gcc-arm-embedded/4.8/4.8-2014-q2-update/+download/gcc-arm-none-eabi-4_8-2014q2-20140609-${OS}.${EXT}',
-    '4.8-2014-q1': 'https://launchpad.net/gcc-arm-embedded/4.8/4.8-2014-q1-update/+download/gcc-arm-none-eabi-4_8-2014q1-20140314-${OS}.${EXT}',
-    '4.7-2014-q2': 'https://launchpad.net/gcc-arm-embedded/4.7/4.7-2014-q2-update/+download/gcc-arm-none-eabi-4_7-2014q2-20140408-${OS}.${EXT}',
-    '4.8-2013-q4': 'https://launchpad.net/gcc-arm-embedded/4.8/4.8-2013-q4-major/+download/gcc-arm-none-eabi-4_8-2013q4-20131204-${OS}.${EXT}',
-    '4.8-2013-q4-darwin': 'https://launchpad.net/gcc-arm-embedded/4.8/4.8-2013-q4-major/+download/gcc-arm-none-eabi-4_8-2013q4-20131218-${OS}.${EXT}',
-    '4.7-2013-q3': 'https://launchpad.net/gcc-arm-embedded/4.7/4.7-2013-q3-update/+download/gcc-arm-none-eabi-4_7-2013q3-20130916-${OS}.${EXT}',
-    '4.7-2013-q2': 'https://launchpad.net/gcc-arm-embedded/4.7/4.7-2013-q2-update/+download/gcc-arm-none-eabi-4_7-2013q2-20130614-${OS}.${EXT}',
-    '4.7-2013-q1': 'https://launchpad.net/gcc-arm-embedded/4.7/4.7-2013-q1-update/+download/gcc-arm-none-eabi-4_7-2013q1-20130313-${OS}.${EXT}',
-    '4.7-2012-q4': 'https://launchpad.net/gcc-arm-embedded/4.7/4.7-2012-q4-major/+download/gcc-arm-none-eabi-4_7-2012q4-20121208-${OS}.${EXT}',
+    '10.3-2021.07': {
+        win32: {
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/10.3-2021.07/gcc-arm-none-eabi-10.3-2021.07-win32.zip',
+            md5: 'fca12668002f8c52cfa174400fd2d03e',
+        },
+        mac_x86_64: {
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/10.3-2021.07/gcc-arm-none-eabi-10.3-2021.07-mac-10.14.6.tar.bz2',
+            md5: '42d5f143cdc303d73a3602fa5052c790',
+        },
+        linux_x86_64: {
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/10.3-2021.07/gcc-arm-none-eabi-10.3-2021.07-x86_64-linux.tar.bz2',
+            md5: 'b56ae639d9183c340f065ae114a30202',
+        },
+        linux_aarch64: {
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/10.3-2021.07/gcc-arm-none-eabi-10.3-2021.07-aarch64-linux.tar.bz2',
+            md5: 'c20b0535d01f8d4418341d893c62a782',
+        },
+    },
+    '10-2020-q4': {
+        win32: {
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/10-2020q4/gcc-arm-none-eabi-10-2020-q4-major-win32.zip',
+            md5: '5ee6542a2af847934177bc8fa1294c0d',
+        },
+        mac_x86_64: {
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/10-2020q4/gcc-arm-none-eabi-10-2020-q4-major-mac.tar.bz2',
+            md5: 'e588d21be5a0cc9caa60938d2422b058',
+        },
+        linux_x86_64: {
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/10-2020q4/gcc-arm-none-eabi-10-2020-q4-major-x86_64-linux.tar.bz2',
+            md5: '8312c4c91799885f222f663fc81f9a31',
+        },
+        linux_aarch64: {
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/10-2020q4/gcc-arm-none-eabi-10-2020-q4-major-aarch64-linux.tar.bz2',
+            md5: 'e588d21be5a0cc9caa60938d2422b058',
+        },
+    },
+    '9-2020-q2': {
+        win32: {
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/9-2020q2/gcc-arm-none-eabi-9-2020-q2-update-win32.zip',
+            md5: '184b3397414485f224e7ba950989aab6',
+        },
+        mac_x86_64: {
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/9-2020q2/gcc-arm-none-eabi-9-2020-q2-update-mac.tar.bz2',
+            md5: '75a171beac35453fd2f0f48b3cb239c3',
+        },
+        linux_x86_64: {
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/9-2020q2/gcc-arm-none-eabi-9-2020-q2-update-x86_64-linux.tar.bz2',
+            md5: '2b9eeccc33470f9d3cda26983b9d2dc6',
+        },
+        linux_aarch64: {
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/9-2020q2/gcc-arm-none-eabi-9-2020-q2-update-aarch64-linux.tar.bz2',
+            md5: '000b0888cbe7b171e2225b29be1c327c',
+        },
+    },
+    '9-2019-q4': {
+        win32: {
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/9-2019q4/gcc-arm-none-eabi-9-2019-q4-major-win32.zip',
+            md5: '82525522fefbde0b7811263ee8172b10',
+        },
+        mac_x86_64: {
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/9-2019q4/gcc-arm-none-eabi-9-2019-q4-major-mac.tar.bz2',
+            md5: '241b64f0578db2cf146034fc5bcee3d4',
+        },
+        linux_x86_64: {
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/9-2019q4/gcc-arm-none-eabi-9-2019-q4-major-x86_64-linux.tar.bz2',
+            md5: 'fe0029de4f4ec43cf7008944e34ff8cc',
+        },
+        linux_aarch64: {
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/9-2019q4/gcc-arm-none-eabi-9-2019-q4-major-aarch64-linux.tar.bz2',
+            md5: '0dfa059aae18fcf7d842e30c525076a4',
+        },
+    },
+    '8-2019-q3': {
+        win32: {
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/8-2019q3/RC1.1/gcc-arm-none-eabi-8-2019-q3-update-win32.zip',
+            md5: '5fa382a547abe0b0d5c0a6e9eaa75c7b',
+        },
+        mac_x86_64: {
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/8-2019q3/RC1.1/gcc-arm-none-eabi-8-2019-q3-update-mac.tar.bz2',
+            md5: '405cfbe54cee25a1b925ad0657f73924',
+        },
+        linux_x86_64: {
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/8-2019q3/RC1.1/gcc-arm-none-eabi-8-2019-q3-update-linux.tar.bz2',
+            md5: '6341f11972dac8de185646d0fbd73bfc',
+        },
+    },
+    '8-2018-q4': {
+        win32: {
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/8-2018q4/gcc-arm-none-eabi-8-2018-q4-major-win32.zip',
+            md5: null,
+        },
+        mac_x86_64: {
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/8-2018q4/gcc-arm-none-eabi-8-2018-q4-major-mac.tar.bz2',
+            md5: null,
+        },
+        linux_x86_64: {
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/8-2018q4/gcc-arm-none-eabi-8-2018-q4-major-linux.tar.bz2',
+            md5: null,
+        },
+    },
+    '7-2018-q2': {
+        win32: {
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/7-2018q2/gcc-arm-none-eabi-7-2018-q2-update-win32.zip',
+            md5: null,
+        },
+        mac_x86_64: {
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/7-2018q2/gcc-arm-none-eabi-7-2018-q2-update-mac.tar.bz2',
+            md5: null,
+        },
+        linux_x86_64: {
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/7-2018q2/gcc-arm-none-eabi-7-2018-q2-update-linux.tar.bz2',
+            md5: null,
+        },
+    },
+    '7-2017-q4': {
+        win32: {
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/7-2017q4/gcc-arm-none-eabi-7-2017-q4-major-win32.zip',
+            md5: null,
+        },
+        mac_x86_64: {
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/7-2017q4/gcc-arm-none-eabi-7-2017-q4-major-mac.tar.bz2',
+            md5: null,
+        },
+        linux_x86_64: {
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/7-2017q4/gcc-arm-none-eabi-7-2017-q4-major-linux.tar.bz2',
+            md5: null,
+        },
+    },
+    '6-2017-q2': {
+        win32: {
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/6-2017q2/gcc-arm-none-eabi-6-2017-q2-update-win32.zip',
+            md5: null,
+        },
+        mac_x86_64: {
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/6-2017q2/gcc-arm-none-eabi-6-2017-q2-update-mac.tar.bz2',
+            md5: null,
+        },
+        linux_x86_64: {
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/6-2017q2/gcc-arm-none-eabi-6-2017-q2-update-linux.tar.bz2',
+            md5: null,
+        },
+    },
+    '6-2017-q1': {
+        win32: {
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/6_1-2017q1/gcc-arm-none-eabi-6-2017-q1-update-win32-zip.zip',
+            md5: null,
+        },
+        mac_x86_64: {
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/6_1-2017q1/gcc-arm-none-eabi-6-2017-q1-update-mac.tar.bz2',
+            md5: null,
+        },
+        linux_x86_64: {
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/6_1-2017q1/gcc-arm-none-eabi-6-2017-q1-update-linux.tar.bz2',
+            md5: null,
+        },
+    },
+    '6-2016-q4': {
+        win32: {
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/6-2016q4/gcc-arm-none-eabi-6_2-2016q4-20161216-win32-zip.zip',
+            md5: null,
+        },
+        mac_x86_64: {
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/6-2016q4/gcc-arm-none-eabi-6_2-2016q4-20161216-mac.tar.bz2',
+            md5: null,
+        },
+        linux_x86_64: {
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/6-2016q4/gcc-arm-none-eabi-6_2-2016q4-20161216-linux.tar.bz2',
+            md5: null,
+        },
+    },
+    '5-2016-q3': {
+        win32: {
+            url: 'https://launchpad.net/gcc-arm-embedded/5.0/5-2016-q3-update/+download/gcc-arm-none-eabi-5_4-2016q3-20160926-win32.zip',
+            md5: null,
+        },
+        mac_x86_64: {
+            url: 'https://launchpad.net/gcc-arm-embedded/5.0/5-2016-q3-update/+download/gcc-arm-none-eabi-5_4-2016q3-20160926-mac.tar.bz2',
+            md5: null,
+        },
+        linux_x86_64: {
+            url: 'https://launchpad.net/gcc-arm-embedded/5.0/5-2016-q3-update/+download/gcc-arm-none-eabi-5_4-2016q3-20160926-linux.tar.bz2',
+            md5: null,
+        },
+    },
+    '5-2016-q2': {
+        win32: {
+            url: 'https://launchpad.net/gcc-arm-embedded/5.0/5-2016-q2-update/+download/gcc-arm-none-eabi-5_4-2016q2-20160622-win32.zip',
+            md5: null,
+        },
+        mac_x86_64: {
+            url: 'https://launchpad.net/gcc-arm-embedded/5.0/5-2016-q2-update/+download/gcc-arm-none-eabi-5_4-2016q2-20160622-mac.tar.bz2',
+            md5: null,
+        },
+        linux_x86_64: {
+            url: 'https://launchpad.net/gcc-arm-embedded/5.0/5-2016-q2-update/+download/gcc-arm-none-eabi-5_4-2016q2-20160622-linux.tar.bz2',
+            md5: null,
+        },
+    },
+    '5-2016-q1': {
+        win32: {
+            url: 'https://launchpad.net/gcc-arm-embedded/5.0/5-2016-q1-update/+download/gcc-arm-none-eabi-5_3-2016q1-20160330-win32.zip',
+            md5: '1ea9a1b83666a5a363018fba8a088879',
+        },
+        mac_x86_64: {
+            url: 'https://launchpad.net/gcc-arm-embedded/5.0/5-2016-q1-update/+download/gcc-arm-none-eabi-5_3-2016q1-20160330-mac.tar.bz2',
+            md5: 'aa60d23587dc7456c79a7e39acdafe0b',
+        },
+        linux_x86_64: {
+            url: 'https://launchpad.net/gcc-arm-embedded/5.0/5-2016-q1-update/+download/gcc-arm-none-eabi-5_3-2016q1-20160330-linux.tar.bz2',
+            md5: '5a261cac18c62d8b7e8c70beba2004bd',
+        },
+    },
+    '5-2015-q4': {
+        win32: {
+            url: 'https://launchpad.net/gcc-arm-embedded/5.0/5-2015-q4-major/+download/gcc-arm-none-eabi-5_2-2015q4-20151219-win32.zip',
+            md5: null,
+        },
+        mac_x86_64: {
+            url: 'https://launchpad.net/gcc-arm-embedded/5.0/5-2015-q4-major/+download/gcc-arm-none-eabi-5_2-2015q4-20151219-mac.tar.bz2',
+            md5: null,
+        },
+        linux_x86_64: {
+            url: 'https://launchpad.net/gcc-arm-embedded/5.0/5-2015-q4-major/+download/gcc-arm-none-eabi-5_2-2015q4-20151219-linux.tar.bz2',
+            md5: null,
+        },
+    },
+    '4.9-2015-q3': {
+        win32: {
+            url: 'https://launchpad.net/gcc-arm-embedded/4.9/4.9-2015-q3-update/+download/gcc-arm-none-eabi-4_9-2015q3-20150921-win32.zip',
+            md5: null,
+        },
+        mac_x86_64: {
+            url: 'https://launchpad.net/gcc-arm-embedded/4.9/4.9-2015-q3-update/+download/gcc-arm-none-eabi-4_9-2015q3-20150921-mac.tar.bz2',
+            md5: null,
+        },
+        linux_x86_64: {
+            url: 'https://launchpad.net/gcc-arm-embedded/4.9/4.9-2015-q3-update/+download/gcc-arm-none-eabi-4_9-2015q3-20150921-linux.tar.bz2',
+            md5: null,
+        },
+    },
+    '4.9-2015-q2': {
+        win32: {
+            url: 'https://launchpad.net/gcc-arm-embedded/4.9/4.9-2015-q2-update/+download/gcc-arm-none-eabi-4_9-2015q2-20150609-win32.zip',
+            md5: null,
+        },
+        mac_x86_64: {
+            url: 'https://launchpad.net/gcc-arm-embedded/4.9/4.9-2015-q2-update/+download/gcc-arm-none-eabi-4_9-2015q2-20150609-mac.tar.bz2',
+            md5: null,
+        },
+        linux_x86_64: {
+            url: 'https://launchpad.net/gcc-arm-embedded/4.9/4.9-2015-q2-update/+download/gcc-arm-none-eabi-4_9-2015q2-20150609-linux.tar.bz2',
+            md5: null,
+        },
+    },
+    '4.9-2015-q1': {
+        win32: {
+            url: 'https://launchpad.net/gcc-arm-embedded/4.9/4.9-2015-q1-update/+download/gcc-arm-none-eabi-4_9-2015q1-20150306-win32.zip',
+            md5: null,
+        },
+        mac_x86_64: {
+            url: 'https://launchpad.net/gcc-arm-embedded/4.9/4.9-2015-q1-update/+download/gcc-arm-none-eabi-4_9-2015q1-20150306-mac.tar.bz2',
+            md5: null,
+        },
+        linux_x86_64: {
+            url: 'https://launchpad.net/gcc-arm-embedded/4.9/4.9-2015-q1-update/+download/gcc-arm-none-eabi-4_9-2015q1-20150306-linux.tar.bz2',
+            md5: null,
+        },
+    },
+    '4.9-2014-q4': {
+        win32: {
+            url: 'https://launchpad.net/gcc-arm-embedded/4.9/4.9-2014-q4-major/+download/gcc-arm-none-eabi-4_9-2014q4-20141203-win32.zip',
+            md5: null,
+        },
+        mac_x86_64: {
+            url: 'https://launchpad.net/gcc-arm-embedded/4.9/4.9-2014-q4-major/+download/gcc-arm-none-eabi-4_9-2014q4-20141203-mac.tar.bz2',
+            md5: null,
+        },
+        linux_x86_64: {
+            url: 'https://launchpad.net/gcc-arm-embedded/4.9/4.9-2014-q4-major/+download/gcc-arm-none-eabi-4_9-2014q4-20141203-linux.tar.bz2',
+            md5: null,
+        },
+    },
+    '4.8-2014-q3': {
+        win32: {
+            url: 'https://launchpad.net/gcc-arm-embedded/4.8/4.8-2014-q3-update/+download/gcc-arm-none-eabi-4_8-2014q3-20140805-win32.zip',
+            md5: null,
+        },
+        mac_x86_64: {
+            url: 'https://launchpad.net/gcc-arm-embedded/4.8/4.8-2014-q3-update/+download/gcc-arm-none-eabi-4_8-2014q3-20140805-mac.tar.bz2',
+            md5: null,
+        },
+        linux_x86_64: {
+            url: 'https://launchpad.net/gcc-arm-embedded/4.8/4.8-2014-q3-update/+download/gcc-arm-none-eabi-4_8-2014q3-20140805-linux.tar.bz2',
+            md5: null,
+        },
+    },
+    '4.8-2014-q2': {
+        win32: {
+            url: 'https://launchpad.net/gcc-arm-embedded/4.8/4.8-2014-q2-update/+download/gcc-arm-none-eabi-4_8-2014q2-20140609-win32.zip',
+            md5: null,
+        },
+        mac_x86_64: {
+            url: 'https://launchpad.net/gcc-arm-embedded/4.8/4.8-2014-q2-update/+download/gcc-arm-none-eabi-4_8-2014q2-20140609-mac.tar.bz2',
+            md5: null,
+        },
+        linux_x86_64: {
+            url: 'https://launchpad.net/gcc-arm-embedded/4.8/4.8-2014-q2-update/+download/gcc-arm-none-eabi-4_8-2014q2-20140609-linux.tar.bz2',
+            md5: null,
+        },
+    },
+    '4.8-2014-q1': {
+        win32: {
+            url: 'https://launchpad.net/gcc-arm-embedded/4.8/4.8-2014-q1-update/+download/gcc-arm-none-eabi-4_8-2014q1-20140314-win32.zip',
+            md5: null,
+        },
+        mac_x86_64: {
+            url: 'https://launchpad.net/gcc-arm-embedded/4.8/4.8-2014-q1-update/+download/gcc-arm-none-eabi-4_8-2014q1-20140314-mac.tar.bz2',
+            md5: null,
+        },
+        linux_x86_64: {
+            url: 'https://launchpad.net/gcc-arm-embedded/4.8/4.8-2014-q1-update/+download/gcc-arm-none-eabi-4_8-2014q1-20140314-linux.tar.bz2',
+            md5: null,
+        },
+    },
+    '4.7-2014-q2': {
+        win32: {
+            url: 'https://launchpad.net/gcc-arm-embedded/4.7/4.7-2014-q2-update/+download/gcc-arm-none-eabi-4_7-2014q2-20140408-win32.zip',
+            md5: null,
+        },
+        mac_x86_64: {
+            url: 'https://launchpad.net/gcc-arm-embedded/4.7/4.7-2014-q2-update/+download/gcc-arm-none-eabi-4_7-2014q2-20140408-mac.tar.bz2',
+            md5: null,
+        },
+        linux_x86_64: {
+            url: 'https://launchpad.net/gcc-arm-embedded/4.7/4.7-2014-q2-update/+download/gcc-arm-none-eabi-4_7-2014q2-20140408-linux.tar.bz2',
+            md5: null,
+        },
+    },
+    '4.8-2013-q4': {
+        win32: {
+            url: 'https://launchpad.net/gcc-arm-embedded/4.8/4.8-2013-q4-major/+download/gcc-arm-none-eabi-4_8-2013q4-20131204-win32.zip',
+            md5: 'ca47c682f9b3bd14d0a6ce1f175716fa',
+        },
+        mac_x86_64: {
+            url: 'https://launchpad.net/gcc-arm-embedded/4.8/4.8-2013-q4-major/+download/gcc-arm-none-eabi-4_8-2013q4-20131218-mac.tar.bz2',
+            md5: '850caa23f01ea8c1e6abcc3c217d36f7',
+        },
+        linux_x86_64: {
+            url: 'https://launchpad.net/gcc-arm-embedded/4.8/4.8-2013-q4-major/+download/gcc-arm-none-eabi-4_8-2013q4-20131204-linux.tar.bz2',
+            md5: '4869e6a6e1dc11ea0835e8b8213bb194',
+        },
+    },
+    '4.7-2013-q3': {
+        win32: {
+            url: 'https://launchpad.net/gcc-arm-embedded/4.7/4.7-2013-q3-update/+download/gcc-arm-none-eabi-4_7-2013q3-20130916-win32.zip',
+            md5: null,
+        },
+        mac_x86_64: {
+            url: 'https://launchpad.net/gcc-arm-embedded/4.7/4.7-2013-q3-update/+download/gcc-arm-none-eabi-4_7-2013q3-20130916-mac.tar.bz2',
+            md5: null,
+        },
+        linux_x86_64: {
+            url: 'https://launchpad.net/gcc-arm-embedded/4.7/4.7-2013-q3-update/+download/gcc-arm-none-eabi-4_7-2013q3-20130916-linux.tar.bz2',
+            md5: null,
+        },
+    },
+    '4.7-2013-q2': {
+        win32: {
+            url: 'https://launchpad.net/gcc-arm-embedded/4.7/4.7-2013-q2-update/+download/gcc-arm-none-eabi-4_7-2013q2-20130614-win32.zip',
+            md5: null,
+        },
+        mac_x86_64: {
+            url: 'https://launchpad.net/gcc-arm-embedded/4.7/4.7-2013-q2-update/+download/gcc-arm-none-eabi-4_7-2013q2-20130614-mac.tar.bz2',
+            md5: null,
+        },
+        linux_x86_64: {
+            url: 'https://launchpad.net/gcc-arm-embedded/4.7/4.7-2013-q2-update/+download/gcc-arm-none-eabi-4_7-2013q2-20130614-linux.tar.bz2',
+            md5: null,
+        },
+    },
+    '4.7-2013-q1': {
+        win32: {
+            url: 'https://launchpad.net/gcc-arm-embedded/4.7/4.7-2013-q1-update/+download/gcc-arm-none-eabi-4_7-2013q1-20130313-win32.zip',
+            md5: null,
+        },
+        mac_x86_64: {
+            url: 'https://launchpad.net/gcc-arm-embedded/4.7/4.7-2013-q1-update/+download/gcc-arm-none-eabi-4_7-2013q1-20130313-mac.tar.bz2',
+            md5: null,
+        },
+        linux_x86_64: {
+            url: 'https://launchpad.net/gcc-arm-embedded/4.7/4.7-2013-q1-update/+download/gcc-arm-none-eabi-4_7-2013q1-20130313-linux.tar.bz2',
+            md5: null,
+        },
+    },
+    '4.7-2012-q4': {
+        win32: {
+            url: 'https://launchpad.net/gcc-arm-embedded/4.7/4.7-2012-q4-major/+download/gcc-arm-none-eabi-4_7-2012q4-20121208-win32.zip',
+            md5: null,
+        },
+        mac_x86_64: {
+            url: 'https://launchpad.net/gcc-arm-embedded/4.7/4.7-2012-q4-major/+download/gcc-arm-none-eabi-4_7-2012q4-20121208-mac.tar.bz2',
+            md5: null,
+        },
+        linux_x86_64: {
+            url: 'https://launchpad.net/gcc-arm-embedded/4.7/4.7-2012-q4-major/+download/gcc-arm-none-eabi-4_7-2012q4-20121208-linux.tar.bz2',
+            md5: null,
+        },
+    },
 };
 function availableVersions() {
     return Object.keys(versions);
 }
 exports.availableVersions = availableVersions;
-// Version must have the form major[._minor]-YYYY-qZ
 function distributionUrl(version, platform) {
-    let osName;
-    let archOs;
-    let ext;
-    let winExtraExt = '';
-    let macExtraOS = '';
+    let osName = '';
     switch (platform) {
         case 'darwin':
-            osName = 'mac';
-            archOs = 'mac';
-            ext = 'tar.bz2';
-            macExtraOS = '-10.14.6';
+            osName = 'mac_x86_64';
             break;
         case 'linux':
-            osName = 'linux';
-            archOs = 'x86_64-linux';
-            ext = 'tar.bz2';
+            osName = 'linux_x86_64';
             break;
         case 'win32':
             osName = 'win32';
-            archOs = 'win32';
-            ext = 'zip';
-            winExtraExt = '-zip';
             break;
         default:
             throw new Error(`platform ${platform} is not supported`);
     }
     if (!versions.hasOwnProperty(version)) {
-        throw new Error(`invalid version ${version}. Available: ${availableVersions()}`);
+        throw new Error(`invalid GCC version ${version}. Available: ${availableVersions()}`);
     }
-    // Try platform specific URL first
-    let url = versions[`${version}-${platform}`];
-    if (!url) {
-        url = versions[version];
-        if (!url) {
-            throw new Error(`gcc version ${version} is not supported`);
-        }
+    if (!versions[version].hasOwnProperty(osName)) {
+        throw new Error(`invalid platform ${osName}.`);
     }
-    return url.replace(/\$\{(.*?)\}/g, (_, p1) => {
-        switch (p1) {
-            case 'OS':
-                return osName;
-            case 'ARCH_OS':
-                return archOs;
-            case 'EXT':
-                return ext;
-            case 'WIN_EXTRA_EXT':
-                return winExtraExt;
-            case 'MAC_EXTRA_OS':
-                return macExtraOS;
-        }
-        throw new Error(`unknown replacement ${p1}`);
-    });
+    return versions[version][osName].url;
 }
 exports.distributionUrl = distributionUrl;
 
