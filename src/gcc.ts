@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/camelcase */
 const versions: {
-  [gccRelease: string]: {[platform: string]: {url: string; md5: string | null}}
+  [gccRelease: string]: {[platform: string]: {url: string; md5: string | null}};
 } = {
   '10.3-2021.07': {
     win32: {
@@ -498,32 +498,32 @@ const versions: {
       md5: null,
     },
   },
-}
+};
 
 export function availableVersions(): string[] {
-  return Object.keys(versions)
+  return Object.keys(versions);
 }
 
 export function distributionUrl(version: string, platform: string): string {
-  let osName = ''
+  let osName = '';
   switch (platform) {
     case 'darwin':
-      osName = 'mac_x86_64'
-      break
+      osName = 'mac_x86_64';
+      break;
     case 'linux':
-      osName = 'linux_x86_64'
-      break
+      osName = 'linux_x86_64';
+      break;
     case 'win32':
-      osName = 'win32'
-      break
+      osName = 'win32';
+      break;
     default:
-      throw new Error(`platform ${platform} is not supported`)
+      throw new Error(`platform ${platform} is not supported`);
   }
   if (!versions.hasOwnProperty(version)) {
-    throw new Error(`invalid GCC version ${version}. Available: ${availableVersions()}`)
+    throw new Error(`invalid GCC version ${version}. Available: ${availableVersions()}`);
   }
   if (!versions[version].hasOwnProperty(osName)) {
-    throw new Error(`invalid platform ${osName}.`)
+    throw new Error(`invalid platform ${osName}.`);
   }
-  return versions[version][osName].url
+  return versions[version][osName].url;
 }

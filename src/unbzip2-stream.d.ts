@@ -1,1 +1,1 @@
-declare module 'unbzip2-stream'
+declare module 'unbzip2-stream';
