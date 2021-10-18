@@ -59,7 +59,11 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v2
-    - uses: ./
+    - name: Ensure the compiler is not present (Unix)
+      if: runner.os != 'Windows'
+      run: '! arm-none-eabi-gcca --version'
+    - name: Set up GCC Arm Compiler
+      uses: ./
       with:
         release: ${{ matrix.release }}
     - name: Print out programs invoked by the compiler
