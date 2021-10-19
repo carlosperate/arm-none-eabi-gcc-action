@@ -24,6 +24,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         release:
+          - 'latest'
           - '10.3-2021.07'
           - '10-2020-q4'
           - '9-2020-q2'
@@ -72,6 +73,6 @@ jobs:
       run: arm-none-eabi-gcc --version
     - name: Check the version matches
       if: |
-        (!contains(matrix.release, '2012') && !contains(matrix.release, '2013') &&  !contains(matrix.release, '2014')
-        && !contains(matrix.release, '2015') && !contains(matrix.release, '2016'))
+        (!contains(matrix.release, '2012') && !contains(matrix.release, '2013') && !contains(matrix.release, '2014')
+        && !contains(matrix.release, '2015') && !contains(matrix.release, '2016') && (matrix.release != 'latest'))
       run: arm-none-eabi-gcc --version | grep -q ${{ matrix.release }}

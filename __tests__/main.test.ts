@@ -77,7 +77,9 @@ describe('Real install in temp dirs.', () => {
     dir.removeCallback();
   }
 
-  test('9-2019-q4 darwin', async () => await tmpInstall('9-2019-q4', 'darwin'));
-  test('6-2017-q1 linux', async () => await tmpInstall('6-2017-q1', 'linux'));
   test('4.7-2013-q1 win32', async () => await tmpInstall('4.7-2013-q1', 'win32'));
+  test('6-2017-q1 linux', async () => await tmpInstall('6-2017-q1', 'linux'));
+  test('9-2019-q4 darwin', async () => await tmpInstall('9-2019-q4', 'darwin'));
+  test('10.3-2021.07 win32', async () => await tmpInstall('10.3-2021.07', 'win32'));
+  test('latest win32', async () => await tmpInstall('latest', 'win32'));
 });

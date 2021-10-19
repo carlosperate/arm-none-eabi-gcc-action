@@ -499,6 +499,8 @@ const versions: {
     },
   },
 };
+// Add latest tag to always point to latest release
+versions['latest'] = versions['10.3-2021.07'];
 
 export function availableVersions(): string[] {
   return Object.keys(versions);
