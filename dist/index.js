@@ -4020,9 +4020,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-/* eslint-disable no-console */
-const core = __importStar(__webpack_require__(470));
 const path = __importStar(__webpack_require__(622));
+const core = __importStar(__webpack_require__(470));
 const tmp_1 = __importDefault(__webpack_require__(150));
 const setup = __importStar(__webpack_require__(429));
 function run() {
@@ -4042,7 +4041,7 @@ function run() {
             if (!gccPath) {
                 throw new Error(`Could not find gcc executable in ${directory}`);
             }
-            console.log(`Adding ${gccPath} to PATH.`);
+            core.info(`Adding ${gccPath} to PATH.`);
             core.addPath(gccPath);
         }
         catch (error) {
@@ -5739,17 +5738,17 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.findGcc = exports.install = void 0;
-/* eslint-disable no-console */
 const fs = __importStar(__webpack_require__(747));
 const path = __importStar(__webpack_require__(622));
+const core = __importStar(__webpack_require__(470));
 const tc = __importStar(__webpack_require__(533));
 const gcc = __importStar(__webpack_require__(845));
 function install(release, directory, platform) {
     return __awaiter(this, void 0, void 0, function* () {
         const distUrl = gcc.distributionUrl(release, platform || process.platform);
-        console.log(`Downloading gcc ${release} from ${distUrl}`);
+        core.info(`Downloading gcc ${release} from ${distUrl}`);
         const gccDownloadPath = yield tc.downloadTool(distUrl);
-        console.log(`Extracting to ${directory}`);
+        core.info(`Extracting to ${directory}`);
         yield fs.promises.mkdir(directory, { recursive: true });
         if (distUrl.endsWith('.zip')) {
             yield tc.extractZip(gccDownloadPath, directory);

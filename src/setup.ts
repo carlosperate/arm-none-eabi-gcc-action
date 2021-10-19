@@ -1,6 +1,7 @@
-/* eslint-disable no-console */
 import * as fs from 'fs';
 import * as path from 'path';
+
+import * as core from '@actions/core';
 import * as tc from '@actions/tool-cache';
 
 import * as gcc from '../src/gcc';
@@ -8,10 +9,10 @@ import * as gcc from '../src/gcc';
 export async function install(release: string, directory: string, platform?: string): Promise<void> {
   const distUrl = gcc.distributionUrl(release, platform || process.platform);
 
-  console.log(`Downloading gcc ${release} from ${distUrl}`);
+  core.info(`Downloading gcc ${release} from ${distUrl}`);
   const gccDownloadPath = await tc.downloadTool(distUrl);
 
-  console.log(`Extracting to ${directory}`);
+  core.info(`Extracting to ${directory}`);
   await fs.promises.mkdir(directory, {recursive: true});
   if (distUrl.endsWith('.zip')) {
     await tc.extractZip(gccDownloadPath, directory);

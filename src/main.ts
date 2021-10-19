@@ -1,7 +1,6 @@
-/* eslint-disable no-console */
-import * as core from '@actions/core';
 import * as path from 'path';
 
+import * as core from '@actions/core';
 import tmp from 'tmp';
 
 import * as setup from './setup';
@@ -22,7 +21,7 @@ async function run(): Promise<void> {
     if (!gccPath) {
       throw new Error(`Could not find gcc executable in ${directory}`);
     }
-    console.log(`Adding ${gccPath} to PATH.`);
+    core.info(`Adding ${gccPath} to PATH.`);
     core.addPath(gccPath);
   } catch (error) {
     if (error instanceof Error) core.setFailed(error.message);
