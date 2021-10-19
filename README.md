@@ -1,4 +1,4 @@
-# GNU Arm Embedded Toolchain arm-none-eabi-gcc GiHub Action
+# GitHub Action: GNU Arm Embedded Toolchain <br>(arm-none-eabi-gcc)
 
 [![CI](https://github.com/carlosperate/arm-none-eabi-gcc-action/actions/workflows/test.yml/badge.svg)](https://github.com/carlosperate/arm-none-eabi-gcc-action/actions/workflows/test.yml)
 
@@ -10,8 +10,8 @@ It works on Windows, Linux and macOS.
 
 ```yaml
 steps:
-- name: arm-none-eabi-gcc
-- uses: carlosperate/arm-none-eabi-gcc-action@v1
+- name: Install GNU Arm Embedded Toolchain (arm-none-eabi-gcc)
+  uses: carlosperate/arm-none-eabi-gcc-action@v1
   with:
     release: '10.3-2021.07' # The arm-none-eabi-gcc release to use.
 - run: ...
@@ -21,9 +21,11 @@ steps:
 ## Advantages Over Other Options
 
 - [x] Updated with the latest GCC releases from Arm
-- [ ] Adds a `latest` option to always compile with the latest compiler release
-- [ ] Caching for faster runs
+- [x] Adds a `latest` option to always compile with the latest compiler release
+- [ ] Downloaded files are MD5 checked
+- [ ] Caching added for faster runs
 - [x] Issues are open
+- [x] Actively maintained
 
 
 ## Available Releases
@@ -43,6 +45,7 @@ steps:
 
 [MIT License](LICENSE).
 
-This project is a fork of https://github.com/fiam/arm-none-eabi-gcc, copyright
-[@fiam](https://github.com/fiam). List of changes can be seen
+This project is a fork of [fiam/arm-none-eabi-gcc](https://github.com/fiam/arm-none-eabi-gcc),
+copyright [@fiam](https://github.com/fiam) (thanks for the awesome work Alberto!
+without it this fork would have never existed). List of changes can be seen
 [here](https://github.com/carlosperate/arm-none-eabi-gcc-action/compare/4cecd3f99905c1c296edf75f570b9e68993be22f...main).
