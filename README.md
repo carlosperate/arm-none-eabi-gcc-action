@@ -1,9 +1,9 @@
-# GitHub Action: GNU Arm Embedded Toolchain <br>(arm-none-eabi-gcc)
+# GitHub Action: GNU Arm Embedded Toolchain <br> (arm-none-eabi-gcc)
 
 [![CI](https://github.com/carlosperate/arm-none-eabi-gcc-action/actions/workflows/test.yml/badge.svg)](https://github.com/carlosperate/arm-none-eabi-gcc-action/actions/workflows/test.yml)
 
-This action downloads and sets up `arm-none-eabi-gcc`, adding it to the PATH.
-It works on Windows, Linux and macOS.
+This GiiHub Action (for all Operating Systems) downloads, checks and sets up
+`arm-none-eabi-gcc`, adding it to the PATH.
 
 
 ## Usage
@@ -18,18 +18,20 @@ steps:
 ```
 
 
-## Advantages Over Other Options
+## Advantages over other options
 
 - [x] Updated with the latest GCC releases from Arm
 - [x] Adds a `latest` option to always compile with the latest compiler release
-- [ ] Downloaded files are MD5 checked
-- [ ] Caching added for faster runs
-- [x] Issues are open
+- [x] Downloaded files are MD5 checked
+- [ ] CI caching added for faster runs
+- [x] File downloads are more stable (no random failures)
+- [x] Issue tracker is enabled
 - [x] Actively maintained
 
 
-## Available Releases
+## Available releases
 
+- `latest` <-- Always points to the latest release
 - `10.3-2021.07` &nbsp;`10-2020-q4`
 - `9-2020-q2` &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; `9-2019-q4`
 - `8-2019-q3` &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; `8-2018-q4`

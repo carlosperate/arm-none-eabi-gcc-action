@@ -5736,28 +5736,39 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.findGcc = exports.install = void 0;
 const fs = __importStar(__webpack_require__(747));
 const path = __importStar(__webpack_require__(622));
 const core = __importStar(__webpack_require__(470));
 const tc = __importStar(__webpack_require__(533));
+const md5_file_1 = __importDefault(__webpack_require__(813));
 const gcc = __importStar(__webpack_require__(845));
 function install(release, directory, platform) {
     return __awaiter(this, void 0, void 0, function* () {
-        const distUrl = gcc.distributionUrl(release, platform || process.platform);
-        core.info(`Downloading gcc ${release} from ${distUrl}`);
-        const gccDownloadPath = yield tc.downloadTool(distUrl);
+        const distData = gcc.distributionUrl(release, platform || process.platform);
+        core.info(`Downloading gcc ${release} from ${distData.url} ; MD5 ${distData.md5}`);
+        const gccDownloadPath = yield tc.downloadTool(distData.url);
+        if (distData.md5) {
+            const downloadHash = yield md5_file_1.default(gccDownloadPath);
+            core.info(`Downloaded file MD5: ${downloadHash}`);
+            if (downloadHash !== distData.md5) {
+                throw new Error(`Downloaded GCC MD5 doesn't match ${downloadHash} != ${distData.md5}`);
+            }
+        }
         core.info(`Extracting to ${directory}`);
         yield fs.promises.mkdir(directory, { recursive: true });
-        if (distUrl.endsWith('.zip')) {
+        if (distData.url.endsWith('.zip')) {
             yield tc.extractZip(gccDownloadPath, directory);
         }
-        else if (distUrl.endsWith('.tar.bz2')) {
+        else if (distData.url.endsWith('.tar.bz2')) {
             yield tc.extractTar(gccDownloadPath, directory, 'xj');
         }
         else {
-            throw new Error(`Can't decompress ${distUrl}`);
+            throw new Error(`Can't decompress ${distData.url}`);
         }
     });
 }
@@ -9392,14 +9403,64 @@ module.exports = require("stream");
 
 /***/ }),
 
+/***/ 813:
+/***/ (function(module, __unusedexports, __webpack_require__) {
+
+const crypto = __webpack_require__(417)
+const fs = __webpack_require__(747)
+
+const BUFFER_SIZE = 8192
+
+function md5FileSync (path) {
+  const fd = fs.openSync(path, 'r')
+  const hash = crypto.createHash('md5')
+  const buffer = Buffer.alloc(BUFFER_SIZE)
+
+  try {
+    let bytesRead
+
+    do {
+      bytesRead = fs.readSync(fd, buffer, 0, BUFFER_SIZE)
+      hash.update(buffer.slice(0, bytesRead))
+    } while (bytesRead === BUFFER_SIZE)
+  } finally {
+    fs.closeSync(fd)
+  }
+
+  return hash.digest('hex')
+}
+
+function md5File (path) {
+  return new Promise((resolve, reject) => {
+    const output = crypto.createHash('md5')
+    const input = fs.createReadStream(path)
+
+    input.on('error', (err) => {
+      reject(err)
+    })
+
+    output.once('readable', () => {
+      resolve(output.read().toString('hex'))
+    })
+
+    input.pipe(output)
+  })
+}
+
+module.exports = md5File
+module.exports.sync = md5FileSync
+
+
+/***/ }),
+
 /***/ 845:
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
 
+/* eslint-disable @typescript-eslint/camelcase */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.distributionUrl = exports.availableVersions = void 0;
-/* eslint-disable @typescript-eslint/camelcase */
 const versions = {
     '10.3-2021.07': {
         win32: {
@@ -9837,7 +9898,7 @@ function distributionUrl(version, platform) {
     if (!versions[version].hasOwnProperty(osName)) {
         throw new Error(`invalid platform ${osName}.`);
     }
-    return versions[version][osName].url;
+    return versions[version][osName];
 }
 exports.distributionUrl = distributionUrl;
 

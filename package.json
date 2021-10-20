@@ -29,6 +29,7 @@
     "@actions/core": "^1.2.6",
     "@actions/tool-cache": "^1.7.1",
     "@types/tmp": "^0.1.0",
+    "md5-file": "^5.0.0",
     "tmp": "^0.1.0"
   },
   "devDependencies": {

@@ -1,7 +1,11 @@
 /* eslint-disable @typescript-eslint/camelcase */
-const versions: {
-  [gccRelease: string]: {[platform: string]: {url: string; md5: string | null}};
-} = {
+
+interface UrlData {
+  url: string;
+  md5: string | null;
+}
+
+const versions: {[gccRelease: string]: {[platform: string]: UrlData}} = {
   '10.3-2021.07': {
     win32: {
       url:
@@ -506,7 +510,7 @@ export function availableVersions(): string[] {
   return Object.keys(versions);
 }
 
-export function distributionUrl(version: string, platform: string): string {
+export function distributionUrl(version: string, platform: string): UrlData {
   let osName = '';
   switch (platform) {
     case 'darwin':
@@ -527,5 +531,5 @@ export function distributionUrl(version: string, platform: string): string {
   if (!versions[version].hasOwnProperty(osName)) {
     throw new Error(`invalid platform ${osName}.`);
   }
-  return versions[version][osName].url;
+  return versions[version][osName];
 }
