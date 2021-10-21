@@ -115,68 +115,68 @@ const versions: {[gccRelease: string]: {[platform: string]: UrlData}} = {
     win32: {
       url:
         'https://developer.arm.com/-/media/Files/downloads/gnu-rm/8-2018q4/gcc-arm-none-eabi-8-2018-q4-major-win32.zip',
-      md5: null,
+      md5: '9b1cfb7539af11b0badfaa960679ea6f',
     },
     mac_x86_64: {
       url:
         'https://developer.arm.com/-/media/Files/downloads/gnu-rm/8-2018q4/gcc-arm-none-eabi-8-2018-q4-major-mac.tar.bz2',
-      md5: null,
+      md5: '4c0d86df0244df22bc783f83df886db9',
     },
     linux_x86_64: {
       url:
         'https://developer.arm.com/-/media/Files/downloads/gnu-rm/8-2018q4/gcc-arm-none-eabi-8-2018-q4-major-linux.tar.bz2',
-      md5: null,
+      md5: 'f55f90d483ddb3bcf4dae5882c2094cd',
     },
   },
   '7-2018-q2': {
     win32: {
       url:
         'https://developer.arm.com/-/media/Files/downloads/gnu-rm/7-2018q2/gcc-arm-none-eabi-7-2018-q2-update-win32.zip',
-      md5: null,
+      md5: 'bc8ae26d7c429f30d583a605a4bcf9bc',
     },
     mac_x86_64: {
       url:
         'https://developer.arm.com/-/media/Files/downloads/gnu-rm/7-2018q2/gcc-arm-none-eabi-7-2018-q2-update-mac.tar.bz2',
-      md5: null,
+      md5: 'a66be9828cf3c57d7d21178e07cd8904',
     },
     linux_x86_64: {
       url:
         'https://developer.arm.com/-/media/Files/downloads/gnu-rm/7-2018q2/gcc-arm-none-eabi-7-2018-q2-update-linux.tar.bz2',
-      md5: null,
+      md5: '299ebd3f1c2c90930d28ab82e5d8d6c0',
     },
   },
   '7-2017-q4': {
     win32: {
       url:
         'https://developer.arm.com/-/media/Files/downloads/gnu-rm/7-2017q4/gcc-arm-none-eabi-7-2017-q4-major-win32.zip',
-      md5: null,
+      md5: '168c68c41ee0986ecc1dadceaa8b6a3f',
     },
     mac_x86_64: {
       url:
         'https://developer.arm.com/-/media/Files/downloads/gnu-rm/7-2017q4/gcc-arm-none-eabi-7-2017-q4-major-mac.tar.bz2',
-      md5: null,
+      md5: '1ec5bed45d78788723036f22c4e83ba8',
     },
     linux_x86_64: {
       url:
         'https://developer.arm.com/-/media/Files/downloads/gnu-rm/7-2017q4/gcc-arm-none-eabi-7-2017-q4-major-linux.tar.bz2',
-      md5: null,
+      md5: 'd3b00ae09e847747ef11316a8b04989a',
     },
   },
   '6-2017-q2': {
     win32: {
       url:
         'https://developer.arm.com/-/media/Files/downloads/gnu-rm/6-2017q2/gcc-arm-none-eabi-6-2017-q2-update-win32.zip',
-      md5: null,
+      md5: 'df6c2f763a6114c951e3f1e509af3cbc',
     },
     mac_x86_64: {
       url:
         'https://developer.arm.com/-/media/Files/downloads/gnu-rm/6-2017q2/gcc-arm-none-eabi-6-2017-q2-update-mac.tar.bz2',
-      md5: null,
+      md5: 'd536d7fb167c04b24f7f0d40cd739cac',
     },
     linux_x86_64: {
       url:
         'https://developer.arm.com/-/media/Files/downloads/gnu-rm/6-2017q2/gcc-arm-none-eabi-6-2017-q2-update-linux.tar.bz2',
-      md5: null,
+      md5: '13747255194398ee08b3ba42e40e9465',
     },
   },
   '6-2017-q1': {
