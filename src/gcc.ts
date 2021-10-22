@@ -217,34 +217,34 @@ const versions: {[gccRelease: string]: {[platform: string]: UrlData}} = {
     win32: {
       url:
         'https://launchpad.net/gcc-arm-embedded/5.0/5-2016-q3-update/+download/gcc-arm-none-eabi-5_4-2016q3-20160926-win32.zip',
-      md5: null,
+      md5: 'dd46badbea382c884dd7079dcc5b4e0d',
     },
     mac_x86_64: {
       url:
         'https://launchpad.net/gcc-arm-embedded/5.0/5-2016-q3-update/+download/gcc-arm-none-eabi-5_4-2016q3-20160926-mac.tar.bz2',
-      md5: null,
+      md5: '968ef87c0c03372aa933bab31d6789af',
     },
     linux_x86_64: {
       url:
         'https://launchpad.net/gcc-arm-embedded/5.0/5-2016-q3-update/+download/gcc-arm-none-eabi-5_4-2016q3-20160926-linux.tar.bz2',
-      md5: null,
+      md5: 'f7004b904541c09a8a0a7a52883c9e5b',
     },
   },
   '5-2016-q2': {
     win32: {
       url:
         'https://launchpad.net/gcc-arm-embedded/5.0/5-2016-q2-update/+download/gcc-arm-none-eabi-5_4-2016q2-20160622-win32.zip',
-      md5: null,
+      md5: '3f3ba8772ccf9bccdb3f897cc5569aaa',
     },
     mac_x86_64: {
       url:
         'https://launchpad.net/gcc-arm-embedded/5.0/5-2016-q2-update/+download/gcc-arm-none-eabi-5_4-2016q2-20160622-mac.tar.bz2',
-      md5: null,
+      md5: 'bb2c7501a2d6a6e517267197f4c069e6',
     },
     linux_x86_64: {
       url:
         'https://launchpad.net/gcc-arm-embedded/5.0/5-2016-q2-update/+download/gcc-arm-none-eabi-5_4-2016q2-20160622-linux.tar.bz2',
-      md5: null,
+      md5: '47b26ff8e4eb2c91af615dd73ada0c50',
     },
   },
   '5-2016-q1': {
@@ -268,85 +268,85 @@ const versions: {[gccRelease: string]: {[platform: string]: UrlData}} = {
     win32: {
       url:
         'https://launchpad.net/gcc-arm-embedded/5.0/5-2015-q4-major/+download/gcc-arm-none-eabi-5_2-2015q4-20151219-win32.zip',
-      md5: null,
+      md5: '5b513d3453ecd5e2034eeb951a79607f',
     },
     mac_x86_64: {
       url:
         'https://launchpad.net/gcc-arm-embedded/5.0/5-2015-q4-major/+download/gcc-arm-none-eabi-5_2-2015q4-20151219-mac.tar.bz2',
-      md5: null,
+      md5: '603bcce8e59683ac27054b3197a53254',
     },
     linux_x86_64: {
       url:
         'https://launchpad.net/gcc-arm-embedded/5.0/5-2015-q4-major/+download/gcc-arm-none-eabi-5_2-2015q4-20151219-linux.tar.bz2',
-      md5: null,
+      md5: 'f88caac80b4444a17344f57ccb760b90',
     },
   },
   '4.9-2015-q3': {
     win32: {
       url:
         'https://launchpad.net/gcc-arm-embedded/4.9/4.9-2015-q3-update/+download/gcc-arm-none-eabi-4_9-2015q3-20150921-win32.zip',
-      md5: null,
+      md5: 'd944be40a5bdb2327d80db23290c6b9d',
     },
     mac_x86_64: {
       url:
         'https://launchpad.net/gcc-arm-embedded/4.9/4.9-2015-q3-update/+download/gcc-arm-none-eabi-4_9-2015q3-20150921-mac.tar.bz2',
-      md5: null,
+      md5: '7886163ba5a1c17b560939e3dcf1382b',
     },
     linux_x86_64: {
       url:
         'https://launchpad.net/gcc-arm-embedded/4.9/4.9-2015-q3-update/+download/gcc-arm-none-eabi-4_9-2015q3-20150921-linux.tar.bz2',
-      md5: null,
+      md5: '8a4a74872830f80c788c944877d3ad8c',
     },
   },
   '4.9-2015-q2': {
     win32: {
       url:
         'https://launchpad.net/gcc-arm-embedded/4.9/4.9-2015-q2-update/+download/gcc-arm-none-eabi-4_9-2015q2-20150609-win32.zip',
-      md5: null,
+      md5: '2e5812e1a7786adeb8461f17b2a6e6dc',
     },
     mac_x86_64: {
       url:
         'https://launchpad.net/gcc-arm-embedded/4.9/4.9-2015-q2-update/+download/gcc-arm-none-eabi-4_9-2015q2-20150609-mac.tar.bz2',
-      md5: null,
+      md5: '34904f10367d622c139c782063212cd9',
     },
     linux_x86_64: {
       url:
         'https://launchpad.net/gcc-arm-embedded/4.9/4.9-2015-q2-update/+download/gcc-arm-none-eabi-4_9-2015q2-20150609-linux.tar.bz2',
-      md5: null,
+      md5: '6d5e1ae27607bab87bd324c9be2df17a',
     },
   },
   '4.9-2015-q1': {
     win32: {
       url:
         'https://launchpad.net/gcc-arm-embedded/4.9/4.9-2015-q1-update/+download/gcc-arm-none-eabi-4_9-2015q1-20150306-win32.zip',
-      md5: null,
+      md5: 'ef2df916f1ea4c5cc1022fa9aaf338a1',
     },
     mac_x86_64: {
       url:
         'https://launchpad.net/gcc-arm-embedded/4.9/4.9-2015-q1-update/+download/gcc-arm-none-eabi-4_9-2015q1-20150306-mac.tar.bz2',
-      md5: null,
+      md5: 'e3d92e5eaac7f9b0c20bf69822a434dd',
     },
     linux_x86_64: {
       url:
         'https://launchpad.net/gcc-arm-embedded/4.9/4.9-2015-q1-update/+download/gcc-arm-none-eabi-4_9-2015q1-20150306-linux.tar.bz2',
-      md5: null,
+      md5: '68f5928cdfb990691ea53246c56f6720',
     },
   },
   '4.9-2014-q4': {
     win32: {
       url:
         'https://launchpad.net/gcc-arm-embedded/4.9/4.9-2014-q4-major/+download/gcc-arm-none-eabi-4_9-2014q4-20141203-win32.zip',
-      md5: null,
+      md5: 'fe043db84c6c6ff423496f5e3ebd33e4',
     },
     mac_x86_64: {
       url:
         'https://launchpad.net/gcc-arm-embedded/4.9/4.9-2014-q4-major/+download/gcc-arm-none-eabi-4_9-2014q4-20141203-mac.tar.bz2',
-      md5: null,
+      md5: 'a3b0ab5bd08ba5ad840b7cb5f17becb0',
     },
     linux_x86_64: {
       url:
         'https://launchpad.net/gcc-arm-embedded/4.9/4.9-2014-q4-major/+download/gcc-arm-none-eabi-4_9-2014q4-20141203-linux.tar.bz2',
-      md5: null,
+      md5: '74cc4f012699c171089e72832d95bf4c',
     },
   },
   '4.8-2014-q3': {
