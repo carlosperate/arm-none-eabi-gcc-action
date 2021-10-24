@@ -1,5 +1,5 @@
 name: 'arm-none-eabi-gcc GNU Arm Embedded Toolchain'
-description: 'Set up arm-none-eabi-gcc and add it to the PATH.'
+description: 'Install arm-none-eabi-gcc Arm Embedded Toolchain.'
 author: 'Carlos Pereira Atencio'
 inputs:
   release:
