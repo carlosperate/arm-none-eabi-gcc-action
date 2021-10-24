@@ -13,7 +13,7 @@ steps:
 - name: Install GNU Arm Embedded Toolchain (arm-none-eabi-gcc)
   uses: carlosperate/arm-none-eabi-gcc-action@v1
   with:
-    release: '10.3-2021.07' # The arm-none-eabi-gcc release to use.
+    release: '10.3-2021.10' # The arm-none-eabi-gcc release to use.
 - run: ...
 ```
 
@@ -32,7 +32,7 @@ steps:
 ## Available releases
 
 - `latest` <-- Always points to the latest release
-- `10.3-2021.07` &nbsp;`10-2020-q4`
+- `10.3-2021.10` &nbsp;`10.3-2021.07` &nbsp;`10-2020-q4`
 - `9-2020-q2` &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; `9-2019-q4`
 - `8-2019-q3` &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; `8-2018-q4`
 - `7-2018-q2` &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; `7-2017-q4`

@@ -6,6 +6,28 @@ interface UrlData {
 }
 
 const versions: {[gccRelease: string]: {[platform: string]: UrlData}} = {
+  '10.3-2021.10': {
+    win32: {
+      url:
+        'https://developer.arm.com/-/media/Files/downloads/gnu-rm/10.3-2021.10/gcc-arm-none-eabi-10.3-2021.10-win32.zip',
+      md5: '2bc8f0c4c4659f8259c8176223eeafc1',
+    },
+    mac_x86_64: {
+      url:
+        'https://developer.arm.com/-/media/Files/downloads/gnu-rm/10.3-2021.10/gcc-arm-none-eabi-10.3-2021.10-mac.tar.bz2',
+      md5: '7f2a7b7b23797302a9d6182c6e482449',
+    },
+    linux_x86_64: {
+      url:
+        'https://developer.arm.com/-/media/Files/downloads/gnu-rm/10.3-2021.10/gcc-arm-none-eabi-10.3-2021.10-x86_64-linux.tar.bz2',
+      md5: '2383e4eb4ea23f248d33adc70dc3227e',
+    },
+    linux_aarch64: {
+      url:
+        'https://developer.arm.com/-/media/Files/downloads/gnu-rm/10.3-2021.10/gcc-arm-none-eabi-10.3-2021.10-aarch64-linux.tar.bz2',
+      md5: '3fe3d8bb693bd0a6e4615b6569443d0d',
+    },
+  },
   '10.3-2021.07': {
     win32: {
       url:
