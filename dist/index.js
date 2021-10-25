@@ -9801,7 +9801,7 @@ const versions = {
         },
         linux_x86_64: {
             url: 'https://launchpad.net/gcc-arm-embedded/4.8/4.8-2014-q1-update/+download/gcc-arm-none-eabi-4_8-2014q1-20140314-linux.tar.bz2',
-            md5: '5d34d95a53ba545f1585b9136cbb6805',
+            md5: '72b0d06ae16b303c25fd70b2883d3950',
         },
     },
     '4.7-2014-q2': {
