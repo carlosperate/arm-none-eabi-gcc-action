@@ -526,7 +526,7 @@ const versions: {[gccRelease: string]: {[platform: string]: UrlData}} = {
   },
 };
 // Add latest tag to always point to latest release
-versions['latest'] = versions['10.3-2021.07'];
+versions['latest'] = versions['10.3-2021.10'];
 
 export function availableVersions(): string[] {
   return Object.keys(versions);

@@ -5750,13 +5750,14 @@ const gcc = __importStar(__webpack_require__(845));
 function install(release, directory, platform) {
     return __awaiter(this, void 0, void 0, function* () {
         const distData = gcc.distributionUrl(release, platform || process.platform);
-        core.info(`Downloading gcc ${release} from ${distData.url} ; MD5 ${distData.md5}`);
+        core.info(`Downloading GCC ${release} from ${distData.url} ; MD5 ${distData.md5}`);
         const gccDownloadPath = yield tc.downloadTool(distData.url);
         if (distData.md5) {
+            core.info(`GCC release downloaded, calculating MD5...`);
             const downloadHash = yield md5_file_1.default(gccDownloadPath);
             core.info(`Downloaded file MD5: ${downloadHash}`);
             if (downloadHash !== distData.md5) {
-                throw new Error(`Downloaded GCC MD5 doesn't match ${downloadHash} != ${distData.md5}`);
+                throw new Error(`Downloaded GCC MD5 doesn't match expected value: ${downloadHash} != ${distData.md5}`);
             }
         }
         core.info(`Extracting to ${directory}`);
@@ -9890,7 +9891,7 @@ const versions = {
     },
 };
 // Add latest tag to always point to latest release
-versions['latest'] = versions['10.3-2021.07'];
+versions['latest'] = versions['10.3-2021.10'];
 function availableVersions() {
     return Object.keys(versions);
 }

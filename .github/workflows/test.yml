@@ -63,7 +63,7 @@ jobs:
     - uses: actions/checkout@v2
     - name: Ensure the compiler is not present (Unix)
       if: runner.os != 'Windows'
-      run: '! arm-none-eabi-gcca --version'
+      run: '! arm-none-eabi-gcc --version'
     - name: Set up GCC Arm Compiler
       uses: ./
       with:

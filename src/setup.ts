@@ -10,14 +10,15 @@ import * as gcc from '../src/gcc';
 export async function install(release: string, directory: string, platform?: string): Promise<void> {
   const distData = gcc.distributionUrl(release, platform || process.platform);
 
-  core.info(`Downloading gcc ${release} from ${distData.url} ; MD5 ${distData.md5}`);
+  core.info(`Downloading GCC ${release} from ${distData.url} ; MD5 ${distData.md5}`);
   const gccDownloadPath = await tc.downloadTool(distData.url);
 
   if (distData.md5) {
+    core.info(`GCC release downloaded, calculating MD5...`);
     const downloadHash = await md5File(gccDownloadPath);
     core.info(`Downloaded file MD5: ${downloadHash}`);
     if (downloadHash !== distData.md5) {
-      throw new Error(`Downloaded GCC MD5 doesn't match ${downloadHash} != ${distData.md5}`);
+      throw new Error(`Downloaded GCC MD5 doesn't match expected value: ${downloadHash} != ${distData.md5}`);
     }
   }
 
