@@ -10,7 +10,7 @@
     "format-check": "prettier --config config/prettierrc.json --check **/*.ts",
     "lint": "eslint --config config/eslintrc.json src/**/*.ts",
     "pack": "ncc build",
-    "test": "jest",
+    "test": "jest --config config/jest.config.js",
     "all": "npm run build && npm run format-check && npm run lint && npm run pack && npm test"
   },
   "repository": {
