@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/carlosperate/arm-none-eabi-gcc-action/actions/workflows/test.yml/badge.svg)](https://github.com/carlosperate/arm-none-eabi-gcc-action/actions/workflows/test.yml)
 
-This GiiHub Action (for all Operating Systems) downloads, checks and sets up
+This GitHub Action (for all Operating Systems) downloads, checks and sets up
 `arm-none-eabi-gcc`, adding it to the PATH.
 
 
@@ -13,17 +13,17 @@ steps:
 - name: Install GNU Arm Embedded Toolchain (arm-none-eabi-gcc)
   uses: carlosperate/arm-none-eabi-gcc-action@v1
   with:
-    release: '10.3-2021.10' # The arm-none-eabi-gcc release to use.
-- run: ...
+    release: '10.3-2021.10' # The compiler release to use.
+- run: arm-none-eabi-gcc --version
 ```
 
 
 ## Advantages over other options
 
 - [x] Updated with the latest GCC releases from Arm
-- [x] Adds a `latest` option to always compile with the latest compiler release
-- [x] Downloaded files are MD5 checked
-- [ ] CI caching added for faster runs
+- [x] Adds a `latest` option to use the latest compiler release
+- [x] Downloaded release is MD5 checked
+- [ ] CI caching added for faster runs (coming in the next few days)
 - [x] File downloads are more stable (no random failures)
 - [x] Issue tracker is enabled
 - [x] Actively maintained
@@ -41,6 +41,12 @@ steps:
 - `4.9-2015-q3` &nbsp;&nbsp; `4.9-2015-q2` &nbsp; `4.9-2015-q1` &nbsp; `4.9-2014-q4`
 - `4.8-2014-q3` &nbsp;&nbsp; `4.8-2014-q2` &nbsp; `4.8-2014-q1` &nbsp; `4.8-2013-q4`
 - `4.7-2014-q2` &nbsp;&nbsp; `4.7-2013-q3` &nbsp; `4.7-2013-q2` &nbsp; `4.7-2013-q1` &nbsp; `4.7-2012-q4`
+
+
+## Changelog
+
+The changes can be found in the [CHANGELOG.md](https://github.com/carlosperate/arm-none-eabi-gcc-action/blob/main/CHANGELOG.md)
+file, or the [GitHub Releases](https://github.com/carlosperate/arm-none-eabi-gcc-action/releases) notes.
 
 
 ## License & Attribution
