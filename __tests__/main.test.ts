@@ -1,4 +1,5 @@
 import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 
 import fetch from 'node-fetch';
@@ -9,7 +10,6 @@ import * as gcc from '../src/gcc';
 import * as setup from '../src/setup';
 
 const TEMP_LOCAL_PATH = path.join(__dirname, '..', 'TESTS_TEMP_DELETE');
-const TEMP_CACHE_LOCAL_PATH = path.join(TEMP_LOCAL_PATH, 'CACHE');
 
 jest.setTimeout(5 * 60 * 1000);
 
@@ -17,8 +17,19 @@ beforeAll(() => {
   if (fs.existsSync(TEMP_LOCAL_PATH)) {
     rimraf.sync(TEMP_LOCAL_PATH);
   }
+  fs.mkdirSync(TEMP_LOCAL_PATH);
+
+  // Mocking os.homedir() result
+  const homeDir = path.join(TEMP_LOCAL_PATH, 'HOME');
+  fs.mkdirSync(homeDir);
+  if (os.platform() === 'win32') {
+    process.env['USERPROFILE'] = homeDir;
+  } else {
+    process.env['HOME'] = homeDir;
+  }
+  // Env vars needed for the GitHub actions libs
   process.env['RUNNER_TEMP'] = TEMP_LOCAL_PATH;
-  process.env['RUNNER_TOOL_CACHE'] = TEMP_CACHE_LOCAL_PATH;
+  process.env['RUNNER_TOOL_CACHE'] = path.join(TEMP_LOCAL_PATH, 'CACHE');
 });
 
 afterAll(done => {

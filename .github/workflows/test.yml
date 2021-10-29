@@ -68,6 +68,10 @@ jobs:
       uses: ./
       with:
         release: ${{ matrix.release }}
+    - name: Set up GCC Arm Compiler (2)
+      uses: ./
+      with:
+        release: ${{ matrix.release }}
     - name: Print out programs invoked by the compiler
       run: arm-none-eabi-gcc -v
     - name: Print out version
