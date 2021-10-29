@@ -5,14 +5,18 @@ import * as core from '@actions/core';
 import * as tc from '@actions/tool-cache';
 import md5File from 'md5-file';
 
-import * as gcc from '../src/gcc';
+import * as gcc from './gcc';
 
 export async function install(release: string, platform?: string): Promise<string> {
   const toolName = 'gcc-arm-none-eabi';
-  platform = platform || process.platform;
-  const distData = gcc.distributionUrl(release, platform);
+  const toolPlatform = platform || process.platform;
 
-  const cachedDirectory = tc.find(toolName, release, platform);
+  // The the GCC release info
+  const distData = gcc.distributionUrl(release, toolPlatform);
+  // Convert the GCC version to Semver so that it can be used with the GH cache
+  const toolVersion = gcc.gccVersionToSemver(release);
+
+  const cachedDirectory = tc.find(toolName, toolVersion, toolPlatform);
   if (cachedDirectory) {
     core.info(`Cached version found: ${cachedDirectory}`);
     let cacheMd5 = 'MD5 not found in cached installation';
@@ -53,7 +57,7 @@ export async function install(release: string, platform?: string): Promise<strin
 
   core.info(`Adding to cache: ${extractedPath}`);
   await fs.promises.writeFile(path.join(extractedPath, 'md5.txt'), downloadHash, {encoding: 'utf8'});
-  const cachedPath = await tc.cacheDir(extractedPath, toolName, release, platform);
+  const cachedPath = await tc.cacheDir(extractedPath, toolName, toolVersion, toolPlatform);
   core.addPath(cachedPath);
 
   return extractedPath;

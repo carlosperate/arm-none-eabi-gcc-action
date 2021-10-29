@@ -3,6 +3,7 @@ import * as path from 'path';
 
 import fetch from 'node-fetch';
 import rimraf from 'rimraf';
+import * as semver from 'semver';
 
 import * as gcc from '../src/gcc';
 import * as setup from '../src/setup';
@@ -60,6 +61,19 @@ test('test url response', async () => {
   const resp = await fetch(url);
   expect(resp.status).toStrictEqual(200);
   expect(Number(resp.headers.get('Content-Length'))).toEqual(104170189);
+});
+
+test('GCC versions to valid Semver', async () => {
+  const gccVersions = gcc.availableVersions();
+  const gccSemverList: string[] = [];
+  for (const gccVer of gccVersions) {
+    const gccSemver = gcc.gccVersionToSemver(gccVer);
+    expect(semver.valid(gccSemver)).toEqual(gccSemver);
+    if (gccSemverList.includes(gccSemver)) {
+      throw new Error(`Generated Semver is a duplicate: ${gccSemver}`);
+    }
+    gccSemverList.push(gccSemver);
+  }
 });
 
 describe('Real install in temp dirs.', () => {

@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/camelcase */
 
+import semverValid from 'semver/functions/valid';
+
 interface UrlData {
   url: string;
   md5: string | null;
@@ -554,4 +556,49 @@ export function distributionUrl(version: string, platform: string): UrlData {
     throw new Error(`invalid platform ${osName}.`);
   }
   return versions[version][osName];
+}
+
+export function gccVersionToSemver(gccVersion: string): string {
+  // This conversion is very specific to the current version format, but it
+  // works with all the current versions. Tests have been added to check all
+  // existing versions, but it will need updating if the format changes
+  let gccVerStrArray = gccVersion.split('-');
+  gccVerStrArray = gccVerStrArray.map(item => {
+    // Convert qn -> n, i.e. q4 -> 4
+    if (item.startsWith('q') && item.length > 1) {
+      return item.substring(1);
+    }
+    // Convert yyyy.mm -> yyyymm, i.e. 2021.10 -> 202110
+    else if (/^\d{4}\.\d{2}$/.test(item)) {
+      return item.substr(4) + item.substr(5);
+    }
+    // Everything else will be dealt later with the filtering
+    else {
+      return item;
+    }
+  });
+  gccVerStrArray = gccVerStrArray.join('.').split('.');
+
+  // Remove any entry that cannot be converted to  number
+  gccVerStrArray = gccVerStrArray.filter(item => parseInt(item));
+  const gccVerIntArray = gccVerStrArray.map(item => parseInt(item));
+
+  // If the end result is less than 3 entries we need to fill it up
+  if (gccVerIntArray.length < 3) {
+    const verLength = gccVerIntArray.length;
+    for (let i = 0; i < 3 - verLength; i++) {
+      gccVerIntArray.push(0);
+    }
+  }
+  // If it has more we join them in the last entry
+  else if (gccVerIntArray.length > 3) {
+    gccVerIntArray[2] = parseInt(gccVerIntArray.slice(2).join(''));
+  }
+  const gccSemver = gccVerIntArray.slice(0, 3).join('.');
+
+  if (!semverValid(gccSemver)) {
+    throw new Error(`Could not convert the GCC version to a valid Semver: ${gccSemver}`);
+  }
+
+  return gccSemver;
 }
