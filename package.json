@@ -39,7 +39,7 @@
     "@types/node-fetch": "^2.5.4",
     "@types/rimraf": "^3.0.2",
     "@types/semver": "^7.3.9",
-    "@typescript-eslint/parser": "^2.8.0",
+    "@typescript-eslint/parser": "^4.33.0",
     "@zeit/ncc": "^0.20.5",
     "eslint": "^5.16.0",
     "eslint-plugin-github": "^2.0.0",
