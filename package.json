@@ -33,7 +33,7 @@
   },
   "devDependencies": {
     "@types/jest": "^24.0.23",
-    "@types/node": "^12.12.28",
+    "@types/node": "^16.11.6",
     "@types/node-fetch": "^2.5.4",
     "@types/rimraf": "^3.0.2",
     "@typescript-eslint/parser": "^2.8.0",
