@@ -2,13 +2,13 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 import fetch from 'node-fetch';
-import tmp from 'tmp';
-import * as rimraf from 'rimraf';
+import rimraf from 'rimraf';
 
 import * as gcc from '../src/gcc';
 import * as setup from '../src/setup';
 
 const TEMP_LOCAL_PATH = path.join(__dirname, '..', 'TESTS_TEMP_DELETE');
+const TEMP_CACHE_LOCAL_PATH = path.join(TEMP_LOCAL_PATH, 'CACHE');
 
 jest.setTimeout(5 * 60 * 1000);
 
@@ -17,11 +17,14 @@ beforeAll(() => {
     rimraf.sync(TEMP_LOCAL_PATH);
   }
   process.env['RUNNER_TEMP'] = TEMP_LOCAL_PATH;
+  process.env['RUNNER_TOOL_CACHE'] = TEMP_CACHE_LOCAL_PATH;
 });
 
-afterAll(() => {
+afterAll(done => {
   if (fs.existsSync(TEMP_LOCAL_PATH)) {
-    rimraf.sync(TEMP_LOCAL_PATH);
+    rimraf(TEMP_LOCAL_PATH, {disableGlob: true}, function() {
+      done();
+    });
   }
 });
 
@@ -72,14 +75,11 @@ describe('Real install in temp dirs.', () => {
   }
 
   async function tmpInstall(release: string, platform?: string): Promise<void> {
-    const dir = tmp.dirSync();
-    const gccDir = path.join(dir.name, `gcc-${release}`);
-    await setup.install(release, gccDir, platform);
-    const gccPath = setup.findGcc(gccDir, platform);
+    const installPath = await setup.install(release, platform);
+    const gccPath = setup.findGcc(installPath, platform);
     console.log(`gcc is at ${gccPath}`);
     expect(gccPath).not.toBe('');
     expect(hasGcc(gccPath)).toEqual(true);
-    dir.removeCallback();
   }
 
   test('4.7-2013-q1 win32', async () => await tmpInstall('4.7-2013-q1', 'win32'));

@@ -1,7 +1,4 @@
-import * as path from 'path';
-
 import * as core from '@actions/core';
-import tmp from 'tmp';
 
 import * as setup from './setup';
 
@@ -11,15 +8,10 @@ async function run(): Promise<void> {
     if (!release) {
       throw new Error('Missing release input.');
     }
-    let directory = core.getInput('directory');
-    if (!directory) {
-      const tmpDir = tmp.dirSync();
-      directory = path.join(tmpDir.name, `gcc-${release}`);
-    }
-    await setup.install(release, directory);
-    const gccPath = setup.findGcc(directory);
+    const installPath = await setup.install(release);
+    const gccPath = setup.findGcc(installPath);
     if (!gccPath) {
-      throw new Error(`Could not find gcc executable in ${directory}`);
+      throw new Error(`Could not find gcc executable in ${gccPath}`);
     }
     core.info(`Adding ${gccPath} to PATH.`);
     core.addPath(gccPath);

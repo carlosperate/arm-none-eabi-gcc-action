@@ -7,8 +7,16 @@ import md5File from 'md5-file';
 
 import * as gcc from '../src/gcc';
 
-export async function install(release: string, directory: string, platform?: string): Promise<void> {
-  const distData = gcc.distributionUrl(release, platform || process.platform);
+export async function install(release: string, platform?: string): Promise<string> {
+  const toolName = 'gcc-arm-none-eabi';
+  platform = platform || process.platform;
+  const distData = gcc.distributionUrl(release, platform);
+
+  const cachedDirectory = tc.find(toolName, release, platform);
+  if (cachedDirectory) {
+    core.info(`Cached version found and loaded: ${cachedDirectory}`);
+    return cachedDirectory;
+  }
 
   core.info(`Downloading GCC ${release} from ${distData.url} ; MD5 ${distData.md5}`);
   const gccDownloadPath = await tc.downloadTool(distData.url);
@@ -22,15 +30,19 @@ export async function install(release: string, directory: string, platform?: str
     }
   }
 
-  core.info(`Extracting to ${directory}`);
-  await fs.promises.mkdir(directory, {recursive: true});
+  core.info(`Extracting ${gccDownloadPath}`);
+  let extractedPath = '';
   if (distData.url.endsWith('.zip')) {
-    await tc.extractZip(gccDownloadPath, directory);
+    extractedPath = await tc.extractZip(gccDownloadPath);
   } else if (distData.url.endsWith('.tar.bz2')) {
-    await tc.extractTar(gccDownloadPath, directory, 'xj');
+    extractedPath = await tc.extractTar(gccDownloadPath, undefined, 'xj');
   } else {
     throw new Error(`Can't decompress ${distData.url}`);
   }
+  const cachedPath = await tc.cacheDir(extractedPath, toolName, release, platform);
+  core.addPath(cachedPath);
+
+  return extractedPath;
 }
 
 function findGccRecursive(dir: string, executableName: string): string {
