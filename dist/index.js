@@ -33716,7 +33716,7 @@ function install(release, platform) {
         core.info(`Cache miss, downloading GCC ${release} from ${distData.url} ; MD5 ${distData.md5}`);
         const gccDownloadPath = yield tc.downloadTool(distData.url);
         core.info(`GCC release downloaded, calculating MD5...`);
-        const downloadHash = yield md5_file_1.default(gccDownloadPath);
+        const downloadHash = yield (0, md5_file_1.default)(gccDownloadPath);
         core.info(`Downloaded file MD5: ${downloadHash}`);
         if (distData.md5 && downloadHash !== distData.md5) {
             throw new Error(`Downloaded GCC MD5 doesn't match expected value: ${downloadHash} != ${distData.md5}`);
@@ -46883,7 +46883,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 
 "use strict";
 
-/* eslint-disable @typescript-eslint/camelcase */
+/* eslint-disable @typescript-eslint/naming-convention */
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -47383,7 +47383,7 @@ function gccVersionToSemver(gccVersion) {
         gccVerIntArray[2] = parseInt(gccVerIntArray.slice(2).join(''));
     }
     const gccSemver = gccVerIntArray.slice(0, 3).join('.');
-    if (!valid_1.default(gccSemver)) {
+    if (!(0, valid_1.default)(gccSemver)) {
         throw new Error(`Could not convert the GCC version to a valid Semver: ${gccSemver}`);
     }
     return gccSemver;
