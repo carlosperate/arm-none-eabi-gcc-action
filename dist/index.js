@@ -46890,6 +46890,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.gccVersionToSemver = exports.distributionUrl = exports.availableVersions = void 0;
 const valid_1 = __importDefault(__webpack_require__(714));
+// Update value to always point to latest release
+const latestRelease = '10.3-2021.10';
 const versions = {
     '10.3-2021.10': {
         win32: {
@@ -47318,13 +47320,15 @@ const versions = {
         },
     },
 };
-// Add latest tag to always point to latest release
-versions['latest'] = versions['10.3-2021.10'];
 function availableVersions() {
     return Object.keys(versions);
 }
 exports.availableVersions = availableVersions;
 function distributionUrl(version, platform) {
+    // Replace the `latest` tag for the latest release
+    if (version === 'latest')
+        version = latestRelease;
+    // Convert the node platform value to the versions URL keys
     let osName = '';
     switch (platform) {
         case 'darwin':
