@@ -74,13 +74,6 @@ test('test url', () => {
   expect(gcc.distributionUrl('4.8-2013-q4', 'darwin').md5).toStrictEqual('850caa23f01ea8c1e6abcc3c217d36f7');
 });
 
-test('test url response', async () => {
-  const url = gcc.distributionUrl('6-2017-q1', 'darwin').url;
-  const resp = await fetch(url);
-  expect(resp.status).toStrictEqual(200);
-  expect(Number(resp.headers.get('Content-Length'))).toEqual(104170189);
-});
-
 test('GCC versions to valid Semver', async () => {
   const gccVersions = gcc.availableVersions();
   const gccSemverList: string[] = [];
