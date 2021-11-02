@@ -1,3 +1,5 @@
+# Turns out there is no way yet to only configure this for security updates
+# So the file is renamed to wait for that config option to be available
 version: 2
 updates:
   - package-ecosystem: github-actions
