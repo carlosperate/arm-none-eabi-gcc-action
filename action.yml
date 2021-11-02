@@ -9,4 +9,4 @@ runs:
   main: 'dist/index.js'
 branding:
   icon: 'cpu'
-  color: 'green'
+  color: 'yellow'

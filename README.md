@@ -2,8 +2,8 @@
 
 [![CI](https://github.com/carlosperate/arm-none-eabi-gcc-action/actions/workflows/test.yml/badge.svg)](https://github.com/carlosperate/arm-none-eabi-gcc-action/actions/workflows/test.yml)
 
-This GitHub Action (for all Operating Systems) downloads, checks and sets up
-`arm-none-eabi-gcc`, adding it to the PATH.
+This GitHub Action (compatible with all platforms) downloads, checks, sets up,
+and caches `arm-none-eabi-gcc`.
 
 
 ## Usage
@@ -13,20 +13,35 @@ steps:
 - name: Install GNU Arm Embedded Toolchain (arm-none-eabi-gcc)
   uses: carlosperate/arm-none-eabi-gcc-action@v1
   with:
-    release: '10.3-2021.10' # The compiler release to use.
+    release: '10.3-2021.10' # <-- The compiler release to use
 - run: arm-none-eabi-gcc --version
+```
+
+To check your project works with a known and the latest version of GCC:
+
+```yaml
+jobs:
+  build:
+    strategy:
+      matrix:
+        gcc: [ '7-2017-q4', 'latest']
+    steps:
+      - uses: carlosperate/arm-none-eabi-gcc-action@v1
+        with:
+          release: ${{ matrix.gcc }}
+      - run: arm-none-eabi-gcc --version
 ```
 
 
 ## Advantages over other options
 
-- [x] Updated with the latest GCC releases from Arm
-- [x] Adds a `latest` option to use the latest compiler release
-- [x] Downloaded release is MD5 checked
-- [ ] CI caching added for faster runs (coming in the next few days)
-- [x] File downloads are more stable (no random failures)
-- [x] Issue tracker is enabled
-- [x] Actively maintained
+- 🚀 Updated with the latest GCC releases from Arm
+- 📅 Adds `latest` option to be able to always run tests with the latest compiler release
+- ✅ Downloads are MD5 checked
+- 🏎 CI caching added for faster runs (reduced time from 30s-2min to 5ish seconds)
+- ⬇️ File downloads are more stable (no random failures)
+- 🐞 Issue tracker is enabled
+- 🧑‍💻 Actively maintained
 
 
 ## Available releases
@@ -54,6 +69,7 @@ file, or the [GitHub Releases](https://github.com/carlosperate/arm-none-eabi-gcc
 [MIT License](LICENSE).
 
 This project is a fork of [fiam/arm-none-eabi-gcc](https://github.com/fiam/arm-none-eabi-gcc),
-copyright [@fiam](https://github.com/fiam) (thanks for the awesome work Alberto!
-without it this fork would have never existed). List of changes can be seen
+copyright [@fiam](https://github.com/fiam) (thanks for the awesome work
+Alberto! without it this fork would have never existed). The extensive list of
+changes can be seen
 [here](https://github.com/carlosperate/arm-none-eabi-gcc-action/compare/4cecd3f99905c1c296edf75f570b9e68993be22f...main).
