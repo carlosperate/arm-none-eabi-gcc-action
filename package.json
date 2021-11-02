@@ -37,7 +37,7 @@
     "@types/node": "^16.11.6",
     "@types/rimraf": "^3.0.2",
     "@types/semver": "^7.3.9",
-    "@typescript-eslint/parser": "^5.2.0",
+    "@typescript-eslint/parser": "^5.3.0",
     "@vercel/ncc": "^0.31.1",
     "eslint": "^8.1.0",
     "eslint-plugin-github": "^4.3.3",
