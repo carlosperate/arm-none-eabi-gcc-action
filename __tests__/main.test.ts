@@ -5,7 +5,6 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 
-import fetch from 'node-fetch';
 import rimraf from 'rimraf';
 import * as semver from 'semver';
 
@@ -55,19 +54,23 @@ test('test url', () => {
   expect(gcc.distributionUrl('6-2017-q1', 'darwin').url).toStrictEqual(
     'https://developer.arm.com/-/media/Files/downloads/gnu-rm/6_1-2017q1/gcc-arm-none-eabi-6-2017-q1-update-mac.tar.bz2'
   );
-  expect(gcc.distributionUrl('6-2017-q1', 'darwin').md5).toBeNull();
+  expect(gcc.distributionUrl('6-2017-q1', 'darwin').md5).toStrictEqual('709c86af4c92d17bd5fb9dcfe00ffd6d');
+
   expect(gcc.distributionUrl('6-2017-q1', 'linux').url).toStrictEqual(
     'https://developer.arm.com/-/media/Files/downloads/gnu-rm/6_1-2017q1/gcc-arm-none-eabi-6-2017-q1-update-linux.tar.bz2'
   );
-  expect(gcc.distributionUrl('6-2017-q1', 'linux').md5).toBeNull();
+  expect(gcc.distributionUrl('6-2017-q1', 'linux').md5).toStrictEqual('30004c24f4632bc594952462bb0cd1c9');
+
   expect(gcc.distributionUrl('6-2017-q1', 'win32').url).toStrictEqual(
     'https://developer.arm.com/-/media/Files/downloads/gnu-rm/6_1-2017q1/gcc-arm-none-eabi-6-2017-q1-update-win32-zip.zip'
   );
-  expect(gcc.distributionUrl('6-2017-q1', 'win32').md5).toBeNull();
+  expect(gcc.distributionUrl('6-2017-q1', 'win32').md5).toStrictEqual('ec8b98945d4faf0c28a05bcdc1c2e537');
+
   expect(gcc.distributionUrl('9-2019-q4', 'linux').url).toStrictEqual(
     'https://developer.arm.com/-/media/Files/downloads/gnu-rm/9-2019q4/gcc-arm-none-eabi-9-2019-q4-major-x86_64-linux.tar.bz2'
   );
   expect(gcc.distributionUrl('9-2019-q4', 'linux').md5).toStrictEqual('fe0029de4f4ec43cf7008944e34ff8cc');
+
   expect(gcc.distributionUrl('4.8-2013-q4', 'darwin').url).toStrictEqual(
     'https://launchpad.net/gcc-arm-embedded/4.8/4.8-2013-q4-major/+download/gcc-arm-none-eabi-4_8-2013q4-20131218-mac.tar.bz2'
   );

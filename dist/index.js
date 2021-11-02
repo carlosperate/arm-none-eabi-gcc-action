@@ -179,29 +179,29 @@ const versions = {
     '6-2017-q1': {
         win32: {
             url: 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/6_1-2017q1/gcc-arm-none-eabi-6-2017-q1-update-win32-zip.zip',
-            md5: null,
+            md5: 'ec8b98945d4faf0c28a05bcdc1c2e537', // This MD5 was calculated by me instead of coming from Arm
         },
         mac_x86_64: {
             url: 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/6_1-2017q1/gcc-arm-none-eabi-6-2017-q1-update-mac.tar.bz2',
-            md5: null,
+            md5: '709c86af4c92d17bd5fb9dcfe00ffd6d', // This MD5 was calculated by me instead of coming from Arm
         },
         linux_x86_64: {
             url: 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/6_1-2017q1/gcc-arm-none-eabi-6-2017-q1-update-linux.tar.bz2',
-            md5: null,
+            md5: '30004c24f4632bc594952462bb0cd1c9', // This MD5 was calculated by me instead of coming from Arm
         },
     },
     '6-2016-q4': {
         win32: {
             url: 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/6-2016q4/gcc-arm-none-eabi-6_2-2016q4-20161216-win32-zip.zip',
-            md5: null,
+            md5: '6aa8f5795abf176190b9eef9a9f34ef1', // This MD5 was calculated by me instead of coming from Arm
         },
         mac_x86_64: {
             url: 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/6-2016q4/gcc-arm-none-eabi-6_2-2016q4-20161216-mac.tar.bz2',
-            md5: null,
+            md5: 'dff94a68a97ba8526a825254c336d660', // This MD5 was calculated by me instead of coming from Arm
         },
         linux_x86_64: {
             url: 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/6-2016q4/gcc-arm-none-eabi-6_2-2016q4-20161216-linux.tar.bz2',
-            md5: null,
+            md5: '8986a0d41a8e4c92e8a64487d8b0eac7', // This MD5 was calculated by me instead of coming from Arm
         },
     },
     '5-2016-q3': {
