@@ -636,41 +636,26 @@ function install(release, platform) {
         const distData = gcc.distributionUrl(release, toolPlatform);
         // Convert the GCC version to Semver so that it can be used with the GH cache
         const toolVersion = gcc.gccVersionToSemver(release);
-        const globalCacheKey = `${toolName}-${toolVersion}-${toolPlatform}`;
-        const installPath = path.join(os.homedir(), globalCacheKey);
-        core.debug(`Global cache key: ${globalCacheKey}`);
-        let checkCachedMd5 = false;
-        let finalCacheDir = null;
-        // First check the current run cache
-        const cachedDirectory = tc.find(toolName, toolVersion, toolPlatform);
-        if (cachedDirectory) {
-            core.info(`Session cache found: ${cachedDirectory}`);
-            checkCachedMd5 = true;
-            finalCacheDir = cachedDirectory;
+        const cacheKey = `${toolName}-${toolVersion}-${toolPlatform}`;
+        const installPath = path.join(os.homedir(), cacheKey);
+        core.debug(`Cache key: ${cacheKey}`);
+        // Try to load the GCC installation from the cache
+        let cacheKeyMatched = undefined;
+        try {
+            cacheKeyMatched = yield cache.restoreCache([installPath], cacheKey);
+            core.debug(`Matched cache.restoreCache() key: ${cacheKeyMatched}`);
         }
-        else {
-            // If there isn't a local hit check the global cache between runs
-            try {
-                const cacheKeyMatched = yield cache.restoreCache([installPath], globalCacheKey);
-                core.debug(`Matched cache.restoreCache() key: ${cacheKeyMatched}`);
-                if (cacheKeyMatched === globalCacheKey) {
-                    core.info(`Global cache found: ${installPath}`);
-                    checkCachedMd5 = true;
-                    finalCacheDir = installPath;
-                }
-            }
-            catch (err) {
-                core.warning(`Could not read the contents of the cached version MD5.\n${err.message}`);
-            }
+        catch (err) {
+            core.warning(`Could not find contents in the cache.\n${err.message}`);
         }
-        // If either cache was found, verify the MD5
-        if (checkCachedMd5 && finalCacheDir) {
+        if (cacheKeyMatched === cacheKey) {
+            core.info(`Cache found: ${installPath}`);
             let cacheMd5 = 'MD5 not found in cached installation';
             try {
-                cacheMd5 = yield fs.promises.readFile(path.join(finalCacheDir, 'md5.txt'), { encoding: 'utf8' });
+                cacheMd5 = yield fs.promises.readFile(path.join(installPath, 'md5.txt'), { encoding: 'utf8' });
             }
             catch (err) {
-                core.warning(`Could not read the contents of the cached version MD5.\n${err.message}`);
+                core.warning(`Could not read the contents of the cached GCC version MD5.\n${err.message}`);
             }
             core.info(`Cached version MD5: ${cacheMd5}`);
             if (cacheMd5 !== distData.md5) {
@@ -678,7 +663,7 @@ function install(release, platform) {
             }
             else {
                 core.info('Cached version loaded.');
-                return finalCacheDir;
+                return installPath;
             }
         }
         core.info(`Cache miss, downloading GCC ${release} from ${distData.url} ; MD5 ${distData.md5}`);
@@ -700,20 +685,14 @@ function install(release, platform) {
         else {
             throw new Error(`Can't decompress ${distData.url}`);
         }
-        // Adding to the two different caches
-        core.info(`Adding to both caches: ${extractedPath}`);
+        // Adding installation to the cache
+        core.info(`Adding to cache: ${extractedPath}`);
         yield fs.promises.writeFile(path.join(extractedPath, 'md5.txt'), downloadHash, { encoding: 'utf8' });
         try {
-            yield tc.cacheDir(extractedPath, toolName, toolVersion, toolPlatform);
+            yield cache.saveCache([extractedPath], cacheKey);
         }
         catch (err) {
-            core.warning(`Could not save to the local cache.\n${err.message}`);
-        }
-        try {
-            yield cache.saveCache([extractedPath], globalCacheKey);
-        }
-        catch (err) {
-            core.warning(`Could not save to the global cache.\n${err.message}`);
+            core.warning(`Could not save to the cache.\n${err.message}`);
         }
         return extractedPath;
     });

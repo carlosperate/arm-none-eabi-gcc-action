@@ -28,7 +28,8 @@ steps:
     release: '10.3-2021.10' # <-- The compiler release to use
 ```
 
-And/or use a "job matrix" to build your project with different versions of GCC:
+And you can use a "job matrix" to build/test your project with different
+versions of GCC:
 
 ```yaml
 jobs:

@@ -68,10 +68,6 @@ jobs:
       uses: ./
       with:
         release: ${{ matrix.release }}
-    - name: Set up GCC Arm Compiler (2)
-      uses: ./
-      with:
-        release: ${{ matrix.release }}
     - name: Print out programs invoked by the compiler
       run: arm-none-eabi-gcc -v
     - name: Print out version
@@ -85,13 +81,12 @@ jobs:
   # Run Action without inputs
   test-default:
     name: Test default options
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
     - name: Ensure the compiler is not present
       run: '! arm-none-eabi-gcc --version'
-    - name: Set up GCC Arm Compiler
-      uses: ./
-    - name: Set up GCC Arm Compiler (2)
+    - name: Set up GCC Arm Compiler with default options
       uses: ./
     - name: Print out version
       run: arm-none-eabi-gcc --version
