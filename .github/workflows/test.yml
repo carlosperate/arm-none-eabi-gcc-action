@@ -81,3 +81,17 @@ jobs:
         (!contains(matrix.release, '2012') && !contains(matrix.release, '2013') && !contains(matrix.release, '2014')
         && !contains(matrix.release, '2015') && !contains(matrix.release, '2016') && (matrix.release != 'latest'))
       run: arm-none-eabi-gcc --version | grep -q ${{ matrix.release }}
+
+  # Run Action without inputs
+  test-default:
+    name: Test default options
+    steps:
+    - uses: actions/checkout@v2
+    - name: Ensure the compiler is not present
+      run: '! arm-none-eabi-gcc --version'
+    - name: Set up GCC Arm Compiler
+      uses: ./
+    - name: Set up GCC Arm Compiler (2)
+      uses: ./
+    - name: Print out version
+      run: arm-none-eabi-gcc --version

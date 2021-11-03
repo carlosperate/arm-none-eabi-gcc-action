@@ -559,9 +559,9 @@ const setup = __importStar(__nccwpck_require__(7391));
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const release = core.getInput('release');
+            let release = core.getInput('release');
             if (!release) {
-                throw new Error('Missing release input.');
+                release = 'latest';
             }
             const installPath = yield setup.install(release);
             const gccPath = setup.findGcc(installPath);

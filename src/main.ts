@@ -4,9 +4,9 @@ import * as setup from './setup';
 
 async function run(): Promise<void> {
   try {
-    const release = core.getInput('release');
+    let release = core.getInput('release');
     if (!release) {
-      throw new Error('Missing release input.');
+      release = 'latest';
     }
     const installPath = await setup.install(release);
     const gccPath = setup.findGcc(installPath);

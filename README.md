@@ -8,23 +8,34 @@ and caches `arm-none-eabi-gcc`.
 
 ## Usage
 
+Simplest way to use this action is with the default options, which uses the
+the latest `arm-none-eabi-gcc` release:
+
 ```yaml
 steps:
 - name: Install GNU Arm Embedded Toolchain (arm-none-eabi-gcc)
   uses: carlosperate/arm-none-eabi-gcc-action@v1
-  with:
-    release: '10.3-2021.10' # <-- The compiler release to use
 - run: arm-none-eabi-gcc --version
 ```
 
-To check your project works with a known and the latest version of GCC:
+You can also specify a version (there is a list in the
+[Available releases](#available-releases) section):
+
+```yaml
+steps:
+- uses: carlosperate/arm-none-eabi-gcc-action@v1
+  with:
+    release: '10.3-2021.10' # <-- The compiler release to use
+```
+
+And/or use a "job matrix" to build your project with different versions of GCC:
 
 ```yaml
 jobs:
   build:
     strategy:
       matrix:
-        gcc: [ '7-2017-q4', 'latest']
+        gcc: ['7-2017-q4', 'latest']
     steps:
       - uses: carlosperate/arm-none-eabi-gcc-action@v1
         with:
@@ -37,6 +48,7 @@ jobs:
 
 - 🚀 Updated with the latest GCC releases from Arm
 - 📅 Adds `latest` option to be able to always run tests with the latest compiler release
+- ⚙️ Inputs are optional for simpler configuration
 - ✅ Downloads are MD5 checked
 - 🏎 CI caching added for faster runs (reduced time from 30s-2min to 5ish seconds)
 - ⬇️ File downloads are more stable (no random failures)
