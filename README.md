@@ -13,36 +13,23 @@ the latest `arm-none-eabi-gcc` release:
 
 ```yaml
 steps:
-- name: Install GNU Arm Embedded Toolchain (arm-none-eabi-gcc)
-  uses: carlosperate/arm-none-eabi-gcc-action@v1
+- uses: carlosperate/arm-none-eabi-gcc-action@v1
 - run: arm-none-eabi-gcc --version
 ```
 
-You can also specify a version (there is a list in the
+You can also specify a version (a list can be found in the
 [Available releases](#available-releases) section):
 
 ```yaml
 steps:
-- uses: carlosperate/arm-none-eabi-gcc-action@v1
+- name: Install GNU Arm Embedded Toolchain (arm-none-eabi-gcc)
+  uses: carlosperate/arm-none-eabi-gcc-action@v1
   with:
     release: '10.3-2021.10' # <-- The compiler release to use
 ```
 
-And you can use a "job matrix" to build/test your project with different
-versions of GCC:
-
-```yaml
-jobs:
-  build:
-    strategy:
-      matrix:
-        gcc: ['7-2017-q4', 'latest']
-    steps:
-      - uses: carlosperate/arm-none-eabi-gcc-action@v1
-        with:
-          release: ${{ matrix.gcc }}
-      - run: arm-none-eabi-gcc --version
-```
+More information can be found in the [Advanced Options](#advanced-options)
+section.
 
 
 ## Advantages over other options
@@ -51,7 +38,7 @@ jobs:
 - 📅 Adds `latest` option to be able to always run tests with the latest compiler release
 - ⚙️ Inputs are optional for simpler configuration
 - ✅ Downloads are MD5 checked
-- 🏎 CI caching added for faster runs (reduced time from 30s-2min to 5ish seconds)
+- 🏎 Toolchain is cached for faster runs (reduced time from 30s-2min to 5ish seconds)
 - ⬇️ File downloads are more stable (no random failures)
 - 🐞 Issue tracker is enabled
 - 🧑‍💻 Actively maintained
@@ -69,6 +56,36 @@ jobs:
 - `4.9-2015-q3` &nbsp;&nbsp; `4.9-2015-q2` &nbsp; `4.9-2015-q1` &nbsp; `4.9-2014-q4`
 - `4.8-2014-q3` &nbsp;&nbsp; `4.8-2014-q2` &nbsp; `4.8-2014-q1` &nbsp; `4.8-2013-q4`
 - `4.7-2014-q2` &nbsp;&nbsp; `4.7-2013-q3` &nbsp; `4.7-2013-q2` &nbsp; `4.7-2013-q1` &nbsp; `4.7-2012-q4`
+
+
+## Advanced options
+
+You can use a "job matrix" to build/test your project with different versions
+of GCC:
+
+```yaml
+jobs:
+  build:
+    strategy:
+      matrix:
+        gcc: ['7-2017-q4', 'latest']
+    steps:
+      - name: Install GNU Arm Embedded Toolchain - ${{ matrix.gcc }}
+        uses: carlosperate/arm-none-eabi-gcc-action@v1
+        with:
+          release: ${{ matrix.gcc }}
+      - run: arm-none-eabi-gcc --version
+```
+
+If you need to pass the GCC path to a different action or step the `path`
+output exports it:
+
+```yaml
+- uses: carlosperate/arm-none-eabi-gcc-action@v1
+  id: arm-none-eabi-gcc-action
+- name: Check output path is correct
+  run: echo "The executables path is ${{ steps.arm-none-eabi-gcc-actio.outputs.path }}"
+```
 
 
 ## Changelog

@@ -4,7 +4,11 @@ author: 'Carlos Pereira Atencio'
 inputs:
   release:
     description: 'GNU Embedded Toolchain for Arm release name (e.g. "10.3-2021.07").'
+    default: 'latest'
     required: false
+outputs:
+  path:
+    description: 'Path to the bin folder with the toolchain executables.'
 runs:
   using: 'node12'
   main: 'dist/index.js'

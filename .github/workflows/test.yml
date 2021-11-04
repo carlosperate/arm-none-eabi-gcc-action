@@ -81,12 +81,17 @@ jobs:
   # Run Action without inputs
   test-default:
     name: Test default options
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     steps:
     - uses: actions/checkout@v2
     - name: Ensure the compiler is not present
       run: '! arm-none-eabi-gcc --version'
     - name: Set up GCC Arm Compiler with default options
       uses: ./
+      id: action-under-test-id
     - name: Print out version
       run: arm-none-eabi-gcc --version
+    - name: Check the version matches
+      run: arm-none-eabi-gcc --version | grep -q 10.3-2021.10
+    - name: Check output path is correct
+      run: echo "${{ steps.action-under-test-id.outputs.path }}" | grep -q /home/runner/gcc-arm-none-eabi-0.0.0-linux/gcc-arm-none-eabi-10.3-2021.10/bin

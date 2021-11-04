@@ -15,6 +15,7 @@ async function run(): Promise<void> {
     }
     core.info(`Adding ${gccPath} to PATH.`);
     core.addPath(gccPath);
+    core.setOutput('path', gccPath);
   } catch (error) {
     if (error instanceof Error) core.setFailed(error.message);
   }
