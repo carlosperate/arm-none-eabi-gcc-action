@@ -570,7 +570,12 @@ function run() {
             }
             core.info(`Adding ${gccPath} to PATH.`);
             core.addPath(gccPath);
+            // Export path for other tools
             core.setOutput('path', gccPath);
+            const pathEnvVar = core.getInput('path-env-var');
+            if (pathEnvVar) {
+                core.exportVariable(pathEnvVar, gccPath);
+            }
         }
         catch (error) {
             if (error instanceof Error)

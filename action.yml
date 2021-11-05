@@ -6,6 +6,9 @@ inputs:
     description: 'GNU Embedded Toolchain for Arm release name (e.g. "10.3-2021.07").'
     default: 'latest'
     required: false
+  path-env-var:
+    description: 'Name for an environmental variable to be created with the toolchain path.'
+    required: false
 outputs:
   path:
     description: 'Path to the bin folder with the toolchain executables.'

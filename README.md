@@ -37,6 +37,7 @@ section.
 - 🚀 Updated with the latest GCC releases from Arm
 - 📅 Adds `latest` option to be able to always run tests with the latest compiler release
 - ⚙️ Inputs are optional for simpler configuration
+- ↗️ Toolchain path can be exported as an environmental variable and/or step output
 - ✅ Downloads are MD5 checked
 - 🏎 Toolchain is cached for faster runs (reduced time from 30s-2min to 5ish seconds)
 - ⬇️ File downloads are more stable (no random failures)
@@ -81,10 +82,23 @@ If you need to pass the GCC path to a different action or step the `path`
 output exports it:
 
 ```yaml
-- uses: carlosperate/arm-none-eabi-gcc-action@v1
+- name: To access a step output, you need to provide an `id`
+  uses: carlosperate/arm-none-eabi-gcc-action@v1
   id: arm-none-eabi-gcc-action
-- name: Check output path is correct
-  run: echo "The executables path is ${{ steps.arm-none-eabi-gcc-actio.outputs.path }}"
+- name: The `path` to the toolchain executables can then be obtained as an output
+  run: echo "The output path is ${{ steps.arm-none-eabi-gcc-action.outputs.path }}"
+```
+
+The path can also be added to an environmental variable if it's specified as
+an input:
+
+```yaml
+- name: To create an environmental variable with the toolchain path provide a name via the `path-env-var` input
+  uses: carlosperate/arm-none-eabi-gcc-action@v1
+  with:
+    path-env-var: ARM_NONE_EABI_GCC_PATH
+- name: The path will be exported to that environmental variable name
+  run: echo "The output path is $ARM_NONE_EABI_GCC_PATH"
 ```
 
 
