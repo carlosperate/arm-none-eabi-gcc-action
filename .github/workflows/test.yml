@@ -18,7 +18,7 @@ jobs:
     - run: npm run all
 
   # Run Action with all GCC versions and in all environments
-  test:
+  test-all-releases:
     strategy:
       fail-fast: false
       matrix:
@@ -79,15 +79,17 @@ jobs:
       run: arm-none-eabi-gcc --version | grep -q ${{ matrix.release }}
 
   # Check Action env var path
-  test-default:
+  test-exports:
     name: Test path output and env var
-    runs-on: windows-2016
+    runs-on: ubuntu-18.04
     steps:
     - uses: actions/checkout@v2
     - name: Ensure the compiler is not present
       run: '! arm-none-eabi-gcc --version'
     - name: Set up GCC Arm Compiler with default options
+      id: action-under-test-id
       uses: ./
+      with:
         release: '7-2017-q4'
         path-env-var: ARM_NONE_EABI_GCC_PATH
     - name: Print out version
@@ -95,11 +97,11 @@ jobs:
     - name: Check the version matches
       run: arm-none-eabi-gcc --version | grep -q 7-2017-q4
     - name: Print path via env var and output
-      run: echo "output ${{ steps.action-under-test-id.outputs.path }} \n env var $ARM_NONE_EABI_GCC_PATH"
-    - name: Check output path is correct
-      run: echo "Path ${{ steps.action-under-test-id.outputs.path }}" | grep -q C:\Users\runneradmin\gcc-arm-none-eabi-7.2017.4-win32\bin
+      run: echo "output -> ${{ steps.action-under-test-id.outputs.path }} \n env var -> $ARM_NONE_EABI_GCC_PATH"
     - name: Check env var path is correct
-      run: echo "Path $ARM_NONE_EABI_GCC_PATH" | grep -q C:\Users\runneradmin\gcc-arm-none-eabi-7.2017.4-win32\bin
+      run: echo "Path $ARM_NONE_EABI_GCC_PATH" | grep -q /home/runner/gcc-arm-none-eabi-7.2017.4-linux/gcc-arm-none-eabi-7-2017-q4-major/bin
+    - name: Check output path is correct
+      run: echo "Path ${{ steps.action-under-test-id.outputs.path }}" | grep -q /home/runner/gcc-arm-none-eabi-7.2017.4-linux/gcc-arm-none-eabi-7-2017-q4-major/bin
 
   # Run Action without inputs
   test-default:
