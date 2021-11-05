@@ -4,10 +4,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v1.3.0 - 2021-11-xx
+### Added
+- Compiler `bin/` directory path exported as an action output
+- If a `path-env-var` input is provided, the compiler `bin/` directory path is
+  exported as an environmental variable of that name
+
 ## v1.2.0 - 2021-11-03
 ### Added
 - Caching is enabled for faster runs, time went down from usually around 30s
-  to about 5s.
+  to usually less than 5s.
 - Some released did not provide MD5 values, so they have been manually
   calculated and added
 - Improved documentation
