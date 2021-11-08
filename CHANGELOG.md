@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## v1.3.0 - 2021-11-xx
+## v1.3.0 - 2021-11-08
 ### Added
 - Compiler `bin/` directory path exported as an action output
 - If a `path-env-var` input is provided, the compiler `bin/` directory path is
