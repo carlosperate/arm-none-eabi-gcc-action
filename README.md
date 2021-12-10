@@ -35,11 +35,11 @@ section.
 ## Advantages over other options
 
 - 🚀 Updated with the latest GCC releases from Arm
+- 🏎 Toolchain is cached for faster runs (reduced time from 30s-2min to 5ish seconds)
 - 📅 Adds `latest` option to be able to always run tests with the latest compiler release
 - ⚙️ Inputs are optional for simpler configuration
 - ↗️ Toolchain path can be exported as an environmental variable and/or step output
 - ✅ Downloads are MD5 checked
-- 🏎 Toolchain is cached for faster runs (reduced time from 30s-2min to 5ish seconds)
 - ⬇️ File downloads are more stable (no random failures)
 - 🐞 Issue tracker is enabled
 - 🧑‍💻 Actively maintained
