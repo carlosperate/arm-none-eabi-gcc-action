@@ -61,7 +61,7 @@ section.
 
 ## Advanced options
 
-You can use a "job matrix" to build/test your project with different versions
+You can use a "job matrix" to build/test your project with multiple versions
 of GCC:
 
 ```yaml
