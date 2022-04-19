@@ -63,6 +63,8 @@ export async function install(release: string, platform?: string): Promise<strin
     extractedPath = await tc.extractZip(gccDownloadPath, installPath);
   } else if (distData.url.endsWith('.tar.bz2')) {
     extractedPath = await tc.extractTar(gccDownloadPath, installPath, 'xj');
+  } else if (distData.url.endsWith('.tar.xz')) {
+    extractedPath = await tc.extractTar(gccDownloadPath, installPath, 'xJ');
   } else {
     throw new Error(`Can't decompress ${distData.url}`);
   }

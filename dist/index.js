@@ -14,8 +14,26 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.gccVersionToSemver = exports.distributionUrl = exports.availableVersions = void 0;
 const valid_1 = __importDefault(__nccwpck_require__(9601));
 // Update value to always point to latest release
-const latestRelease = '10.3-2021.10';
+const latestRelease = '11.2-2022.02';
 const versions = {
+    '11.2-2022.02': {
+        win32: {
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu/11.2-2022.02/binrel/gcc-arm-11.2-2022.02-mingw-w64-i686-arm-none-eabi.zip',
+            md5: 'e2bb05445200ed8e8c9140fad6a0afb5',
+        },
+        mac_x86_64: {
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu/11.2-2022.02/binrel/gcc-arm-11.2-2022.02-darwin-x86_64-arm-none-eabi.tar.xz',
+            md5: 'c51d8257b67d7555047f172698730685',
+        },
+        linux_x86_64: {
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu/11.2-2022.02/binrel/gcc-arm-11.2-2022.02-x86_64-arm-none-eabi.tar.xz',
+            md5: 'a48e6f8756be70b071535048a678c481',
+        },
+        linux_aarch64: {
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu/11.2-2022.02/binrel/gcc-arm-11.2-2022.02-aarch64-arm-none-eabi.tar.xz',
+            md5: '746f20d2eb8acad4e7085e1395665219',
+        },
+    },
     '10.3-2021.10': {
         win32: {
             url: 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/10.3-2021.10/gcc-arm-none-eabi-10.3-2021.10-win32.zip',
@@ -687,6 +705,9 @@ function install(release, platform) {
         }
         else if (distData.url.endsWith('.tar.bz2')) {
             extractedPath = yield tc.extractTar(gccDownloadPath, installPath, 'xj');
+        }
+        else if (distData.url.endsWith('.tar.xz')) {
+            extractedPath = yield tc.extractTar(gccDownloadPath, installPath, 'xJ');
         }
         else {
             throw new Error(`Can't decompress ${distData.url}`);

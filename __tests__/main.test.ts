@@ -117,7 +117,7 @@ describe('Real install in temp dirs.', () => {
     for (const filename of ['arm-none-eabi-gcc', 'arm-none-eabi-gcc.exe']) {
       const exe = path.join(dir, filename);
       if (fs.existsSync(exe)) {
-        console.log(`${exe} exists`);
+        console.log(`✅ Executable exists: ${exe}`);
         return true;
       }
     }
@@ -127,14 +127,16 @@ describe('Real install in temp dirs.', () => {
   async function tmpInstall(release: string, platform?: string): Promise<void> {
     const installPath = await setup.install(release, platform);
     const gccPath = setup.findGcc(installPath, platform);
-    console.log(`gcc is at ${gccPath}`);
     expect(gccPath).not.toBe('');
-    expect(hasGcc(gccPath)).toEqual(true);
+    expect(hasGcc(gccPath)).toBeTruthy();
   }
 
   test('4.7-2013-q1 win32', async () => await tmpInstall('4.7-2013-q1', 'win32'));
   test('6-2017-q1 linux', async () => await tmpInstall('6-2017-q1', 'linux'));
   test('9-2019-q4 darwin', async () => await tmpInstall('9-2019-q4', 'darwin'));
   test('10.3-2021.07 win32', async () => await tmpInstall('10.3-2021.07', 'win32'));
+  test('11.2-2022.02 linux', async () => await tmpInstall('11.2-2022.02', 'linux'));
+  test('11.2-2022.02 darwin', async () => await tmpInstall('11.2-2022.02', 'darwin'));
+  test('11.2-2022.02 win32', async () => await tmpInstall('11.2-2022.02', 'win32'));
   test('latest win32', async () => await tmpInstall('latest', 'win32'));
 });

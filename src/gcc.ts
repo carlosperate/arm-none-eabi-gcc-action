@@ -8,9 +8,31 @@ interface UrlData {
 }
 
 // Update value to always point to latest release
-const latestRelease = '10.3-2021.10';
+const latestRelease = '11.2-2022.02';
 
 const versions: {[gccRelease: string]: {[platform: string]: UrlData}} = {
+  '11.2-2022.02': {
+    win32: {
+      url:
+        'https://developer.arm.com/-/media/Files/downloads/gnu/11.2-2022.02/binrel/gcc-arm-11.2-2022.02-mingw-w64-i686-arm-none-eabi.zip',
+      md5: 'e2bb05445200ed8e8c9140fad6a0afb5',
+    },
+    mac_x86_64: {
+      url:
+        'https://developer.arm.com/-/media/Files/downloads/gnu/11.2-2022.02/binrel/gcc-arm-11.2-2022.02-darwin-x86_64-arm-none-eabi.tar.xz',
+      md5: 'c51d8257b67d7555047f172698730685',
+    },
+    linux_x86_64: {
+      url:
+        'https://developer.arm.com/-/media/Files/downloads/gnu/11.2-2022.02/binrel/gcc-arm-11.2-2022.02-x86_64-arm-none-eabi.tar.xz',
+      md5: 'a48e6f8756be70b071535048a678c481',
+    },
+    linux_aarch64: {
+      url:
+        'https://developer.arm.com/-/media/Files/downloads/gnu/11.2-2022.02/binrel/gcc-arm-11.2-2022.02-aarch64-arm-none-eabi.tar.xz',
+      md5: '746f20d2eb8acad4e7085e1395665219',
+    },
+  },
   '10.3-2021.10': {
     win32: {
       url:
