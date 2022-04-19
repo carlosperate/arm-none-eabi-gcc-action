@@ -78,6 +78,28 @@ test('test url', () => {
 });
 
 test('GCC versions to valid Semver', async () => {
+  const gccVersionsAndSemver = [
+    {
+      gccVer: '10.3-2021.10',
+      semver: '10.3.202110',
+    },
+    {
+      gccVer: '10-2020-q4',
+      semver: '10.2020.4',
+    },
+    {
+      gccVer: '4.9-2015-q2',
+      semver: '4.9.20152',
+    },
+  ];
+
+  for (const version of gccVersionsAndSemver) {
+    const gccSemver = gcc.gccVersionToSemver(version.gccVer);
+    expect(semver.valid(gccSemver)).toEqual(version.semver);
+  }
+});
+
+test('Each GCC versions into a unique and valid Semver', async () => {
   const gccVersions = gcc.availableVersions();
   const gccSemverList: string[] = [];
   for (const gccVer of gccVersions) {

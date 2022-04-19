@@ -575,7 +575,7 @@ export function gccVersionToSemver(gccVersion: string): string {
     }
     // Convert yyyy.mm -> yyyymm, i.e. 2021.10 -> 202110
     else if (/^\d{4}\.\d{2}$/.test(item)) {
-      return item.substr(4) + item.substr(5);
+      return item.substr(0, 4) + item.substr(5);
     }
     // Everything else will be dealt later with the filtering
     else {
