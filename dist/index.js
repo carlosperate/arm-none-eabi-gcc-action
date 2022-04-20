@@ -11,11 +11,27 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.gccVersionToSemver = exports.distributionUrl = exports.availableVersions = void 0;
+exports.gccVersionToSemver = exports.distributionUrl = exports.latestGccVersion = exports.availableVersions = void 0;
 const valid_1 = __importDefault(__nccwpck_require__(9601));
-// Update value to always point to latest release
-const latestRelease = '10.3-2021.10';
 const versions = {
+    '11.2-2022.02': {
+        win32: {
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu/11.2-2022.02/binrel/gcc-arm-11.2-2022.02-mingw-w64-i686-arm-none-eabi.zip',
+            md5: 'e2bb05445200ed8e8c9140fad6a0afb5',
+        },
+        mac_x86_64: {
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu/11.2-2022.02/binrel/gcc-arm-11.2-2022.02-darwin-x86_64-arm-none-eabi.tar.xz',
+            md5: 'c51d8257b67d7555047f172698730685',
+        },
+        linux_x86_64: {
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu/11.2-2022.02/binrel/gcc-arm-11.2-2022.02-x86_64-arm-none-eabi.tar.xz',
+            md5: 'a48e6f8756be70b071535048a678c481',
+        },
+        linux_aarch64: {
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu/11.2-2022.02/binrel/gcc-arm-11.2-2022.02-aarch64-arm-none-eabi.tar.xz',
+            md5: '746f20d2eb8acad4e7085e1395665219',
+        },
+    },
     '10.3-2021.10': {
         win32: {
             url: 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/10.3-2021.10/gcc-arm-none-eabi-10.3-2021.10-win32.zip',
@@ -447,10 +463,12 @@ function availableVersions() {
     return Object.keys(versions);
 }
 exports.availableVersions = availableVersions;
+function latestGccVersion() {
+    // Since ES6 (from node v8.x) JS objects are ordered
+    return Object.keys(versions)[0];
+}
+exports.latestGccVersion = latestGccVersion;
 function distributionUrl(version, platform) {
-    // Replace the `latest` tag for the latest release
-    if (version === 'latest')
-        version = latestRelease;
     // Convert the node platform value to the versions URL keys
     let osName = '';
     switch (platform) {
@@ -556,14 +574,15 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(2186));
 const setup = __importStar(__nccwpck_require__(7391));
+const gcc_1 = __nccwpck_require__(7138);
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             let release = core.getInput('release');
-            if (!release) {
-                release = 'latest';
+            if (!release || release === 'latest') {
+                release = (0, gcc_1.latestGccVersion)();
             }
-            const installPath = yield setup.install(release);
+            const installPath = yield setup.install(release, process.platform);
             const gccPath = setup.findGcc(installPath);
             if (!gccPath) {
                 throw new Error(`Could not find gcc executable in ${gccPath}`);
@@ -637,12 +656,11 @@ const gcc = __importStar(__nccwpck_require__(7138));
 function install(release, platform) {
     return __awaiter(this, void 0, void 0, function* () {
         const toolName = 'gcc-arm-none-eabi';
-        const toolPlatform = platform || process.platform;
         // Get the GCC release info
-        const distData = gcc.distributionUrl(release, toolPlatform);
+        const distData = gcc.distributionUrl(release, platform);
         // Convert the GCC version to Semver so that it can be used with the GH cache
         const toolVersion = gcc.gccVersionToSemver(release);
-        const cacheKey = `${toolName}-${toolVersion}-${toolPlatform}`;
+        const cacheKey = `${toolName}-${toolVersion}-${platform}`;
         const installPath = path.join(os.homedir(), cacheKey);
         core.debug(`Cache key: ${cacheKey}`);
         // Try to load the GCC installation from the cache
@@ -652,7 +670,7 @@ function install(release, platform) {
             core.debug(`Matched cache.restoreCache() key: ${cacheKeyMatched}`);
         }
         catch (err) {
-            core.warning(`Could not find contents in the cache.\n${err.message}`);
+            core.warning(`⚠️ Could not find contents in the cache.\n${err.message}`);
         }
         if (cacheKeyMatched === cacheKey) {
             core.info(`Cache found: ${installPath}`);
@@ -661,11 +679,11 @@ function install(release, platform) {
                 cacheMd5 = yield fs.promises.readFile(path.join(installPath, 'md5.txt'), { encoding: 'utf8' });
             }
             catch (err) {
-                core.warning(`Could not read the contents of the cached GCC version MD5.\n${err.message}`);
+                core.warning(`⚠️ Could not read the contents of the cached GCC version MD5.\n${err.message}`);
             }
             core.info(`Cached version MD5: ${cacheMd5}`);
             if (cacheMd5 !== distData.md5) {
-                core.info(`Cached version MD5 does not match: ${cacheMd5} != ${distData.md5}`);
+                core.warning(`⚠️ Cached version MD5 does not match: ${cacheMd5} != ${distData.md5}`);
             }
             else {
                 core.info('Cached version loaded.');
@@ -688,6 +706,9 @@ function install(release, platform) {
         else if (distData.url.endsWith('.tar.bz2')) {
             extractedPath = yield tc.extractTar(gccDownloadPath, installPath, 'xj');
         }
+        else if (distData.url.endsWith('.tar.xz')) {
+            extractedPath = yield tc.extractTar(gccDownloadPath, installPath, 'xJ');
+        }
         else {
             throw new Error(`Can't decompress ${distData.url}`);
         }
@@ -698,7 +719,7 @@ function install(release, platform) {
             yield cache.saveCache([extractedPath], cacheKey);
         }
         catch (err) {
-            core.warning(`Could not save to the cache.\n${err.message}`);
+            core.warning(`⚠️ Could not save to the cache.\n${err.message}`);
         }
         return extractedPath;
     });
