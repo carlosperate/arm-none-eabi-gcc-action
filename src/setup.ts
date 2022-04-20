@@ -9,16 +9,15 @@ import md5File from 'md5-file';
 
 import * as gcc from './gcc';
 
-export async function install(release: string, platform?: string): Promise<string> {
+export async function install(release: string, platform: string): Promise<string> {
   const toolName = 'gcc-arm-none-eabi';
-  const toolPlatform = platform || process.platform;
 
   // Get the GCC release info
-  const distData = gcc.distributionUrl(release, toolPlatform);
+  const distData = gcc.distributionUrl(release, platform);
 
   // Convert the GCC version to Semver so that it can be used with the GH cache
   const toolVersion = gcc.gccVersionToSemver(release);
-  const cacheKey = `${toolName}-${toolVersion}-${toolPlatform}`;
+  const cacheKey = `${toolName}-${toolVersion}-${platform}`;
   const installPath = path.join(os.homedir(), cacheKey);
   core.debug(`Cache key: ${cacheKey}`);
 
@@ -28,7 +27,7 @@ export async function install(release: string, platform?: string): Promise<strin
     cacheKeyMatched = await cache.restoreCache([installPath], cacheKey);
     core.debug(`Matched cache.restoreCache() key: ${cacheKeyMatched}`);
   } catch (err) {
-    core.warning(`Could not find contents in the cache.\n${err.message}`);
+    core.warning(`⚠️ Could not find contents in the cache.\n${err.message}`);
   }
   if (cacheKeyMatched === cacheKey) {
     core.info(`Cache found: ${installPath}`);
@@ -36,11 +35,11 @@ export async function install(release: string, platform?: string): Promise<strin
     try {
       cacheMd5 = await fs.promises.readFile(path.join(installPath, 'md5.txt'), {encoding: 'utf8'});
     } catch (err) {
-      core.warning(`Could not read the contents of the cached GCC version MD5.\n${err.message}`);
+      core.warning(`⚠️ Could not read the contents of the cached GCC version MD5.\n${err.message}`);
     }
     core.info(`Cached version MD5: ${cacheMd5}`);
     if (cacheMd5 !== distData.md5) {
-      core.info(`Cached version MD5 does not match: ${cacheMd5} != ${distData.md5}`);
+      core.warning(`⚠️ Cached version MD5 does not match: ${cacheMd5} != ${distData.md5}`);
     } else {
       core.info('Cached version loaded.');
       return installPath;
@@ -75,7 +74,7 @@ export async function install(release: string, platform?: string): Promise<strin
   try {
     await cache.saveCache([extractedPath], cacheKey);
   } catch (err) {
-    core.warning(`Could not save to the cache.\n${err.message}`);
+    core.warning(`⚠️ Could not save to the cache.\n${err.message}`);
   }
 
   return extractedPath;

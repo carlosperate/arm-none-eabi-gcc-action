@@ -77,6 +77,14 @@ test('test url', () => {
   expect(gcc.distributionUrl('4.8-2013-q4', 'darwin').md5).toStrictEqual('850caa23f01ea8c1e6abcc3c217d36f7');
 });
 
+test('latest points to a known latest release', async () => {
+  const knownLatestRelease = '11.2-2022.02';
+
+  const latestRelease = gcc.latestGccVersion();
+
+  expect(latestRelease).toEqual(knownLatestRelease);
+});
+
 test('GCC versions to valid Semver', async () => {
   const gccVersionsAndSemver = [
     {
@@ -124,7 +132,7 @@ describe('Real install in temp dirs.', () => {
     return false;
   }
 
-  async function tmpInstall(release: string, platform?: string): Promise<void> {
+  async function tmpInstall(release: string, platform: string): Promise<void> {
     const installPath = await setup.install(release, platform);
     const gccPath = setup.findGcc(installPath, platform);
     expect(gccPath).not.toBe('');
@@ -138,5 +146,4 @@ describe('Real install in temp dirs.', () => {
   test('11.2-2022.02 linux', async () => await tmpInstall('11.2-2022.02', 'linux'));
   test('11.2-2022.02 darwin', async () => await tmpInstall('11.2-2022.02', 'darwin'));
   test('11.2-2022.02 win32', async () => await tmpInstall('11.2-2022.02', 'win32'));
-  test('latest win32', async () => await tmpInstall('latest', 'win32'));
 });

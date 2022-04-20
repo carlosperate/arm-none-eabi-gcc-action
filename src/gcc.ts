@@ -7,9 +7,6 @@ interface UrlData {
   md5: string | null;
 }
 
-// Update value to always point to latest release
-const latestRelease = '11.2-2022.02';
-
 const versions: {[gccRelease: string]: {[platform: string]: UrlData}} = {
   '11.2-2022.02': {
     win32: {
@@ -557,10 +554,12 @@ export function availableVersions(): string[] {
   return Object.keys(versions);
 }
 
-export function distributionUrl(version: string, platform: string): UrlData {
-  // Replace the `latest` tag for the latest release
-  if (version === 'latest') version = latestRelease;
+export function latestGccVersion(): string {
+  // Since ES6 (from node v8.x) JS objects are ordered
+  return Object.keys(versions)[0];
+}
 
+export function distributionUrl(version: string, platform: string): UrlData {
   // Convert the node platform value to the versions URL keys
   let osName = '';
   switch (platform) {

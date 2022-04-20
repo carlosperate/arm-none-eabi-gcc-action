@@ -120,4 +120,4 @@ jobs:
     - name: Check the version matches
       run: arm-none-eabi-gcc --version | grep -q 11.2-2022.02
     - name: Check output path is correct
-      run: echo "${{ steps.action-under-test-id.outputs.path }}" | grep -q /home/runner/gcc-arm-none-eabi-0.0.0-linux/gcc-arm-11.2-2022.02-x86_64-arm-none-eabi/bin
+      run: echo "${{ steps.action-under-test-id.outputs.path }}" | grep -q /home/runner/gcc-arm-none-eabi-11.2.202202-linux/gcc-arm-11.2-2022.02-x86_64-arm-none-eabi/bin
