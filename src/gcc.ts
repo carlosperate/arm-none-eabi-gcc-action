@@ -605,18 +605,15 @@ export function gccVersionToSemver(gccVersion: string): string {
   });
   gccVerStrArray = gccVerStrArray.join('.').split('.');
 
-  // Remove any entry that cannot be converted to  number
-  gccVerStrArray = gccVerStrArray.filter(item => parseInt(item));
-  const gccVerIntArray = gccVerStrArray.map(item => parseInt(item));
+  // Remove any entry that cannot be cleanly converted to  number
+  gccVerStrArray = gccVerStrArray.filter(item => Number(item));
+  const gccVerIntArray = gccVerStrArray.map(item => Number(item));
 
-  // If the end result is less than 3 entries we need to fill it up
+  // If the end result is less than 3 entries something unexpected happened
   if (gccVerIntArray.length < 3) {
-    const verLength = gccVerIntArray.length;
-    for (let i = 0; i < 3 - verLength; i++) {
-      gccVerIntArray.push(0);
-    }
+    throw new Error(`The GCC version did not result in 3 version parts: ${gccVerIntArray}`);
   }
-  // If it has more we join them in the last entry
+  // If it has more than 3 entries we join any extras to the third
   else if (gccVerIntArray.length > 3) {
     gccVerIntArray[2] = parseInt(gccVerIntArray.slice(2).join(''));
   }

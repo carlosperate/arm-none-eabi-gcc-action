@@ -92,12 +92,25 @@ test('GCC versions to valid Semver', async () => {
       semver: '10.3.202110',
     },
     {
+      gccVer: '10.3-2021.07',
+      semver: '10.3.202107',
+    },
+    {
       gccVer: '10-2020-q4',
       semver: '10.2020.4',
     },
     {
+      gccVer: '5-2016-q2',
+      semver: '5.2016.2',
+    },
+    {
       gccVer: '4.9-2015-q2',
       semver: '4.9.20152',
+    },
+    // This GCC version doesn't exists, but tests a valid combination
+    {
+      gccVer: '10.3-2024.03-q45',
+      semver: '10.3.20240345',
     },
   ];
 
@@ -105,6 +118,24 @@ test('GCC versions to valid Semver', async () => {
     const gccSemver = gcc.gccVersionToSemver(version.gccVer);
     expect(semver.valid(gccSemver)).toEqual(version.semver);
   }
+});
+
+test('Invalid GCC versions', async () => {
+  expect(() => {
+    gcc.gccVersionToSemver('10-2020');
+  }).toThrow('The GCC version did not result in 3 version parts: 10,2020');
+
+  expect(() => {
+    gcc.gccVersionToSemver('10-2020.02');
+  }).toThrow('The GCC version did not result in 3 version parts: 10,202002');
+
+  expect(() => {
+    gcc.gccVersionToSemver('11-2021-q2sometext3');
+  }).toThrow('The GCC version did not result in 3 version parts: 11,2021');
+
+  expect(() => {
+    gcc.gccVersionToSemver('11-2021-123e100');
+  }).toThrow('Could not convert the GCC version to a valid Semver: 11.2021.1.23e+102');
 });
 
 test('Each GCC versions into a unique and valid Semver', async () => {
