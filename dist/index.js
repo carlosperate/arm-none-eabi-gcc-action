@@ -14,6 +14,26 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.gccVersionToSemver = exports.distributionUrl = exports.latestGccVersion = exports.availableVersions = void 0;
 const valid_1 = __importDefault(__nccwpck_require__(9601));
 const versions = {
+    '11.3.Rel1': {
+        win32: {
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu/11.3.rel1/binrel/arm-gnu-toolchain-11.3.rel1-mingw-w64-i686-arm-none-eabi.zip',
+            // Arm's published MD5 seems incorrect: f1ff0b48304dbc4ff558f0753a3a8860
+            // https://community.arm.com/support-forums/f/compilers-and-libraries-forum/53343/arm-gnu-toolchain-11-3-rel1-windows-arm-none-eabi-md5-is-incorrect
+            md5: 'b287cf60045910dd56c56cdc2a490049',
+        },
+        mac_x86_64: {
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu/11.3.rel1/binrel/arm-gnu-toolchain-11.3.rel1-darwin-x86_64-arm-none-eabi.tar.xz',
+            md5: 'f4a3df0bff51bf872db679c406a9154d',
+        },
+        linux_x86_64: {
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu/11.3.rel1/binrel/arm-gnu-toolchain-11.3.rel1-x86_64-arm-none-eabi.tar.xz',
+            md5: '8cb33f7ec29682f2f9cdc0b4e687f9a6',
+        },
+        linux_aarch64: {
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu/11.3.rel1/binrel/arm-gnu-toolchain-11.3.rel1-aarch64-arm-none-eabi.tar.xz',
+            md5: 'f020e29a861c5dbf199dce93643d68cc',
+        },
+    },
     '11.2-2022.02': {
         win32: {
             url: 'https://developer.arm.com/-/media/Files/downloads/gnu/11.2-2022.02/binrel/gcc-arm-11.2-2022.02-mingw-w64-i686-arm-none-eabi.zip',
@@ -513,6 +533,15 @@ function gccVersionToSemver(gccVersion) {
         }
     });
     gccVerStrArray = gccVerStrArray.join('.').split('.');
+    gccVerStrArray = gccVerStrArray.map(item => {
+        // Convert Reln -> n, i.e. Rel1 -> 1
+        if (item.startsWith('Rel') && item.length > 3) {
+            return item.substring(3);
+        }
+        else {
+            return item; // Everything else goes through
+        }
+    });
     // Remove any entry that cannot be cleanly converted to  number
     gccVerStrArray = gccVerStrArray.filter(item => Number(item));
     const gccVerIntArray = gccVerStrArray.map(item => Number(item));

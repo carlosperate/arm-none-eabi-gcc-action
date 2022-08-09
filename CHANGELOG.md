@@ -5,12 +5,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## v1.5.0 - 2022-??-??
+### Added
+- Add `11.3.Rel1` Arm GNU Toolchain release (#25)
+
 ### Changed
 - Convert GCC versions to Semver more strictly (no changes tu user facing functionality)
 
 ## v1.4.0 - 2022-04-20
 ### Added
 - Add `11.2-2022.02` release (#24)
+    - Note that on this release the toolchain has been renamed from
+      "GNU Arm Embedded Toolchain" to "Arm GNU Toolchain"
 
 ### Changed
 - Improve internal processing of 'latest' gcc release tag (#24)
