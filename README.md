@@ -1,4 +1,4 @@
-# GitHub Action: GNU Arm Embedded Toolchain <br> (arm-none-eabi-gcc)
+# GitHub Action: Arm GNU Toolchain <br> (arm-none-eabi-gcc)
 
 [![CI](https://github.com/carlosperate/arm-none-eabi-gcc-action/actions/workflows/test.yml/badge.svg)](https://github.com/carlosperate/arm-none-eabi-gcc-action/actions/workflows/test.yml)
 
@@ -22,10 +22,10 @@ You can also specify a version (a list can be found in the
 
 ```yaml
 steps:
-- name: Install GNU Arm Embedded Toolchain (arm-none-eabi-gcc)
+- name: Install Arm GNU Toolchain (arm-none-eabi-gcc)
   uses: carlosperate/arm-none-eabi-gcc-action@v1
   with:
-    release: '11.2-2022.02' # <-- The compiler release to use
+    release: '11.3.Rel1' # <-- The compiler release to use
 ```
 
 More information can be found in the [Advanced Options](#advanced-options)
@@ -48,7 +48,7 @@ section.
 ## Available releases
 
 - `latest` <-- Always points to the latest release
-- `11.2-2022.02`
+- `11.3.Rel1` &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; `11.2-2022.02`
 - `10.3-2021.10` &nbsp;`10.3-2021.07` &nbsp;`10-2020-q4`
 - `9-2020-q2` &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; `9-2019-q4`
 - `8-2019-q3` &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; `8-2018-q4`

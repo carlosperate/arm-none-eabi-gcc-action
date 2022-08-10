@@ -78,7 +78,7 @@ test('test url', () => {
 });
 
 test('latest points to a known latest release', async () => {
-  const knownLatestRelease = '11.2-2022.02';
+  const knownLatestRelease = '11.3.Rel1';
 
   const latestRelease = gcc.latestGccVersion();
 
@@ -87,6 +87,10 @@ test('latest points to a known latest release', async () => {
 
 test('GCC versions to valid Semver', async () => {
   const gccVersionsAndSemver = [
+    {
+      gccVer: '11.3.Rel1',
+      semver: '11.3.1',
+    },
     {
       gccVer: '10.3-2021.10',
       semver: '10.3.202110',
@@ -134,6 +138,10 @@ test('Invalid GCC versions', async () => {
   }).toThrow('The GCC version did not result in 3 version parts: 11,2021');
 
   expect(() => {
+    gcc.gccVersionToSemver('11.3.Rel1sometext3');
+  }).toThrow('The GCC version did not result in 3 version parts: 11,3');
+
+  expect(() => {
     gcc.gccVersionToSemver('11-2021-123e100');
   }).toThrow('Could not convert the GCC version to a valid Semver: 11.2021.1.23e+102');
 });
@@ -174,7 +182,7 @@ describe('Real install in temp dirs.', () => {
   test('6-2017-q1 linux', async () => await tmpInstall('6-2017-q1', 'linux'));
   test('9-2019-q4 darwin', async () => await tmpInstall('9-2019-q4', 'darwin'));
   test('10.3-2021.07 win32', async () => await tmpInstall('10.3-2021.07', 'win32'));
-  test('11.2-2022.02 linux', async () => await tmpInstall('11.2-2022.02', 'linux'));
-  test('11.2-2022.02 darwin', async () => await tmpInstall('11.2-2022.02', 'darwin'));
-  test('11.2-2022.02 win32', async () => await tmpInstall('11.2-2022.02', 'win32'));
+  test('11.3.Rel1 linux', async () => await tmpInstall('11.3.Rel1', 'linux'));
+  test('11.3.Rel1 darwin', async () => await tmpInstall('11.3.Rel1', 'darwin'));
+  test('11.3.Rel1 win32', async () => await tmpInstall('11.3.Rel1', 'win32'));
 });
