@@ -9,15 +9,16 @@ on:
       - 'releases/*'
 
 jobs:
-  # Test for build errors
-  build:
+  # Test and check build errors
+  test-build:
+    name: Run tests and build Action
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - run: npm install
     - run: npm run all
 
-  # Run Action with all GCC versions and in all environments
+  # Run this Action with all GCC versions, in all OS, and build a simple STM32 project
   test-all-releases:
     strategy:
       fail-fast: false
@@ -61,7 +62,7 @@ jobs:
     name: Test ${{ matrix.release }} @ ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Ensure the compiler is not present (Unix)
       if: runner.os != 'Windows'
       run: '! arm-none-eabi-gcc --version'
@@ -78,16 +79,25 @@ jobs:
         (!contains(matrix.release, '2012') && !contains(matrix.release, '2013') && !contains(matrix.release, '2014')
         && !contains(matrix.release, '2015') && !contains(matrix.release, '2016') && (matrix.release != 'latest'))
       run: arm-none-eabi-gcc --version | grep -q ${{ matrix.release }}
+    - name: Clone STM32 project
+      uses: actions/checkout@v3
+      with:
+        repository: 'trebisky/stm32f103'
+        ref: 7cfe5feaf02c653352331374d2ad178eb04efde7
+        path: 'stm32f103/'
+    - name: Build simple blinky project
+      working-directory: ./stm32f103/blink1/
+      run: make all
 
   # Check Action env var path
   test-exports:
     name: Test path output and env var
     runs-on: ubuntu-18.04
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Ensure the compiler is not present
       run: '! arm-none-eabi-gcc --version'
-    - name: Set up GCC Arm Compiler with environmental varaible
+    - name: Set up GCC Arm Compiler with environmental variable
       id: action-under-test-id
       uses: ./
       with:
@@ -107,9 +117,9 @@ jobs:
   # Run Action without inputs
   test-default:
     name: Test default options
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Ensure the compiler is not present
       run: '! arm-none-eabi-gcc --version'
     - name: Set up GCC Arm Compiler with default options
