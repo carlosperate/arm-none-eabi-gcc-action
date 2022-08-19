@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v1.5.1 - 2022-08-19
+### Security
+- Security update for `@actions/core` dependency.
+    - https://github.com/advisories/GHSA-7r3h-m5j6-3q42
+
 ## v1.5.0 - 2022-08-10
 ### Added
 - Add `11.3.Rel1` Arm GNU Toolchain release (#25)
