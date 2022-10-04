@@ -555,23 +555,6 @@ const versions: {[gccRelease: string]: {[platform: string]: UrlData}} = {
       md5: 'bcf845e5cd0608a0d56825d8763cba77',
     },
   },
-  '4.7-2012-q4': {
-    win32: {
-      url:
-        'https://launchpad.net/gcc-arm-embedded/4.7/4.7-2012-q4-major/+download/gcc-arm-none-eabi-4_7-2012q4-20121208-win32.zip',
-      md5: null,
-    },
-    mac_x86_64: {
-      url:
-        'https://launchpad.net/gcc-arm-embedded/4.7/4.7-2012-q4-major/+download/gcc-arm-none-eabi-4_7-2012q4-20121208-mac.tar.bz2',
-      md5: 'fcfe3aecbfe77c1e5985845fbe722aac',
-    },
-    linux_x86_64: {
-      url:
-        'https://launchpad.net/gcc-arm-embedded/4.7/4.7-2012-q4-major/+download/gcc-arm-none-eabi-4_7-2012q4-20121208-linux.tar.bz2',
-      md5: '475c3283253b872bb576020844046cf2',
-    },
-  },
 };
 
 export function availableVersions(): string[] {
