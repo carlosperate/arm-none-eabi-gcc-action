@@ -4,8 +4,10 @@ jest.mock('os');
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
+import {URL} from 'node:url';
 
 import rimraf from 'rimraf';
+import fetch from 'node-fetch';
 import * as semver from 'semver';
 
 import * as gcc from '../src/gcc';
@@ -156,6 +158,20 @@ test('Each GCC versions into a unique and valid Semver', async () => {
       throw new Error(`Generated Semver is a duplicate: ${gccSemver}`);
     }
     gccSemverList.push(gccSemver);
+  }
+});
+
+describe('Check links work.', () => {
+  for (const version of gcc.availableVersions()) {
+    for (const platform of ['darwin', 'linux', 'win32']) {
+      const fileUrl = gcc.distributionUrl(version, platform).url;
+      const fileName = path.basename(new URL(fileUrl).pathname);
+
+      test(`URL ${fileName} is working`, async () => {
+        const response = await fetch(fileUrl, {method: 'HEAD'});
+        expect(response.status).toBe(200);
+      });
+    }
   }
 });
 
