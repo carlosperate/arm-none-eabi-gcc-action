@@ -42,7 +42,7 @@ beforeAll(() => {
 
 afterAll(done => {
   if (fs.existsSync(TEMP_LOCAL_PATH)) {
-    rimraf(TEMP_LOCAL_PATH, {disableGlob: true}, function() {
+    rimraf(TEMP_LOCAL_PATH, {disableGlob: true}, function () {
       done();
     });
   }
