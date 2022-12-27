@@ -25,7 +25,7 @@ steps:
 - name: Install Arm GNU Toolchain (arm-none-eabi-gcc)
   uses: carlosperate/arm-none-eabi-gcc-action@v1
   with:
-    release: '11.3.Rel1' # <-- The compiler release to use
+    release: '12.2.Rel1' # <-- The compiler release to use
 ```
 
 More information can be found in the [Advanced Options](#advanced-options)
@@ -48,6 +48,7 @@ section.
 ## Available releases
 
 - `latest` <-- Always points to the latest release
+- `12.2.Rel1`
 - `11.3.Rel1` &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; `11.2-2022.02`
 - `10.3-2021.10` &nbsp;`10.3-2021.07` &nbsp;`10-2020-q4`
 - `9-2020-q2` &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; `9-2019-q4`
