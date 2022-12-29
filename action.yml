@@ -17,4 +17,4 @@ runs:
   main: 'dist/index.js'
 branding:
   icon: 'cpu'
-  color: 'yellow'
+  color: 'blue'
