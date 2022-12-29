@@ -8,6 +8,28 @@ interface UrlData {
 }
 
 const versions: {[gccRelease: string]: {[platform: string]: UrlData}} = {
+  '12.2.Rel1': {
+    win32: {
+      url:
+        'https://developer.arm.com/-/media/Files/downloads/gnu/12.2.rel1/binrel/arm-gnu-toolchain-12.2.rel1-mingw-w64-i686-arm-none-eabi.zip',
+      md5: '0122a821c28b200f251cd23d2edc38c5',
+    },
+    mac_x86_64: {
+      url:
+        'https://developer.arm.com/-/media/Files/downloads/gnu/12.2.rel1/binrel/arm-gnu-toolchain-12.2.rel1-darwin-x86_64-arm-none-eabi.tar.xz',
+      md5: 'b98c6f58a4ccf64c38f92b456eb3b3d1',
+    },
+    linux_x86_64: {
+      url:
+        'https://developer.arm.com/-/media/Files/downloads/gnu/12.2.rel1/binrel/arm-gnu-toolchain-12.2.rel1-x86_64-arm-none-eabi.tar.xz',
+      md5: 'f3d1d32c8ac58f1e0f9dbe4bc56efa05',
+    },
+    linux_aarch64: {
+      url:
+        'https://developer.arm.com/-/media/Files/downloads/gnu/12.2.rel1/binrel/arm-gnu-toolchain-12.2.rel1-aarch64-arm-none-eabi.tar.xz?rev=04bfc790b30b477fab2621438ab231a7&hash=DB6D39BABFBF369F5683118F96DA4711',
+      md5: '2014a0ebaae3168da555efdcabf03f2a',
+    },
+  },
   '11.3.Rel1': {
     win32: {
       url:
