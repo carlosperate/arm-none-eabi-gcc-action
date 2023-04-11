@@ -1,5 +1,5 @@
 name: 'arm-none-eabi-gcc GNU Arm Embedded Toolchain'
-description: 'Install arm-none-eabi-gcc Arm Embedded Toolchain.'
+description: 'Install and set up the arm-none-eabi-gcc Arm compiler.'
 author: 'Carlos Pereira Atencio'
 inputs:
   release:
