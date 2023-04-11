@@ -91,7 +91,7 @@ jobs:
   # Check Action env var path
   test-exports:
     name: Test path output and env var
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v3
     - name: Ensure the compiler is not present
@@ -116,7 +116,7 @@ jobs:
   # Run Action without inputs
   test-default:
     name: Test default options
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v3
     - name: Ensure the compiler is not present
