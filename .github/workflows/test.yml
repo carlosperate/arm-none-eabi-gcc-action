@@ -17,6 +17,11 @@ jobs:
     - uses: actions/checkout@v3
     - run: npm install
     - run: npm run all
+    - name: Run action to check no exceptions are thrown
+      uses: ./
+      with:
+        release: '10.3-2021.07'
+        path-env-var: ARM_NONE_EABI_GCC_PATH
 
   # Run this Action with all GCC versions, in all OS, and build a simple STM32 project
   test-all-releases:
