@@ -3,7 +3,7 @@
 [![CI](https://github.com/carlosperate/arm-none-eabi-gcc-action/actions/workflows/test.yml/badge.svg)](https://github.com/carlosperate/arm-none-eabi-gcc-action/actions/workflows/test.yml)
 
 This GitHub Action (compatible with Linux, Windows, and macOS platforms)
-downloads, checks, sets up, and caches the `arm-none-eabi-gcc` compiler
+to download, check, set up, and cache the `arm-none-eabi-gcc` compiler
 toolchain.
 
 
