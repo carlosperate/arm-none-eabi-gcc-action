@@ -31,6 +31,7 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
         release:
           - 'latest'
+          - '12.3.Rel1'
           - '12.2.Rel1'
           - '11.3.Rel1'
           - '11.2-2022.02'
@@ -132,6 +133,6 @@ jobs:
     - name: Print out version
       run: arm-none-eabi-gcc --version
     - name: Check the version matches
-      run: arm-none-eabi-gcc --version | grep -q 12.2.Rel1
+      run: arm-none-eabi-gcc --version | grep -q 12.3.Rel1
     - name: Check output path is correct
-      run: echo "${{ steps.action-under-test-id.outputs.path }}" | grep -q /home/runner/gcc-arm-none-eabi-12.2.1-linux/arm-gnu-toolchain-12.2.rel1-x86_64-arm-none-eabi/bin
+      run: echo "${{ steps.action-under-test-id.outputs.path }}" | grep -q /home/runner/gcc-arm-none-eabi-12.3.1-linux/arm-gnu-toolchain-12.3.rel1-x86_64-arm-none-eabi/bin
