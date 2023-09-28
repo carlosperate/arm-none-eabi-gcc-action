@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/carlosperate/arm-none-eabi-gcc-action/actions/workflows/test.yml/badge.svg)](https://github.com/carlosperate/arm-none-eabi-gcc-action/actions/workflows/test.yml)
 
-This GitHub Action (compatible with Linux, Windows, and macOS platforms)
+GitHub Action (compatible with Linux, Windows, and macOS platforms)
 to download, check, set up, and cache the `arm-none-eabi-gcc` compiler
 toolchain.
 
@@ -35,7 +35,7 @@ section.
 
 ## Advantages over other options
 
-- 🚀 Updated with the latest GCC releases from Arm
+- 🚀 Up-to-date with the latest GCC releases from Arm
 - 🏎 Toolchain is cached for faster runs (reduced time from 30s-2min to 5ish seconds)
 - 📅 Adds `latest` option to be able to always run tests with the latest compiler release
 - ⚙️ Inputs are optional for simpler configuration
