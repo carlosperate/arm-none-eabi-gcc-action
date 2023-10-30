@@ -84,7 +84,7 @@ jobs:
         (!contains(matrix.release, '2013') && !contains(matrix.release, '2014')
          && !contains(matrix.release, '2015') && !contains(matrix.release, '2016')
          && (matrix.release != 'latest'))
-      run: arm-none-eabi-gcc --version | grep -q ${{ matrix.release }}
+      run: arm-none-eabi-gcc --version | grep -qi ${{ matrix.release }}
     - name: Clone STM32 project
       uses: actions/checkout@v3
       with:
@@ -136,4 +136,4 @@ jobs:
     - name: Check the version matches
       run: arm-none-eabi-gcc --version | grep -q 13.2.Rel1
     - name: Check output path is correct
-      run: echo "${{ steps.action-under-test-id.outputs.path }}" | grep -q /home/runner/gcc-arm-none-eabi-13.2.1-linux/arm-gnu-toolchain-13.2.rel1-x86_64-arm-none-eabi/bin
+      run: echo "${{ steps.action-under-test-id.outputs.path }}" | grep -qi /home/runner/gcc-arm-none-eabi-13.2.1-linux/arm-gnu-toolchain-13.2.rel1-x86_64-arm-none-eabi/bin
