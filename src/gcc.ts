@@ -8,6 +8,28 @@ interface UrlData {
 }
 
 const versions: {[gccRelease: string]: {[platform: string]: UrlData}} = {
+  '13.2.Rel1': {
+    win32: {
+      url:
+        'https://developer.arm.com/-/media/Files/downloads/gnu/13.2.rel1/binrel/arm-gnu-toolchain-13.2.rel1-mingw-w64-i686-arm-none-eabi.zip',
+      md5: '7fd677088038cdf82f33f149e2e943ee',
+    },
+    mac_x86_64: {
+      url:
+        'https://developer.arm.com/-/media/Files/downloads/gnu/13.2.rel1/binrel/arm-gnu-toolchain-13.2.rel1-darwin-x86_64-arm-none-eabi.tar.xz',
+      md5: '41d49840b0fc676d2ae35aab21a58693',
+    },
+    linux_x86_64: {
+      url:
+        'https://developer.arm.com/-/media/Files/downloads/gnu/13.2.rel1/binrel/arm-gnu-toolchain-13.2.rel1-x86_64-arm-none-eabi.tar.xz',
+      md5: '791754852f8c18ea04da7139f153a5b7',
+    },
+    linux_aarch64: {
+      url:
+        'https://developer.arm.com/-/media/Files/downloads/gnu/13.2.rel1/binrel/arm-gnu-toolchain-13.2.rel1-aarch64-arm-none-eabi.tar.xz',
+      md5: '5a08122e6d4caf97c6ccd1d29e62599c',
+    },
+  },
   '12.3.Rel1': {
     win32: {
       url:
