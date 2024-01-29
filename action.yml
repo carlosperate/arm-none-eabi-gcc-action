@@ -13,7 +13,7 @@ outputs:
   path:
     description: 'Path to the bin folder with the toolchain executables.'
 runs:
-  using: 'node16'
+  using: 'node20'
   main: 'dist/index.js'
 branding:
   icon: 'cpu'
