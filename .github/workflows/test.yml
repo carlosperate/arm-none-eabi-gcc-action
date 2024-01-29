@@ -14,7 +14,7 @@ jobs:
     name: Run tests and build Action
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - run: npm install
     - run: npm run all
     - name: Run action to check no exceptions are thrown
@@ -67,7 +67,7 @@ jobs:
     name: Test ${{ matrix.release }} @ ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Ensure the compiler is not present (Unix)
       if: runner.os != 'Windows'
       run: '! arm-none-eabi-gcc --version'
@@ -86,7 +86,7 @@ jobs:
          && (matrix.release != 'latest'))
       run: arm-none-eabi-gcc --version | grep -qi ${{ matrix.release }}
     - name: Clone STM32 project
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         repository: 'trebisky/stm32f103'
         ref: 7cfe5feaf02c653352331374d2ad178eb04efde7
@@ -100,7 +100,7 @@ jobs:
     name: Test path output and env var
     runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Ensure the compiler is not present
       run: '! arm-none-eabi-gcc --version'
     - name: Set up GCC Arm Compiler with environmental variable
@@ -125,7 +125,7 @@ jobs:
     name: Test default options
     runs-on: ubuntu-22.04
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Ensure the compiler is not present
       run: '! arm-none-eabi-gcc --version'
     - name: Set up GCC Arm Compiler with default options
