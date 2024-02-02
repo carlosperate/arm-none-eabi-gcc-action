@@ -70,7 +70,7 @@ const versions: {[gccRelease: string]: {[platform: string]: UrlData}} = {
     },
     linux_aarch64: {
       url:
-        'https://developer.arm.com/-/media/Files/downloads/gnu/12.2.rel1/binrel/arm-gnu-toolchain-12.2.rel1-aarch64-arm-none-eabi.tar.xz?rev=04bfc790b30b477fab2621438ab231a7&hash=DB6D39BABFBF369F5683118F96DA4711',
+        'https://developer.arm.com/-/media/Files/downloads/gnu/12.2.rel1/binrel/arm-gnu-toolchain-12.2.rel1-aarch64-arm-none-eabi.tar.xz',
       md5: '2014a0ebaae3168da555efdcabf03f2a',
     },
   },
