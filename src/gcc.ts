@@ -70,7 +70,7 @@ const versions: {[gccRelease: string]: {[platform: string]: UrlData}} = {
     },
     linux_aarch64: {
       url:
-        'https://developer.arm.com/-/media/Files/downloads/gnu/12.2.rel1/binrel/arm-gnu-toolchain-12.2.rel1-aarch64-arm-none-eabi.tar.xz?rev=04bfc790b30b477fab2621438ab231a7&hash=DB6D39BABFBF369F5683118F96DA4711',
+        'https://developer.arm.com/-/media/Files/downloads/gnu/12.2.rel1/binrel/arm-gnu-toolchain-12.2.rel1-aarch64-arm-none-eabi.tar.xz',
       md5: '2014a0ebaae3168da555efdcabf03f2a',
     },
   },
@@ -183,7 +183,7 @@ const versions: {[gccRelease: string]: {[platform: string]: UrlData}} = {
     linux_aarch64: {
       url:
         'https://developer.arm.com/-/media/Files/downloads/gnu-rm/10-2020q4/gcc-arm-none-eabi-10-2020-q4-major-aarch64-linux.tar.bz2',
-      md5: 'e588d21be5a0cc9caa60938d2422b058',
+      md5: '1c3b8944c026d50362eef1f01f329a8e',
     },
   },
   '9-2020-q2': {
@@ -632,7 +632,7 @@ export function latestGccVersion(): string {
   return Object.keys(versions)[0];
 }
 
-export function distributionUrl(version: string, platform: string): UrlData {
+export function distributionUrl(version: string, platform: string, arch?: string): UrlData {
   // Convert the node platform value to the versions URL keys
   let osName = '';
   switch (platform) {
@@ -640,7 +640,11 @@ export function distributionUrl(version: string, platform: string): UrlData {
       osName = 'mac_x86_64';
       break;
     case 'linux':
-      osName = 'linux_x86_64';
+      if (arch === 'arm64') {
+        osName = 'linux_aarch64';
+      } else {
+        osName = 'linux_x86_64';
+      }
       break;
     case 'win32':
       osName = 'win32';
