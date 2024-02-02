@@ -632,7 +632,7 @@ export function latestGccVersion(): string {
   return Object.keys(versions)[0];
 }
 
-export function distributionUrl(version: string, platform: string): UrlData {
+export function distributionUrl(version: string, platform: string, arch?: string): UrlData {
   // Convert the node platform value to the versions URL keys
   let osName = '';
   switch (platform) {
@@ -640,7 +640,11 @@ export function distributionUrl(version: string, platform: string): UrlData {
       osName = 'mac_x86_64';
       break;
     case 'linux':
-      osName = 'linux_x86_64';
+      if (arch === 'arm64') {
+        osName = 'linux_aarch64';
+      } else {
+        osName = 'linux_x86_64';
+      }
       break;
     case 'win32':
       osName = 'win32';
