@@ -2,9 +2,9 @@
 
 [![CI](https://github.com/carlosperate/arm-none-eabi-gcc-action/actions/workflows/test.yml/badge.svg)](https://github.com/carlosperate/arm-none-eabi-gcc-action/actions/workflows/test.yml) [![CI](https://github.com/carlosperate/arm-none-eabi-gcc-action/actions/workflows/test-all-releases.yml/badge.svg)](https://github.com/carlosperate/arm-none-eabi-gcc-action/actions/workflows/test-all-releases.yml) [![CI](https://github.com/carlosperate/arm-none-eabi-gcc-action/actions/workflows/check-urls.yml/badge.svg)](https://github.com/carlosperate/arm-none-eabi-gcc-action/actions/workflows/check-urls.yml)
 
-GitHub Action (compatible with Linux, Windows, and macOS platforms)
-to download, check, set up, and cache the `arm-none-eabi-gcc` compiler
-toolchain.
+GitHub Action (compatible with Linux x86_64 and aarch64, macOS x86_64
+and arm64, and Windows x86_64 platforms) to download, check, set up,
+and cache the `arm-none-eabi-gcc` compiler toolchain.
 
 
 ## Usage

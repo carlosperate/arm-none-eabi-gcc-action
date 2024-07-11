@@ -19,6 +19,11 @@ const versions: {[gccRelease: string]: {[platform: string]: UrlData}} = {
         'https://developer.arm.com/-/media/Files/downloads/gnu/13.2.rel1/binrel/arm-gnu-toolchain-13.2.rel1-darwin-x86_64-arm-none-eabi.tar.xz',
       md5: '41d49840b0fc676d2ae35aab21a58693',
     },
+    mac_arm64: {
+      url:
+        'https://developer.arm.com/-/media/Files/downloads/gnu/13.2.rel1/binrel/arm-gnu-toolchain-13.2.rel1-darwin-arm64-arm-none-eabi.tar.xz',
+      md5: '2c43e9d72206c1f81227b0a685df5ea6',
+    },
     linux_x86_64: {
       url:
         'https://developer.arm.com/-/media/Files/downloads/gnu/13.2.rel1/binrel/arm-gnu-toolchain-13.2.rel1-x86_64-arm-none-eabi.tar.xz',
@@ -41,6 +46,11 @@ const versions: {[gccRelease: string]: {[platform: string]: UrlData}} = {
         'https://developer.arm.com/-/media/Files/downloads/gnu/12.3.rel1/binrel/arm-gnu-toolchain-12.3.rel1-darwin-x86_64-arm-none-eabi.tar.xz',
       md5: '13ae2cc016564507c91a4fcffb6e3c54',
     },
+    mac_arm64: {
+      url:
+        'https://developer.arm.com/-/media/Files/downloads/gnu/12.3.rel1/binrel/arm-gnu-toolchain-12.3.rel1-darwin-arm64-arm-none-eabi.tar.xz',
+      md5: '53d034e9423e7f470acc5ed2a066758e',
+    },
     linux_x86_64: {
       url:
         'https://developer.arm.com/-/media/Files/downloads/gnu/12.3.rel1/binrel/arm-gnu-toolchain-12.3.rel1-x86_64-arm-none-eabi.tar.xz',
@@ -62,6 +72,11 @@ const versions: {[gccRelease: string]: {[platform: string]: UrlData}} = {
       url:
         'https://developer.arm.com/-/media/Files/downloads/gnu/12.2.rel1/binrel/arm-gnu-toolchain-12.2.rel1-darwin-x86_64-arm-none-eabi.tar.xz',
       md5: 'b98c6f58a4ccf64c38f92b456eb3b3d1',
+    },
+    mac_arm64: {
+      url:
+        'https://developer.arm.com/-/media/Files/downloads/gnu/12.2.rel1/binrel/arm-gnu-toolchain-12.2.rel1-darwin-arm64-arm-none-eabi.tar.xz',
+      md5: '26329762f802bb53ac73385d85b11646',
     },
     linux_x86_64: {
       url:
@@ -637,7 +652,11 @@ export function distributionUrl(version: string, platform: string, arch?: string
   let osName = '';
   switch (platform) {
     case 'darwin':
-      osName = 'mac_x86_64';
+      if (arch === 'arm64') {
+        osName = 'mac_arm64';
+      } else {
+        osName = 'mac_x86_64';
+      }
       break;
     case 'linux':
       if (arch === 'arm64') {
