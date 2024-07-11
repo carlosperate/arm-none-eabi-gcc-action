@@ -80,7 +80,7 @@ test('test url', () => {
 });
 
 test('latest points to a known latest release', async () => {
-  const knownLatestRelease = '13.2.Rel1';
+  const knownLatestRelease = '13.3.Rel1';
 
   const latestRelease = gcc.latestGccVersion();
 
@@ -198,7 +198,7 @@ describe('Real install in temp dirs.', () => {
   test('6-2017-q1 linux', async () => await tmpInstall('6-2017-q1', 'linux'));
   test('9-2019-q4 darwin', async () => await tmpInstall('9-2019-q4', 'darwin'));
   test('10.3-2021.07 win32', async () => await tmpInstall('10.3-2021.07', 'win32'));
-  test('13.2.Rel1 linux', async () => await tmpInstall('13.2.Rel1', 'linux'));
-  test('13.2.Rel1 darwin', async () => await tmpInstall('13.2.Rel1', 'darwin'));
-  test('13.2.Rel1 win32', async () => await tmpInstall('13.2.Rel1', 'win32'));
+  test('13.3.Rel1 linux', async () => await tmpInstall('13.3.Rel1', 'linux'));
+  test('13.3.Rel1 darwin', async () => await tmpInstall('13.3.Rel1', 'darwin'));
+  test('13.3.Rel1 win32', async () => await tmpInstall('13.3.Rel1', 'win32'));
 });

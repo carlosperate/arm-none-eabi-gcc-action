@@ -19,6 +19,7 @@ jobs:
         os: [ubuntu-latest, macos-12, macos-14, windows-latest, self-hosted-linux-arm64]
         release:
           - 'latest'
+          - '13.3.Rel1'
           - '13.2.Rel1'
           - '12.3.Rel1'
           - '12.2.Rel1'
