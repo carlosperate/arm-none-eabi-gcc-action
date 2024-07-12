@@ -64,7 +64,7 @@ const versions = {
             md5: 'f3d1d32c8ac58f1e0f9dbe4bc56efa05',
         },
         linux_aarch64: {
-            url: 'https://developer.arm.com/-/media/Files/downloads/gnu/12.2.rel1/binrel/arm-gnu-toolchain-12.2.rel1-aarch64-arm-none-eabi.tar.xz?rev=04bfc790b30b477fab2621438ab231a7&hash=DB6D39BABFBF369F5683118F96DA4711',
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu/12.2.rel1/binrel/arm-gnu-toolchain-12.2.rel1-aarch64-arm-none-eabi.tar.xz',
             md5: '2014a0ebaae3168da555efdcabf03f2a',
         },
     },
@@ -157,7 +157,7 @@ const versions = {
         },
         linux_aarch64: {
             url: 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/10-2020q4/gcc-arm-none-eabi-10-2020-q4-major-aarch64-linux.tar.bz2',
-            md5: 'e588d21be5a0cc9caa60938d2422b058',
+            md5: '1c3b8944c026d50362eef1f01f329a8e',
         },
     },
     '9-2020-q2': {
@@ -528,7 +528,7 @@ function latestGccVersion() {
     return Object.keys(versions)[0];
 }
 exports.latestGccVersion = latestGccVersion;
-function distributionUrl(version, platform) {
+function distributionUrl(version, platform, arch) {
     // Convert the node platform value to the versions URL keys
     let osName = '';
     switch (platform) {
@@ -536,7 +536,12 @@ function distributionUrl(version, platform) {
             osName = 'mac_x86_64';
             break;
         case 'linux':
-            osName = 'linux_x86_64';
+            if (arch === 'arm64') {
+                osName = 'linux_aarch64';
+            }
+            else {
+                osName = 'linux_x86_64';
+            }
             break;
         case 'win32':
             osName = 'win32';
@@ -652,7 +657,7 @@ function run() {
             if (!release || release === 'latest') {
                 release = (0, gcc_1.latestGccVersion)();
             }
-            const installPath = yield setup.install(release, process.platform);
+            const installPath = yield setup.install(release, process.platform, process.arch);
             const gccPath = setup.findGcc(installPath);
             if (!gccPath) {
                 throw new Error(`Could not find gcc executable in ${gccPath}`);
@@ -727,14 +732,14 @@ const tc = __importStar(__nccwpck_require__(7784));
 const cache = __importStar(__nccwpck_require__(7799));
 const md5_file_1 = __importDefault(__nccwpck_require__(3009));
 const gcc = __importStar(__nccwpck_require__(7138));
-function install(release, platform) {
+function install(release, platform, arch) {
     return __awaiter(this, void 0, void 0, function* () {
         const toolName = 'gcc-arm-none-eabi';
         // Get the GCC release info
-        const distData = gcc.distributionUrl(release, platform);
+        const distData = gcc.distributionUrl(release, platform, arch);
         // Convert the GCC version to Semver so that it can be used with the GH cache
         const toolVersion = gcc.gccVersionToSemver(release);
-        const cacheKey = `${toolName}-${toolVersion}-${platform}`;
+        const cacheKey = `${toolName}-${toolVersion}-${platform}-${arch}`;
         const installPath = path.join(os.homedir(), cacheKey);
         core.debug(`Cache key: ${cacheKey}`);
         // Try to load the GCC installation from the cache

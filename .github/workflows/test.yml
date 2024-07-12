@@ -147,9 +147,9 @@ jobs:
     - name: Print path via env var and output
       run: echo "output -> ${{ steps.action-under-test-id.outputs.path }} \n env var -> $ARM_NONE_EABI_GCC_PATH"
     - name: Check env var path is correct
-      run: echo "Path $ARM_NONE_EABI_GCC_PATH" | grep -q /home/runner/gcc-arm-none-eabi-7.2017.4-linux/gcc-arm-none-eabi-7-2017-q4-major/bin
+      run: echo "Path $ARM_NONE_EABI_GCC_PATH" | grep -q /home/runner/gcc-arm-none-eabi-7.2017.4-linux-x64/gcc-arm-none-eabi-7-2017-q4-major/bin
     - name: Check output path is correct
-      run: echo "Path ${{ steps.action-under-test-id.outputs.path }}" | grep -q /home/runner/gcc-arm-none-eabi-7.2017.4-linux/gcc-arm-none-eabi-7-2017-q4-major/bin
+      run: echo "Path ${{ steps.action-under-test-id.outputs.path }}" | grep -q /home/runner/gcc-arm-none-eabi-7.2017.4-linux-x64/gcc-arm-none-eabi-7-2017-q4-major/bin
 
   # Run Action without inputs
   test-default:
@@ -167,4 +167,4 @@ jobs:
     - name: Check the version matches
       run: arm-none-eabi-gcc --version | grep -qi 13.2.Rel1
     - name: Check output path is correct
-      run: echo "${{ steps.action-under-test-id.outputs.path }}" | grep -q /home/runner/gcc-arm-none-eabi-13.2.1-linux/arm-gnu-toolchain-13.2.Rel1-x86_64-arm-none-eabi/bin
+      run: echo "${{ steps.action-under-test-id.outputs.path }}" | grep -q /home/runner/gcc-arm-none-eabi-13.2.1-linux-x64/arm-gnu-toolchain-13.2.Rel1-x86_64-arm-none-eabi/bin
