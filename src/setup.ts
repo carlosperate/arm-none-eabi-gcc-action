@@ -9,11 +9,11 @@ import md5File from 'md5-file';
 
 import * as gcc from './gcc';
 
-export async function install(release: string, platform: string): Promise<string> {
+export async function install(release: string, platform: string, arch?: string): Promise<string> {
   const toolName = 'gcc-arm-none-eabi';
 
   // Get the GCC release info
-  const distData = gcc.distributionUrl(release, platform);
+  const distData = gcc.distributionUrl(release, platform, arch);
 
   // Convert the GCC version to Semver so that it can be used with the GH cache
   const toolVersion = gcc.gccVersionToSemver(release);

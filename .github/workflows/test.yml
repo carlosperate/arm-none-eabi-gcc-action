@@ -72,26 +72,57 @@ jobs:
       if: runner.os != 'Windows'
       run: '! arm-none-eabi-gcc --version'
     - name: Set up GCC Arm Compiler
+      if: |
+        (runner.arch == 'X86' || runner.arch == 'X64') ||
+        (runner.arch == 'ARM64' && !contains(matrix.release, '2013') && !contains(matrix.release, '2014')
+        && !contains(matrix.release, '2015') && !contains(matrix.release, '2016')
+        && !contains(matrix.release, '2017') && !contains(matrix.release, '2018')
+        && (matrix.release != '8-2019-q3'))
       uses: ./
       with:
         release: ${{ matrix.release }}
     - name: Print out programs invoked by the compiler
+      if: |
+        (runner.arch == 'X86' || runner.arch == 'X64') ||
+        (runner.arch == 'ARM64' && !contains(matrix.release, '2013') && !contains(matrix.release, '2014')
+        && !contains(matrix.release, '2015') && !contains(matrix.release, '2016')
+        && !contains(matrix.release, '2017') && !contains(matrix.release, '2018')
+        && (matrix.release != '8-2019-q3'))
       run: arm-none-eabi-gcc -v
     - name: Print out version
+      if: |
+        (runner.arch == 'X86' || runner.arch == 'X64') ||
+        (runner.arch == 'ARM64' && !contains(matrix.release, '2013') && !contains(matrix.release, '2014')
+        && !contains(matrix.release, '2015') && !contains(matrix.release, '2016')
+        && !contains(matrix.release, '2017') && !contains(matrix.release, '2018')
+        && (matrix.release != '8-2019-q3'))
       run: arm-none-eabi-gcc --version
     - name: Check the version matches
       if: |
+        (runner.arch == 'X86' || runner.arch == 'X64') &&
         (!contains(matrix.release, '2013') && !contains(matrix.release, '2014')
          && !contains(matrix.release, '2015') && !contains(matrix.release, '2016')
          && (matrix.release != 'latest'))
       run: arm-none-eabi-gcc --version | grep -qi ${{ matrix.release }}
     - name: Clone STM32 project
+      if: |
+        (runner.arch == 'X86' || runner.arch == 'X64') ||
+        (runner.arch == 'ARM64' && !contains(matrix.release, '2013') && !contains(matrix.release, '2014')
+        && !contains(matrix.release, '2015') && !contains(matrix.release, '2016')
+        && !contains(matrix.release, '2017') && !contains(matrix.release, '2018')
+        && (matrix.release != '8-2019-q3'))
       uses: actions/checkout@v4
       with:
         repository: 'trebisky/stm32f103'
         ref: 7cfe5feaf02c653352331374d2ad178eb04efde7
         path: 'stm32f103/'
     - name: Build simple blinky project
+      if: |
+        (runner.arch == 'X86' || runner.arch == 'X64') ||
+        (runner.arch == 'ARM64' && !contains(matrix.release, '2013') && !contains(matrix.release, '2014')
+        && !contains(matrix.release, '2015') && !contains(matrix.release, '2016')
+        && !contains(matrix.release, '2017') && !contains(matrix.release, '2018')
+        && (matrix.release != '8-2019-q3'))
       working-directory: ./stm32f103/blink1/
       run: make all
 
