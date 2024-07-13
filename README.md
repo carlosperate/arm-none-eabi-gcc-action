@@ -1,6 +1,6 @@
 # GitHub Action: Arm GNU Toolchain <br> (arm-none-eabi-gcc)
 
-[![CI](https://github.com/carlosperate/arm-none-eabi-gcc-action/actions/workflows/test.yml/badge.svg)](https://github.com/carlosperate/arm-none-eabi-gcc-action/actions/workflows/test.yml)
+[![CI](https://github.com/carlosperate/arm-none-eabi-gcc-action/actions/workflows/test.yml/badge.svg)](https://github.com/carlosperate/arm-none-eabi-gcc-action/actions/workflows/test.yml) [![CI](https://github.com/carlosperate/arm-none-eabi-gcc-action/actions/workflows/test-all-releases.yml/badge.svg)](https://github.com/carlosperate/arm-none-eabi-gcc-action/actions/workflows/test-all-releases.yml) [![CI](https://github.com/carlosperate/arm-none-eabi-gcc-action/actions/workflows/check-urls.yml/badge.svg)](https://github.com/carlosperate/arm-none-eabi-gcc-action/actions/workflows/check-urls.yml)
 
 GitHub Action (compatible with Linux, Windows, and macOS platforms)
 to download, check, set up, and cache the `arm-none-eabi-gcc` compiler

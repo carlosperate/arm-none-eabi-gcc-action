@@ -1,0 +1,131 @@
+name: Test all releases
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - ci
+      - 'releases/*'
+
+jobs:
+  # Run this Action with all GCC versions, in all OS, and build a simple STM32 project
+  test-all-releases:
+    strategy:
+      fail-fast: false
+      matrix:
+        # self-hosted-linux-arm64 is a self hosted runner configured in this repo
+        os: [ubuntu-latest, macos-latest, windows-latest, self-hosted-linux-arm64]
+        release:
+          - 'latest'
+          - '13.2.Rel1'
+          - '12.3.Rel1'
+          - '12.2.Rel1'
+          - '11.3.Rel1'
+          - '11.2-2022.02'
+          - '10.3-2021.10'
+          - '10.3-2021.07'
+          - '10-2020-q4'
+          - '9-2020-q2'
+          - '9-2019-q4'
+          - '8-2019-q3'
+          - '8-2018-q4'
+          - '7-2018-q2'
+          - '7-2017-q4'
+          - '6-2017-q2'
+          - '6-2017-q1'
+          - '6-2016-q4'
+          - '5-2016-q3'
+          - '5-2016-q2'
+          - '5-2016-q1'
+          - '5-2015-q4'
+          - '4.9-2015-q3'
+          - '4.9-2015-q2'
+          - '4.9-2015-q1'
+          - '4.9-2014-q4'
+          - '4.8-2014-q3'
+          - '4.8-2014-q2'
+          - '4.8-2014-q1'
+          - '4.7-2014-q2'
+          - '4.8-2013-q4'
+          - '4.7-2013-q3'
+          - '4.7-2013-q2'
+          - '4.7-2013-q1'
+        exclude:
+          - os: self-hosted-linux-arm64
+            release: '8-2019-q3'
+          - os: self-hosted-linux-arm64
+            release: '8-2018-q4'
+          - os: self-hosted-linux-arm64
+            release: '7-2018-q2'
+          - os: self-hosted-linux-arm64
+            release: '7-2017-q4'
+          - os: self-hosted-linux-arm64
+            release: '6-2017-q2'
+          - os: self-hosted-linux-arm64
+            release: '6-2017-q1'
+          - os: self-hosted-linux-arm64
+            release: '6-2016-q4'
+          - os: self-hosted-linux-arm64
+            release: '5-2016-q3'
+          - os: self-hosted-linux-arm64
+            release: '5-2016-q2'
+          - os: self-hosted-linux-arm64
+            release: '5-2016-q1'
+          - os: self-hosted-linux-arm64
+            release: '5-2015-q4'
+          - os: self-hosted-linux-arm64
+            release: '4.9-2015-q3'
+          - os: self-hosted-linux-arm64
+            release: '4.9-2015-q2'
+          - os: self-hosted-linux-arm64
+            release: '4.9-2015-q1'
+          - os: self-hosted-linux-arm64
+            release: '4.9-2014-q4'
+          - os: self-hosted-linux-arm64
+            release: '4.8-2014-q3'
+          - os: self-hosted-linux-arm64
+            release: '4.8-2014-q2'
+          - os: self-hosted-linux-arm64
+            release: '4.8-2014-q1'
+          - os: self-hosted-linux-arm64
+            release: '4.7-2014-q2'
+          - os: self-hosted-linux-arm64
+            release: '4.8-2013-q4'
+          - os: self-hosted-linux-arm64
+            release: '4.7-2013-q3'
+          - os: self-hosted-linux-arm64
+            release: '4.7-2013-q2'
+          - os: self-hosted-linux-arm64
+            release: '4.7-2013-q1'
+    name: Test ${{ matrix.release }} @ ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@v4
+    # - run: node -e "console.log(process.platform, process.arch)"
+    - name: Ensure the compiler is not present (Unix)
+      if: runner.os != 'Windows'
+      run: '! arm-none-eabi-gcc --version'
+    - name: Set up GCC Arm Compiler
+      uses: ./
+      with:
+        release: ${{ matrix.release }}
+    - name: Print out programs invoked by the compiler
+      run: arm-none-eabi-gcc -v
+    - name: Print out version
+      run: arm-none-eabi-gcc --version
+    - name: Check the version matches
+      if: |
+        (!contains(matrix.release, '2013') && !contains(matrix.release, '2014')
+         && !contains(matrix.release, '2015') && !contains(matrix.release, '2016')
+         && (matrix.release != 'latest'))
+      run: arm-none-eabi-gcc --version | grep -qi ${{ matrix.release }}
+    - name: Clone STM32 project
+      uses: actions/checkout@v4
+      with:
+        repository: 'trebisky/stm32f103'
+        ref: 7cfe5feaf02c653352331374d2ad178eb04efde7
+        path: 'stm32f103/'
+    - name: Build simple blinky project
+      working-directory: ./stm32f103/blink1/
+      run: make all

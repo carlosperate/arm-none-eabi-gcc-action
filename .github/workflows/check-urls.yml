@@ -1,4 +1,4 @@
-name: Check file download URLs
+name: Check download URLs
 
 on:
   schedule:
