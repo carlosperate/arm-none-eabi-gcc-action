@@ -179,7 +179,8 @@ jobs:
       run: arm-none-eabi-gcc --version
     - name: Check the version matches
       if: |
-        (!contains(matrix.release, '2013') && !contains(matrix.release, '2014')
+        (!(matrix.release == '12.2.Rel1' && contains(matrix.os, 'macos'))
+         && !contains(matrix.release, '2013') && !contains(matrix.release, '2014')
          && !contains(matrix.release, '2015') && !contains(matrix.release, '2016')
          && (matrix.release != 'latest'))
       run: arm-none-eabi-gcc --version | grep -qi ${{ matrix.release }}
