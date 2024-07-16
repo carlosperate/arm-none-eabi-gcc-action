@@ -9,7 +9,7 @@ import md5File from 'md5-file';
 
 import * as gcc from './gcc';
 
-export async function install(release: string, platform: string, arch?: string): Promise<string> {
+export async function install(release: string, platform: string, arch: string): Promise<string> {
   const toolName = 'gcc-arm-none-eabi';
 
   // Get the GCC release info

@@ -674,7 +674,7 @@ export function latestGccVersion(): string {
   return Object.keys(versions)[0];
 }
 
-export function distributionUrl(version: string, platform: string, arch?: string): UrlData {
+export function distributionUrl(version: string, platform: string, arch: string): UrlData {
   // Convert the node platform value to the versions URL keys
   let osName = '';
   switch (platform) {

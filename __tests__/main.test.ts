@@ -52,31 +52,63 @@ test('count gcc versions', () => {
   expect(gcc.availableVersions().length).toBeGreaterThan(0);
 });
 
-test('test url', () => {
-  expect(gcc.distributionUrl('6-2017-q1', 'darwin').url).toStrictEqual(
+test('test fetching valid urls', () => {
+  expect(gcc.distributionUrl('12.3.Rel1', 'darwin', 'arm64').url).toStrictEqual(
+    'https://developer.arm.com/-/media/Files/downloads/gnu/12.3.rel1/binrel/arm-gnu-toolchain-12.3.rel1-darwin-arm64-arm-none-eabi.tar.xz'
+  );
+  expect(gcc.distributionUrl('12.3.Rel1', 'darwin', 'arm64').md5).toStrictEqual('53d034e9423e7f470acc5ed2a066758e');
+
+  expect(gcc.distributionUrl('6-2017-q1', 'darwin', 'x64').url).toStrictEqual(
     'https://developer.arm.com/-/media/Files/downloads/gnu-rm/6_1-2017q1/gcc-arm-none-eabi-6-2017-q1-update-mac.tar.bz2'
   );
-  expect(gcc.distributionUrl('6-2017-q1', 'darwin').md5).toStrictEqual('709c86af4c92d17bd5fb9dcfe00ffd6d');
+  expect(gcc.distributionUrl('6-2017-q1', 'darwin', 'x64').md5).toStrictEqual('709c86af4c92d17bd5fb9dcfe00ffd6d');
 
-  expect(gcc.distributionUrl('6-2017-q1', 'linux').url).toStrictEqual(
+  expect(gcc.distributionUrl('10-2020-q4', 'linux', 'arm64').url).toStrictEqual(
+    'https://developer.arm.com/-/media/Files/downloads/gnu-rm/10-2020q4/gcc-arm-none-eabi-10-2020-q4-major-aarch64-linux.tar.bz2'
+  );
+  expect(gcc.distributionUrl('10-2020-q4', 'linux', 'arm64').md5).toStrictEqual('1c3b8944c026d50362eef1f01f329a8e');
+
+  expect(gcc.distributionUrl('6-2017-q1', 'linux', 'x64').url).toStrictEqual(
     'https://developer.arm.com/-/media/Files/downloads/gnu-rm/6_1-2017q1/gcc-arm-none-eabi-6-2017-q1-update-linux.tar.bz2'
   );
-  expect(gcc.distributionUrl('6-2017-q1', 'linux').md5).toStrictEqual('30004c24f4632bc594952462bb0cd1c9');
+  expect(gcc.distributionUrl('6-2017-q1', 'linux', 'x64').md5).toStrictEqual('30004c24f4632bc594952462bb0cd1c9');
 
-  expect(gcc.distributionUrl('6-2017-q1', 'win32').url).toStrictEqual(
+  expect(gcc.distributionUrl('6-2017-q1', 'win32', 'x64').url).toStrictEqual(
     'https://developer.arm.com/-/media/Files/downloads/gnu-rm/6_1-2017q1/gcc-arm-none-eabi-6-2017-q1-update-win32-zip.zip'
   );
-  expect(gcc.distributionUrl('6-2017-q1', 'win32').md5).toStrictEqual('ec8b98945d4faf0c28a05bcdc1c2e537');
+  expect(gcc.distributionUrl('6-2017-q1', 'win32', 'x64').md5).toStrictEqual('ec8b98945d4faf0c28a05bcdc1c2e537');
 
-  expect(gcc.distributionUrl('9-2019-q4', 'linux').url).toStrictEqual(
+  expect(gcc.distributionUrl('9-2019-q4', 'linux', 'x64').url).toStrictEqual(
     'https://developer.arm.com/-/media/Files/downloads/gnu-rm/9-2019q4/gcc-arm-none-eabi-9-2019-q4-major-x86_64-linux.tar.bz2'
   );
-  expect(gcc.distributionUrl('9-2019-q4', 'linux').md5).toStrictEqual('fe0029de4f4ec43cf7008944e34ff8cc');
+  expect(gcc.distributionUrl('9-2019-q4', 'linux', 'x64').md5).toStrictEqual('fe0029de4f4ec43cf7008944e34ff8cc');
 
-  expect(gcc.distributionUrl('4.8-2013-q4', 'darwin').url).toStrictEqual(
+  expect(gcc.distributionUrl('4.8-2013-q4', 'darwin', 'x64').url).toStrictEqual(
     'https://launchpad.net/gcc-arm-embedded/4.8/4.8-2013-q4-major/+download/gcc-arm-none-eabi-4_8-2013q4-20131218-mac.tar.bz2'
   );
-  expect(gcc.distributionUrl('4.8-2013-q4', 'darwin').md5).toStrictEqual('850caa23f01ea8c1e6abcc3c217d36f7');
+  expect(gcc.distributionUrl('4.8-2013-q4', 'darwin', 'x64').md5).toStrictEqual('850caa23f01ea8c1e6abcc3c217d36f7');
+});
+
+test('test fetching urls for invalid platforms', () => {
+  // macOS arm64 starts at 12.2.Rel1
+  expect(() => {
+    gcc.distributionUrl('11.3.Rel1', 'darwin', 'arm64');
+  }).toThrow('invalid platform mac_arm64');
+
+  // Linux aarch64 starts at 9-2019-q4
+  expect(() => {
+    gcc.distributionUrl('8-2019-q3', 'linux', 'arm64');
+  }).toThrow('invalid platform linux_aarch64');
+
+  // Invalid release id
+  expect(() => {
+    gcc.distributionUrl('invalid-gcc-release', 'linux', 'x64');
+  }).toThrow('invalid GCC version');
+
+  // Invalid platform
+  expect(() => {
+    gcc.distributionUrl('12.3.Rel1', 'invalid-platform', 'x64');
+  }).toThrow('platform invalid-platform is not supported');
 });
 
 test('latest points to a known latest release', async () => {
@@ -164,13 +196,21 @@ test('Each GCC versions into a unique and valid Semver', async () => {
 describe('Check links work.', () => {
   for (const version of gcc.availableVersions()) {
     for (const platform of ['darwin', 'linux', 'win32']) {
-      const fileUrl = gcc.distributionUrl(version, platform).url;
-      const fileName = path.basename(new URL(fileUrl).pathname);
+      for (const arch of ['x64', 'arm64']) {
+        let fileUrl = '';
+        // Not all releases have builds for arm64
+        try {
+          fileUrl = gcc.distributionUrl(version, platform, arch).url;
+        } catch (error) {
+          continue;
+        }
+        const fileName = path.basename(new URL(fileUrl).pathname);
 
-      test(`URL ${fileName} is working`, async () => {
-        const response = await fetch(fileUrl, {method: 'HEAD'});
-        expect(response.status).toBe(200);
-      });
+        test(`URL ${fileName} is working`, async () => {
+          const response = await fetch(fileUrl, {method: 'HEAD'});
+          expect(response.status).toBe(200);
+        });
+      }
     }
   }
 });
@@ -187,18 +227,20 @@ describe('Real install in temp dirs.', () => {
     return false;
   }
 
-  async function tmpInstall(release: string, platform: string): Promise<void> {
-    const installPath = await setup.install(release, platform);
+  async function tmpInstall(release: string, platform: string, arch: string): Promise<void> {
+    const installPath = await setup.install(release, platform, arch);
     const gccPath = setup.findGcc(installPath, platform);
     expect(gccPath).not.toBe('');
     expect(hasGcc(gccPath)).toBeTruthy();
   }
 
-  test('4.7-2013-q1 win32', async () => await tmpInstall('4.7-2013-q1', 'win32'));
-  test('6-2017-q1 linux', async () => await tmpInstall('6-2017-q1', 'linux'));
-  test('9-2019-q4 darwin', async () => await tmpInstall('9-2019-q4', 'darwin'));
-  test('10.3-2021.07 win32', async () => await tmpInstall('10.3-2021.07', 'win32'));
-  test('13.3.Rel1 linux', async () => await tmpInstall('13.3.Rel1', 'linux'));
-  test('13.3.Rel1 darwin', async () => await tmpInstall('13.3.Rel1', 'darwin'));
-  test('13.3.Rel1 win32', async () => await tmpInstall('13.3.Rel1', 'win32'));
+  test('4.7-2013-q1 win32', async () => await tmpInstall('4.7-2013-q1', 'win32', 'x64'));
+  test('6-2017-q1 linux', async () => await tmpInstall('6-2017-q1', 'linux', 'x64'));
+  test('9-2019-q4 darwin', async () => await tmpInstall('9-2019-q4', 'darwin', 'x64'));
+  test('10.3-2021.07 win32', async () => await tmpInstall('10.3-2021.07', 'win32', 'x64'));
+  test('13.3.Rel1 linux', async () => await tmpInstall('13.3.Rel1', 'linux', 'x64'));
+  test('13.3.Rel1 linux', async () => await tmpInstall('13.3.Rel1', 'linux', 'arm64'));
+  test('13.3.Rel1 darwin', async () => await tmpInstall('13.3.Rel1', 'darwin', 'x64'));
+  test('13.3.Rel1 darwin', async () => await tmpInstall('13.3.Rel1', 'darwin', 'arm64'));
+  test('13.3.Rel1 win32', async () => await tmpInstall('13.3.Rel1', 'win32', 'x64'));
 });
