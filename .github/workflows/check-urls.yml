@@ -6,8 +6,7 @@ on:
     - cron: '30 19 * * *'
 
 jobs:
-  # Test and check build errors
-  test-build:
+  check-urls:
     name: Check file URLs
     runs-on: ubuntu-latest
     steps:
