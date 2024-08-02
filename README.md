@@ -62,6 +62,15 @@ section.
 - `4.8-2014-q3` &nbsp;&nbsp; `4.8-2014-q2` &nbsp; `4.8-2014-q1` &nbsp; `4.8-2013-q4`
 - `4.7-2014-q2` &nbsp;&nbsp; `4.7-2013-q3` &nbsp; `4.7-2013-q2` &nbsp; `4.7-2013-q1`
 
+Older GCC version might not have releases for all operating system
+architectures, specifically `arm64`.
+This table shows the first release compatible with each OS architecture.
+
+|         | x86_64      | arm64                  |
+|---------|-------------|------------------------|
+| Linux   | All version | From version 9-2019-q4 |
+| macOS   | All version | From version 12.2.Rel1 |
+| Windows | All version | Not supported          |
 
 ## Advanced options
 

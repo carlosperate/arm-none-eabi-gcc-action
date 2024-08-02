@@ -93,12 +93,12 @@ test('test fetching urls for invalid platforms', () => {
   // macOS arm64 starts at 12.2.Rel1
   expect(() => {
     gcc.distributionUrl('11.3.Rel1', 'darwin', 'arm64');
-  }).toThrow('invalid platform mac_arm64');
+  }).toThrow('invalid platform mac_arm64 for GCC version 11.3.Rel1');
 
   // Linux aarch64 starts at 9-2019-q4
   expect(() => {
     gcc.distributionUrl('8-2019-q3', 'linux', 'arm64');
-  }).toThrow('invalid platform linux_aarch64');
+  }).toThrow('invalid platform linux_aarch64 for GCC version 8-2019-q3');
 
   // Invalid release id
   expect(() => {

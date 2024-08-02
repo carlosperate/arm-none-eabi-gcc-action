@@ -592,7 +592,8 @@ function distributionUrl(version, platform, arch) {
         throw new Error(`invalid GCC version ${version}. Available: ${availableVersions()}`);
     }
     if (!versions[version].hasOwnProperty(osName)) {
-        throw new Error(`invalid platform ${osName}.`);
+        throw new Error(`invalid platform ${osName} for GCC version ${version}.\n` +
+            'The action README has the list of available versions and platforms.');
     }
     return versions[version][osName];
 }
