@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 
+import * as core from '@actions/core';
 import semverValid from 'semver/functions/valid';
 
 interface UrlData {
@@ -680,7 +681,14 @@ export function distributionUrl(version: string, platform: string, arch: string)
   switch (platform) {
     case 'darwin':
       if (arch === 'arm64') {
-        osName = 'mac_arm64';
+        if (versions[version].hasOwnProperty('mac_arm64')) {
+          osName = 'mac_arm64';
+        } else {
+          // If the GCC version does not have an arm64 release,
+          // use the x86_64 version as rosetta will be able to run it
+          osName = 'mac_x86_64';
+          core.warning(`No arm64 version found for GCC ${version}, using x86_64 version instead`);
+        }
       } else {
         osName = 'mac_x86_64';
       }

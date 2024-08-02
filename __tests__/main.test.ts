@@ -58,6 +58,11 @@ test('test fetching valid urls', () => {
   );
   expect(gcc.distributionUrl('12.3.Rel1', 'darwin', 'arm64').md5).toStrictEqual('53d034e9423e7f470acc5ed2a066758e');
 
+  // macOS arm64 starts at 12.2.Rel1, but if arm64 is not available, it will fallback to x64
+  expect(gcc.distributionUrl('11.3.Rel1', 'darwin', 'arm64').url).toStrictEqual(
+    'https://developer.arm.com/-/media/Files/downloads/gnu/11.3.rel1/binrel/arm-gnu-toolchain-11.3.rel1-darwin-x86_64-arm-none-eabi.tar.xz'
+  );
+
   expect(gcc.distributionUrl('6-2017-q1', 'darwin', 'x64').url).toStrictEqual(
     'https://developer.arm.com/-/media/Files/downloads/gnu-rm/6_1-2017q1/gcc-arm-none-eabi-6-2017-q1-update-mac.tar.bz2'
   );
@@ -90,15 +95,13 @@ test('test fetching valid urls', () => {
 });
 
 test('test fetching urls for invalid platforms', () => {
-  // macOS arm64 starts at 12.2.Rel1
-  expect(() => {
-    gcc.distributionUrl('11.3.Rel1', 'darwin', 'arm64');
-  }).toThrow('invalid platform mac_arm64 for GCC version 11.3.Rel1');
-
   // Linux aarch64 starts at 9-2019-q4
   expect(() => {
     gcc.distributionUrl('8-2019-q3', 'linux', 'arm64');
   }).toThrow('invalid platform linux_aarch64 for GCC version 8-2019-q3');
+
+  // macOS arm64 starts at 12.2.Rel1, but if arm64 is not available,
+  // it will fallback to x64, so it will not throw an error
 
   // Invalid release id
   expect(() => {

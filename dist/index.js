@@ -7,11 +7,35 @@ require('./sourcemap-register.js');/******/ (() => { // webpackBootstrap
 "use strict";
 
 /* eslint-disable @typescript-eslint/naming-convention */
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.gccVersionToSemver = exports.distributionUrl = exports.latestGccVersion = exports.availableVersions = void 0;
+const core = __importStar(__nccwpck_require__(2186));
 const valid_1 = __importDefault(__nccwpck_require__(9601));
 const versions = {
     '13.3.Rel1': {
@@ -568,7 +592,15 @@ function distributionUrl(version, platform, arch) {
     switch (platform) {
         case 'darwin':
             if (arch === 'arm64') {
-                osName = 'mac_arm64';
+                if (versions[version].hasOwnProperty('mac_arm64')) {
+                    osName = 'mac_arm64';
+                }
+                else {
+                    // If the GCC version does not have an arm64 release,
+                    // use the x86_64 version as rosetta will be able to run it
+                    osName = 'mac_x86_64';
+                    core.warning(`No arm64 version found for GCC ${version}, using x86_64 version instead`);
+                }
             }
             else {
                 osName = 'mac_x86_64';
