@@ -1,6 +1,6 @@
 {
   "name": "arm-none-eabi-gcc-action",
-  "version": "1.9.0",
+  "version": "1.9.1",
   "private": true,
   "description": "GitHub Action to install arm-none-eabi-gcc",
   "main": "lib/main.js",

@@ -66,11 +66,11 @@ Older GCC version might not have releases for all operating system
 architectures, specifically `arm64`.
 This table shows the first release compatible with each OS architecture.
 
-|         | x86_64      | arm64                  |
-|---------|-------------|------------------------|
-| Linux   | All version | From version 9-2019-q4 |
-| macOS   | All version | From version 12.2.Rel1 |
-| Windows | All version | Not supported          |
+|         | x86_64       | arm64                  |
+|---------|--------------|------------------------|
+| Linux   | All versions | From version 9-2019-q4 |
+| macOS   | All versions | From version 12.2.Rel1 |
+| Windows | All versions | Not supported          |
 
 ## Advanced options
 

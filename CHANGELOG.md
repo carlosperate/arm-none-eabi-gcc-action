@@ -4,7 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## v1.9.0- 2024-07-15
+## v1.9.1 - 2024-08-02
+### Fixed
+- In macOS arm64, if a GCC version doesn't have an arm64 release, use x86_64 instead
+### Changed
+- Better error message when a GCC version does not have a release for the platform
+
+## v1.9.0 - 2024-07-15
 ### Added
 - Add `13.3.Rel1` Arm GNU Toolchain release (#55)
 - Add support for Linux arm64 GH Actions runners (#48) (thanks @leoli0605 !)
