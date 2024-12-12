@@ -60,6 +60,6 @@ jobs:
     - name: Print out version
       run: arm-none-eabi-gcc --version
     - name: Check the version matches
-      run: arm-none-eabi-gcc --version | grep -qi 13.3.Rel1
+      run: arm-none-eabi-gcc --version | grep -qi 14.2.Rel1
     - name: Check output path is correct
-      run: echo "${{ steps.action-under-test-id.outputs.path }}" | grep -q /home/runner/gcc-arm-none-eabi-13.3.1-linux-x64/arm-gnu-toolchain-13.3.rel1-x86_64-arm-none-eabi/bin
+      run: echo "${{ steps.action-under-test-id.outputs.path }}" | grep -q /home/runner/gcc-arm-none-eabi-14.2.1-linux-x64/arm-gnu-toolchain-14.2.rel1-x86_64-arm-none-eabi/bin
