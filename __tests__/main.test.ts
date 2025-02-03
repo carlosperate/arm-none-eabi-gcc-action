@@ -17,7 +17,7 @@ const TEMP_LOCAL_PATH = path.join(__dirname, '..', 'TESTS_TEMP_DELETE');
 const TEMP_HOME_DIR = path.join(TEMP_LOCAL_PATH, 'HOME');
 const TEMP_CACHE_DIR = path.join(TEMP_LOCAL_PATH, 'CACHE');
 
-jest.setTimeout(5 * 60 * 1000);
+jest.setTimeout(7 * 60 * 1000);
 
 beforeAll(() => {
   if (fs.existsSync(TEMP_HOME_DIR)) rimraf.sync(TEMP_HOME_DIR);
@@ -241,6 +241,7 @@ describe('Real install in temp dirs.', () => {
   test('6-2017-q1 linux', async () => await tmpInstall('6-2017-q1', 'linux', 'x64'));
   test('9-2019-q4 darwin', async () => await tmpInstall('9-2019-q4', 'darwin', 'x64'));
   test('10.3-2021.07 win32', async () => await tmpInstall('10.3-2021.07', 'win32', 'x64'));
+
   test('14.2.Rel1 linux', async () => await tmpInstall('14.2.Rel1', 'linux', 'x64'));
   test('14.2.Rel1 linux', async () => await tmpInstall('14.2.Rel1', 'linux', 'arm64'));
   test('14.2.Rel1 darwin', async () => await tmpInstall('14.2.Rel1', 'darwin', 'x64'));

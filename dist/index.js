@@ -621,7 +621,7 @@ function distributionUrl(version, platform, arch) {
                     // If the GCC version does not have an arm64 release,
                     // use the x86_64 version as rosetta will be able to run it
                     osName = 'mac_x86_64';
-                    core.warning(`No arm64 version found for GCC ${version}, using x86_64 version instead`);
+                    core.warning(`No mac arm64 version found for GCC ${version}, using x86_64 version instead`);
                 }
             }
             else {
