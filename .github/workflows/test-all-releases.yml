@@ -14,9 +14,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # self-hosted-linux-arm64 is a self hosted runner configured in this repo
         # macOS 13 runner is x86_64 and macOS 14 runner is arm64
-        os: [ubuntu-latest, macos-13, macos-14, windows-latest, self-hosted-linux-arm64]
+        os: [ubuntu-20.04, ubuntu-22.04-arm, macos-13, macos-14, windows-latest]
         release:
           - 'latest'
           - '14.2.Rel1'
@@ -117,51 +116,51 @@ jobs:
           - os: macos-14
             release: '4.7-2013-q1'
           # Linux arm64 is only available from 9-2019-q4
-          - os: self-hosted-linux-arm64
+          - os: ubuntu-22.04-arm
             release: '8-2019-q3'
-          - os: self-hosted-linux-arm64
+          - os: ubuntu-22.04-arm
             release: '8-2018-q4'
-          - os: self-hosted-linux-arm64
+          - os: ubuntu-22.04-arm
             release: '7-2018-q2'
-          - os: self-hosted-linux-arm64
+          - os: ubuntu-22.04-arm
             release: '7-2017-q4'
-          - os: self-hosted-linux-arm64
+          - os: ubuntu-22.04-arm
             release: '6-2017-q2'
-          - os: self-hosted-linux-arm64
+          - os: ubuntu-22.04-arm
             release: '6-2017-q1'
-          - os: self-hosted-linux-arm64
+          - os: ubuntu-22.04-arm
             release: '6-2016-q4'
-          - os: self-hosted-linux-arm64
+          - os: ubuntu-22.04-arm
             release: '5-2016-q3'
-          - os: self-hosted-linux-arm64
+          - os: ubuntu-22.04-arm
             release: '5-2016-q2'
-          - os: self-hosted-linux-arm64
+          - os: ubuntu-22.04-arm
             release: '5-2016-q1'
-          - os: self-hosted-linux-arm64
+          - os: ubuntu-22.04-arm
             release: '5-2015-q4'
-          - os: self-hosted-linux-arm64
+          - os: ubuntu-22.04-arm
             release: '4.9-2015-q3'
-          - os: self-hosted-linux-arm64
+          - os: ubuntu-22.04-arm
             release: '4.9-2015-q2'
-          - os: self-hosted-linux-arm64
+          - os: ubuntu-22.04-arm
             release: '4.9-2015-q1'
-          - os: self-hosted-linux-arm64
+          - os: ubuntu-22.04-arm
             release: '4.9-2014-q4'
-          - os: self-hosted-linux-arm64
+          - os: ubuntu-22.04-arm
             release: '4.8-2014-q3'
-          - os: self-hosted-linux-arm64
+          - os: ubuntu-22.04-arm
             release: '4.8-2014-q2'
-          - os: self-hosted-linux-arm64
+          - os: ubuntu-22.04-arm
             release: '4.8-2014-q1'
-          - os: self-hosted-linux-arm64
+          - os: ubuntu-22.04-arm
             release: '4.7-2014-q2'
-          - os: self-hosted-linux-arm64
+          - os: ubuntu-22.04-arm
             release: '4.8-2013-q4'
-          - os: self-hosted-linux-arm64
+          - os: ubuntu-22.04-arm
             release: '4.7-2013-q3'
-          - os: self-hosted-linux-arm64
+          - os: ubuntu-22.04-arm
             release: '4.7-2013-q2'
-          - os: self-hosted-linux-arm64
+          - os: ubuntu-22.04-arm
             release: '4.7-2013-q1'
     name: ${{ matrix.release }} @ ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
