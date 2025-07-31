@@ -49,19 +49,9 @@ section.
 ## Available releases
 
 - `latest` <-- Always points to the latest release
-- `14.2.Rel1`
+- `14.3.Rel1` &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; `14.2.Rel1`
 - `13.3.Rel1` &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; `13.2.Rel1`
 - `12.3.Rel1` &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; `12.2.Rel1`
-- `11.3.Rel1` &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; `11.2-2022.02`
-- `10.3-2021.10` &nbsp;`10.3-2021.07` &nbsp;`10-2020-q4`
-- `9-2020-q2` &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; `9-2019-q4`
-- `8-2019-q3` &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; `8-2018-q4`
-- `7-2018-q2` &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; `7-2017-q4`
-- `6-2017-q2` &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; `6-2017-q1` &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; `6-2016-q4`
-- `5-2016-q3` &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; `5-2016-q2` &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; `5-2016-q1` &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; `5-2015-q4`
-- `4.9-2015-q3` &nbsp;&nbsp; `4.9-2015-q2` &nbsp; `4.9-2015-q1` &nbsp; `4.9-2014-q4`
-- `4.8-2014-q3` &nbsp;&nbsp; `4.8-2014-q2` &nbsp; `4.8-2014-q1` &nbsp; `4.8-2013-q4`
-- `4.7-2014-q2` &nbsp;&nbsp; `4.7-2013-q3` &nbsp; `4.7-2013-q2` &nbsp; `4.7-2013-q1`
 
 Older GCC version might not have releases for all operating system
 architectures, specifically `arm64`.
@@ -83,9 +73,9 @@ jobs:
   build:
     strategy:
       matrix:
-        gcc: ['7-2017-q4', 'latest']
+        gcc: ['14.2.Rel1', 'latest']
     steps:
-      - name: Install GNU Arm Embedded Toolchain - ${{ matrix.gcc }}
+      - name: Install GNU Arm64 Embedded Toolchain - ${{ matrix.gcc }}
         uses: lawkai-vivo/aarch64-none-elf-gcc-action@v1
         with:
           release: ${{ matrix.gcc }}
@@ -110,9 +100,9 @@ an input:
 - name: To create an environmental variable with the toolchain path provide a name via the `path-env-var` input
   uses: lawkai-vivo/aarch64-none-elf-gcc-action@v1
   with:
-    path-env-var: ARM_NONE_EABI_GCC_PATH
+    path-env-var: AARCH64_NONE_ELF_GCC_PATH
 - name: The path will be exported to that environmental variable name
-  run: echo "The output path is $ARM_NONE_EABI_GCC_PATH"
+  run: echo "The output path is $AARCH64_NONE_ELF_GCC_PATH"
 ```
 
 

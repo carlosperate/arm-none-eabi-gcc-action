@@ -10,7 +10,7 @@ import md5File from 'md5-file';
 import * as gcc from './gcc';
 
 export async function install(release: string, platform: string, arch: string): Promise<string> {
-  const toolName = 'gcc-arm-none-eabi';
+  const toolName = 'gcc-aarch64-none-elf';
 
   // Get the GCC release info
   const distData = gcc.distributionUrl(release, platform, arch);
@@ -100,5 +100,5 @@ function findGccRecursive(dir: string, executableName: string): string {
 
 export function findGcc(root: string, platform?: string): string {
   platform = platform || process.platform;
-  return findGccRecursive(root, `arm-none-eabi-gcc${platform === 'win32' ? '.exe' : ''}`);
+  return findGccRecursive(root, `aarch64-none-elf-gcc${platform === 'win32' ? '.exe' : ''}`);
 }
