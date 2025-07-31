@@ -1,21 +1,21 @@
-# GitHub Action: Arm GNU Toolchain <br> (arm-none-eabi-gcc)
+# GitHub Action: Arm GNU Toolchain <br> (aarch64-none-elf-gcc)
 
-[![CI](https://github.com/carlosperate/arm-none-eabi-gcc-action/actions/workflows/test.yml/badge.svg)](https://github.com/carlosperate/arm-none-eabi-gcc-action/actions/workflows/test.yml) [![CI](https://github.com/carlosperate/arm-none-eabi-gcc-action/actions/workflows/test-all-releases.yml/badge.svg)](https://github.com/carlosperate/arm-none-eabi-gcc-action/actions/workflows/test-all-releases.yml) [![CI](https://github.com/carlosperate/arm-none-eabi-gcc-action/actions/workflows/check-urls.yml/badge.svg)](https://github.com/carlosperate/arm-none-eabi-gcc-action/actions/workflows/check-urls.yml)
+[![CI](https://github.com/lawkai-vivo/aarch64-none-elf-gcc-action/actions/workflows/test.yml/badge.svg)](https://github.com/lawkai-vivo/aarch64-none-elf-gcc-action/actions/workflows/test.yml) [![CI](https://github.com/lawkai-vivo/aarch64-none-elf-gcc-action/actions/workflows/test-all-releases.yml/badge.svg)](https://github.com/lawkai-vivo/aarch64-none-elf-gcc-action/actions/workflows/test-all-releases.yml) [![CI](https://github.com/lawkai-vivo/aarch64-none-elf-gcc-action/actions/workflows/check-urls.yml/badge.svg)](https://github.com/lawkai-vivo/aarch64-none-elf-gcc-action/actions/workflows/check-urls.yml)
 
 GitHub Action (compatible with Linux x86_64 and aarch64, macOS x86_64
 and arm64, and Windows x86_64 platforms) to download, check, set up,
-and cache the `arm-none-eabi-gcc` compiler toolchain.
+and cache the `aarch64-none-elf-gcc` compiler toolchain.
 
 
 ## Usage
 
 Simplest way to use this action is with the default options, which uses the
-the latest `arm-none-eabi-gcc` release:
+the latest `aarch64-none-elf-gcc` release:
 
 ```yaml
 steps:
-- uses: carlosperate/arm-none-eabi-gcc-action@v1
-- run: arm-none-eabi-gcc --version
+- uses: lawkai-vivo/aarch64-none-elf-gcc-action@v1
+- run: aarch64-none-elf-gcc --version
 ```
 
 You can also specify a version (a list can be found in the
@@ -23,8 +23,8 @@ You can also specify a version (a list can be found in the
 
 ```yaml
 steps:
-- name: Install Arm GNU Toolchain (arm-none-eabi-gcc)
-  uses: carlosperate/arm-none-eabi-gcc-action@v1
+- name: Install Arm GNU Toolchain (aarch64-none-elf-gcc)
+  uses: lawkai-vivo/aarch64-none-elf-gcc-action@v1
   with:
     release: '14.2.Rel1' # <-- The compiler release to use
 ```
@@ -86,10 +86,10 @@ jobs:
         gcc: ['7-2017-q4', 'latest']
     steps:
       - name: Install GNU Arm Embedded Toolchain - ${{ matrix.gcc }}
-        uses: carlosperate/arm-none-eabi-gcc-action@v1
+        uses: lawkai-vivo/aarch64-none-elf-gcc-action@v1
         with:
           release: ${{ matrix.gcc }}
-      - run: arm-none-eabi-gcc --version
+      - run: aarch64-none-elf-gcc --version
 ```
 
 If you need to pass the GCC path to a different action or step the `path`
@@ -97,10 +97,10 @@ output exports it:
 
 ```yaml
 - name: To access a step output, you need to provide an `id`
-  uses: carlosperate/arm-none-eabi-gcc-action@v1
-  id: arm-none-eabi-gcc-action
+  uses: lawkai-vivo/aarch64-none-elf-gcc-action@v1
+  id: aarch64-none-elf-gcc-action
 - name: The `path` to the toolchain executables can then be obtained as an output
-  run: echo "The output path is ${{ steps.arm-none-eabi-gcc-action.outputs.path }}"
+  run: echo "The output path is ${{ steps.aarch64-none-elf-gcc-action.outputs.path }}"
 ```
 
 The path can also be added to an environmental variable if it's specified as
@@ -108,7 +108,7 @@ an input:
 
 ```yaml
 - name: To create an environmental variable with the toolchain path provide a name via the `path-env-var` input
-  uses: carlosperate/arm-none-eabi-gcc-action@v1
+  uses: lawkai-vivo/aarch64-none-elf-gcc-action@v1
   with:
     path-env-var: ARM_NONE_EABI_GCC_PATH
 - name: The path will be exported to that environmental variable name
@@ -118,16 +118,15 @@ an input:
 
 ## Changelog
 
-The changes can be found in the [CHANGELOG.md](https://github.com/carlosperate/arm-none-eabi-gcc-action/blob/main/CHANGELOG.md)
-file, or the [GitHub Releases](https://github.com/carlosperate/arm-none-eabi-gcc-action/releases) notes.
+The changes can be found in the [CHANGELOG.md](https://github.com/lawkai-vivo/aarch64-none-elf-gcc-action/blob/main/CHANGELOG.md)
+file, or the [GitHub Releases](https://github.com/lawkai-vivo/aarch64-none-elf-gcc-action/releases) notes.
 
 
 ## License & Attribution
 
 [MIT License](LICENSE).
 
-This project is a fork of [fiam/arm-none-eabi-gcc](https://github.com/fiam/arm-none-eabi-gcc),
-copyright [@fiam](https://github.com/fiam) (thanks for the awesome work
-Alberto! without it this fork would have never existed). The extensive list of
-changes can be seen
-[here](https://github.com/carlosperate/arm-none-eabi-gcc-action/compare/4cecd3f99905c1c296edf75f570b9e68993be22f...main).
+This project is a fork of [carlosperate/arm-none-eabi-gcc-action](https://github.com/carlosperate/arm-none-eabi-gcc-action),
+copyright [@carlosperate](https://github.com/carlosperate) (thanks for the awesome work! without it this fork would have never existed).
+The extensive list of changes can be seen
+[here](https://github.com/lawkai-vivo/aarch64-none-elf-gcc-action/compare/a532c97fbfff58385beb2247ae1464dc4cc71724...main).
