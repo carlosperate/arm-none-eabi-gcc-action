@@ -38,89 +38,89 @@ exports.gccVersionToSemver = exports.distributionUrl = exports.latestGccVersion 
 const core = __importStar(__nccwpck_require__(2186));
 const valid_1 = __importDefault(__nccwpck_require__(9601));
 const versions = {
-    "14.2.Rel1": {
+    '14.2.Rel1': {
         win32: {
-            url: "https://developer.arm.com/-/media/Files/downloads/gnu/14.2.rel1/binrel/arm-gnu-toolchain-14.2.rel1-mingw-w64-x86_64-aarch64-none-elf.zip",
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu/14.2.rel1/binrel/arm-gnu-toolchain-14.2.rel1-mingw-w64-x86_64-aarch64-none-elf.zip',
         },
         mac_x86_64: {
-            url: "https://developer.arm.com/-/media/Files/downloads/gnu/14.2.rel1/binrel/arm-gnu-toolchain-14.2.rel1-darwin-x86_64-aarch64-none-elf.tar.xz",
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu/14.2.rel1/binrel/arm-gnu-toolchain-14.2.rel1-darwin-x86_64-aarch64-none-elf.tar.xz',
         },
         mac_arm64: {
-            url: "https://developer.arm.com/-/media/Files/downloads/gnu/14.2.rel1/binrel/arm-gnu-toolchain-14.2.rel1-darwin-arm64-aarch64-none-elf.tar.xz",
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu/14.2.rel1/binrel/arm-gnu-toolchain-14.2.rel1-darwin-arm64-aarch64-none-elf.tar.xz',
         },
         linux_x86_64: {
-            url: "https://developer.arm.com/-/media/Files/downloads/gnu/14.2.rel1/binrel/arm-gnu-toolchain-14.2.rel1-x86_64-aarch64-none-elf.tar.xz",
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu/14.2.rel1/binrel/arm-gnu-toolchain-14.2.rel1-x86_64-aarch64-none-elf.tar.xz',
         },
         linux_aarch64: {
-            url: "https://developer.arm.com/-/media/Files/downloads/gnu/14.2.rel1/binrel/arm-gnu-toolchain-14.2.rel1-aarch64-aarch64-none-elf.tar.xz",
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu/14.2.rel1/binrel/arm-gnu-toolchain-14.2.rel1-aarch64-aarch64-none-elf.tar.xz',
         },
     },
-    "13.3.Rel1": {
+    '13.3.Rel1': {
         win32: {
-            url: "https://developer.arm.com/-/media/Files/downloads/gnu/13.3.rel1/binrel/arm-gnu-toolchain-13.3.rel1-mingw-w64-i686-aarch64-none-elf.zip",
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu/13.3.rel1/binrel/arm-gnu-toolchain-13.3.rel1-mingw-w64-i686-aarch64-none-elf.zip',
         },
         mac_x86_64: {
-            url: "https://developer.arm.com/-/media/Files/downloads/gnu/13.3.rel1/binrel/arm-gnu-toolchain-13.3.rel1-darwin-x86_64-aarch64-none-elf.tar.xz",
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu/13.3.rel1/binrel/arm-gnu-toolchain-13.3.rel1-darwin-x86_64-aarch64-none-elf.tar.xz',
         },
         mac_arm64: {
-            url: "https://developer.arm.com/-/media/Files/downloads/gnu/13.3.rel1/binrel/arm-gnu-toolchain-13.3.rel1-darwin-arm64-aarch64-none-elf.tar.xz",
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu/13.3.rel1/binrel/arm-gnu-toolchain-13.3.rel1-darwin-arm64-aarch64-none-elf.tar.xz',
         },
         linux_x86_64: {
-            url: "https://developer.arm.com/-/media/Files/downloads/gnu/13.3.rel1/binrel/arm-gnu-toolchain-13.3.rel1-x86_64-aarch64-none-elf.tar.xz",
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu/13.3.rel1/binrel/arm-gnu-toolchain-13.3.rel1-x86_64-aarch64-none-elf.tar.xz',
         },
         linux_aarch64: {
-            url: "https://developer.arm.com/-/media/Files/downloads/gnu/13.3.rel1/binrel/arm-gnu-toolchain-13.3.rel1-aarch64-aarch64-none-elf.tar.xz",
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu/13.3.rel1/binrel/arm-gnu-toolchain-13.3.rel1-aarch64-aarch64-none-elf.tar.xz',
         },
     },
-    "13.2.Rel1": {
+    '13.2.Rel1': {
         win32: {
-            url: "https://developer.arm.com/-/media/Files/downloads/gnu/13.2.rel1/binrel/arm-gnu-toolchain-13.2.rel1-mingw-w64-i686-aarch64-none-elf.zip",
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu/13.2.rel1/binrel/arm-gnu-toolchain-13.2.rel1-mingw-w64-i686-aarch64-none-elf.zip',
         },
         mac_x86_64: {
-            url: "https://developer.arm.com/-/media/Files/downloads/gnu/13.2.rel1/binrel/arm-gnu-toolchain-13.2.rel1-darwin-x86_64-aarch64-none-elf.tar.xz",
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu/13.2.rel1/binrel/arm-gnu-toolchain-13.2.rel1-darwin-x86_64-aarch64-none-elf.tar.xz',
         },
         mac_arm64: {
-            url: "https://developer.arm.com/-/media/Files/downloads/gnu/13.2.rel1/binrel/arm-gnu-toolchain-13.2.rel1-darwin-arm64-aarch64-none-elf.tar.xz",
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu/13.2.rel1/binrel/arm-gnu-toolchain-13.2.rel1-darwin-arm64-aarch64-none-elf.tar.xz',
         },
         linux_x86_64: {
-            url: "https://developer.arm.com/-/media/Files/downloads/gnu/13.2.rel1/binrel/arm-gnu-toolchain-13.2.rel1-x86_64-aarch64-none-elf.tar.xz",
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu/13.2.rel1/binrel/arm-gnu-toolchain-13.2.rel1-x86_64-aarch64-none-elf.tar.xz',
         },
         linux_aarch64: {
-            url: "https://developer.arm.com/-/media/Files/downloads/gnu/13.2.rel1/binrel/arm-gnu-toolchain-13.2.rel1-aarch64-aarch64-none-elf.tar.xz",
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu/13.2.rel1/binrel/arm-gnu-toolchain-13.2.rel1-aarch64-aarch64-none-elf.tar.xz',
         },
     },
-    "12.3.Rel1": {
+    '12.3.Rel1': {
         win32: {
-            url: "https://developer.arm.com/-/media/Files/downloads/gnu/12.3.rel1/binrel/arm-gnu-toolchain-12.3.rel1-mingw-w64-i686-aarch64-none-elf.zip",
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu/12.3.rel1/binrel/arm-gnu-toolchain-12.3.rel1-mingw-w64-i686-aarch64-none-elf.zip',
         },
         mac_x86_64: {
-            url: "https://developer.arm.com/-/media/Files/downloads/gnu/12.3.rel1/binrel/arm-gnu-toolchain-12.3.rel1-darwin-x86_64-aarch64-none-elf.tar.xz",
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu/12.3.rel1/binrel/arm-gnu-toolchain-12.3.rel1-darwin-x86_64-aarch64-none-elf.tar.xz',
         },
         mac_arm64: {
-            url: "https://developer.arm.com/-/media/Files/downloads/gnu/12.3.rel1/binrel/arm-gnu-toolchain-12.3.rel1-darwin-arm64-aarch64-none-elf.tar.xz",
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu/12.3.rel1/binrel/arm-gnu-toolchain-12.3.rel1-darwin-arm64-aarch64-none-elf.tar.xz',
         },
         linux_x86_64: {
-            url: "https://developer.arm.com/-/media/Files/downloads/gnu/12.3.rel1/binrel/arm-gnu-toolchain-12.3.rel1-x86_64-aarch64-none-elf.tar.xz",
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu/12.3.rel1/binrel/arm-gnu-toolchain-12.3.rel1-x86_64-aarch64-none-elf.tar.xz',
         },
         linux_aarch64: {
-            url: "https://developer.arm.com/-/media/Files/downloads/gnu/12.3.rel1/binrel/arm-gnu-toolchain-12.3.rel1-aarch64-aarch64-none-elf.tar.xz",
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu/12.3.rel1/binrel/arm-gnu-toolchain-12.3.rel1-aarch64-aarch64-none-elf.tar.xz',
         },
     },
-    "12.2.Rel1": {
+    '12.2.Rel1': {
         win32: {
-            url: "https://developer.arm.com/-/media/Files/downloads/gnu/12.2.rel1/binrel/arm-gnu-toolchain-12.2.rel1-mingw-w64-i686-aarch64-none-elf.zip",
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu/12.2.rel1/binrel/arm-gnu-toolchain-12.2.rel1-mingw-w64-i686-aarch64-none-elf.zip',
         },
         mac_x86_64: {
-            url: "https://developer.arm.com/-/media/Files/downloads/gnu/12.2.rel1/binrel/arm-gnu-toolchain-12.2.rel1-darwin-x86_64-aarch64-none-elf.tar.xz",
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu/12.2.rel1/binrel/arm-gnu-toolchain-12.2.rel1-darwin-x86_64-aarch64-none-elf.tar.xz',
         },
         mac_arm64: {
-            url: "https://developer.arm.com/-/media/Files/downloads/gnu/12.2.rel1/binrel/arm-gnu-toolchain-12.2.rel1-darwin-arm64-aarch64-none-elf.tar.xz",
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu/12.2.rel1/binrel/arm-gnu-toolchain-12.2.rel1-darwin-arm64-aarch64-none-elf.tar.xz',
         },
         linux_x86_64: {
-            url: "https://developer.arm.com/-/media/Files/downloads/gnu/12.2.rel1/binrel/arm-gnu-toolchain-12.2.rel1-x86_64-aarch64-none-elf.tar.xz",
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu/12.2.rel1/binrel/arm-gnu-toolchain-12.2.rel1-x86_64-aarch64-none-elf.tar.xz',
         },
         linux_aarch64: {
-            url: "https://developer.arm.com/-/media/Files/downloads/gnu/12.2.rel1/binrel/arm-gnu-toolchain-12.2.rel1-aarch64-aarch64-none-elf.tar.xz",
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu/12.2.rel1/binrel/arm-gnu-toolchain-12.2.rel1-aarch64-aarch64-none-elf.tar.xz',
         },
     },
 };
@@ -135,34 +135,34 @@ function latestGccVersion() {
 exports.latestGccVersion = latestGccVersion;
 function distributionUrl(version, platform, arch) {
     // Convert the node platform value to the versions URL keys
-    let osName = "";
+    let osName = '';
     switch (platform) {
-        case "darwin":
-            if (arch === "arm64") {
-                if (versions[version].hasOwnProperty("mac_arm64")) {
-                    osName = "mac_arm64";
+        case 'darwin':
+            if (arch === 'arm64') {
+                if (versions[version].hasOwnProperty('mac_arm64')) {
+                    osName = 'mac_arm64';
                 }
                 else {
                     // If the GCC version does not have an arm64 release,
                     // use the x86_64 version as rosetta will be able to run it
-                    osName = "mac_x86_64";
+                    osName = 'mac_x86_64';
                     core.warning(`No mac arm64 version found for GCC ${version}, using x86_64 version instead`);
                 }
             }
             else {
-                osName = "mac_x86_64";
+                osName = 'mac_x86_64';
             }
             break;
-        case "linux":
-            if (arch === "arm64") {
-                osName = "linux_aarch64";
+        case 'linux':
+            if (arch === 'arm64') {
+                osName = 'linux_aarch64';
             }
             else {
-                osName = "linux_x86_64";
+                osName = 'linux_x86_64';
             }
             break;
-        case "win32":
-            osName = "win32";
+        case 'win32':
+            osName = 'win32';
             break;
         default:
             throw new Error(`platform ${platform} is not supported`);
@@ -172,7 +172,7 @@ function distributionUrl(version, platform, arch) {
     }
     if (!versions[version].hasOwnProperty(osName)) {
         throw new Error(`invalid platform ${osName} for GCC version ${version}.\n` +
-            "The action README has the list of available versions and platforms.");
+            'The action README has the list of available versions and platforms.');
     }
     return versions[version][osName];
 }
@@ -181,10 +181,10 @@ function gccVersionToSemver(gccVersion) {
     // This conversion is very specific to the current version format, but it
     // works with all the current versions. Tests have been added to check all
     // existing versions, but it will need updating if the format changes
-    let gccVerStrArray = gccVersion.split("-");
-    gccVerStrArray = gccVerStrArray.map((item) => {
+    let gccVerStrArray = gccVersion.split('-');
+    gccVerStrArray = gccVerStrArray.map(item => {
         // Convert qn -> n, i.e. q4 -> 4
-        if (item.startsWith("q") && item.length > 1) {
+        if (item.startsWith('q') && item.length > 1) {
             return item.substring(1);
         }
         // Convert yyyy.mm -> yyyymm, i.e. 2021.10 -> 202110
@@ -196,10 +196,10 @@ function gccVersionToSemver(gccVersion) {
             return item;
         }
     });
-    gccVerStrArray = gccVerStrArray.join(".").split(".");
-    gccVerStrArray = gccVerStrArray.map((item) => {
+    gccVerStrArray = gccVerStrArray.join('.').split('.');
+    gccVerStrArray = gccVerStrArray.map(item => {
         // Convert Reln -> n, i.e. Rel1 -> 1
-        if (item.startsWith("Rel") && item.length > 3) {
+        if (item.startsWith('Rel') && item.length > 3) {
             return item.substring(3);
         }
         else {
@@ -207,17 +207,17 @@ function gccVersionToSemver(gccVersion) {
         }
     });
     // Remove any entry that cannot be cleanly converted to  number
-    gccVerStrArray = gccVerStrArray.filter((item) => Number(item));
-    const gccVerIntArray = gccVerStrArray.map((item) => Number(item));
+    gccVerStrArray = gccVerStrArray.filter(item => Number(item));
+    const gccVerIntArray = gccVerStrArray.map(item => Number(item));
     // If the end result is less than 3 entries something unexpected happened
     if (gccVerIntArray.length < 3) {
         throw new Error(`The GCC version did not result in 3 version parts: ${gccVerIntArray}`);
     }
     // If it has more than 3 entries we join any extras to the third
     else if (gccVerIntArray.length > 3) {
-        gccVerIntArray[2] = parseInt(gccVerIntArray.slice(2).join(""));
+        gccVerIntArray[2] = parseInt(gccVerIntArray.slice(2).join(''));
     }
-    const gccSemver = gccVerIntArray.slice(0, 3).join(".");
+    const gccSemver = gccVerIntArray.slice(0, 3).join('.');
     if (!(0, valid_1.default)(gccSemver)) {
         throw new Error(`Could not convert the GCC version to a valid Semver: ${gccSemver}`);
     }
@@ -272,8 +272,8 @@ const gcc_1 = __nccwpck_require__(7138);
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            let release = core.getInput("release");
-            if (!release || release === "latest") {
+            let release = core.getInput('release');
+            if (!release || release === 'latest') {
                 release = (0, gcc_1.latestGccVersion)();
             }
             const installPath = yield setup.install(release, process.platform, process.arch);
@@ -284,8 +284,8 @@ function run() {
             core.info(`Adding ${gccPath} to PATH.`);
             core.addPath(gccPath);
             // Export path for other tools
-            core.setOutput("path", gccPath);
-            const pathEnvVar = core.getInput("path-env-var");
+            core.setOutput('path', gccPath);
+            const pathEnvVar = core.getInput('path-env-var');
             if (pathEnvVar) {
                 core.exportVariable(pathEnvVar, gccPath);
             }
@@ -352,24 +352,24 @@ const cache = __importStar(__nccwpck_require__(7799));
 const sha256_file_1 = __importDefault(__nccwpck_require__(8743));
 const axios_1 = __importDefault(__nccwpck_require__(8757));
 const gcc = __importStar(__nccwpck_require__(7138));
-function get_sha256asc_of(tarball_url) {
+function getSha256ascOf(tarballUrl) {
     return __awaiter(this, void 0, void 0, function* () {
-        const sha256Url = tarball_url + ".sha256asc";
+        const sha256Url = tarballUrl + '.sha256asc';
         const response = yield axios_1.default.get(sha256Url);
         const sha256Content = response.data;
         const sha256Match = sha256Content.match(/^([a-fA-F0-9]{64})/);
         if (sha256Match) {
             return sha256Match[1];
         }
-        throw new Error("Could not extract SHA256 from the file.");
+        throw new Error('Could not extract SHA256 from the file.');
     });
 }
 function install(release, platform, arch) {
     return __awaiter(this, void 0, void 0, function* () {
-        const toolName = "gcc-aarch64-none-elf";
+        const toolName = 'gcc-aarch64-none-elf';
         // Get the GCC release info
         const distData = gcc.distributionUrl(release, platform, arch);
-        let sha256sum = yield get_sha256asc_of(distData.url);
+        const sha256sum = yield getSha256ascOf(distData.url);
         // Convert the GCC version to Semver so that it can be used with the GH cache
         const toolVersion = gcc.gccVersionToSemver(release);
         const cacheKey = `${toolName}-${toolVersion}-${platform}-${arch}`;
@@ -386,9 +386,9 @@ function install(release, platform, arch) {
         }
         if (cacheKeyMatched === cacheKey) {
             core.info(`Cache found: ${installPath}`);
-            let cachesha256 = "sha256 not found in cached installation";
+            let cachesha256 = 'sha256 not found in cached installation';
             try {
-                cachesha256 = yield fs.promises.readFile(path.join(installPath, "sha256asc"), { encoding: "utf8" });
+                cachesha256 = yield fs.promises.readFile(path.join(installPath, 'sha256asc'), { encoding: 'utf8' });
             }
             catch (err) {
                 core.warning(`⚠️ Could not read the contents of the cached GCC version sha256.\n${err.message}`);
@@ -398,35 +398,35 @@ function install(release, platform, arch) {
                 core.warning(`⚠️ Cached version sha256 does not match: ${cachesha256} != ${sha256sum}`);
             }
             else {
-                core.info("Cached version loaded.");
+                core.info('Cached version loaded.');
                 return installPath;
             }
         }
         core.info(`Cache miss, downloading GCC ${release} from ${distData.url} ; SHA256 ${sha256sum}`);
         const gccDownloadPath = yield tc.downloadTool(distData.url);
         core.info(`GCC release downloaded, calculating SH6A25...`);
-        const downloadHash = yield (0, sha256_file_1.default)(gccDownloadPath);
+        const downloadHash = (0, sha256_file_1.default)(gccDownloadPath);
         core.info(`Downloaded file sha256: ${downloadHash}`);
         if (sha256sum && downloadHash !== sha256sum) {
             throw new Error(`Downloaded GCC sha256 doesn't match expected value: ${downloadHash} != ${sha256sum}`);
         }
         core.info(`Extracting ${gccDownloadPath}`);
-        let extractedPath = "";
-        if (distData.url.endsWith(".zip")) {
+        let extractedPath = '';
+        if (distData.url.endsWith('.zip')) {
             extractedPath = yield tc.extractZip(gccDownloadPath, installPath);
         }
-        else if (distData.url.endsWith(".tar.bz2")) {
-            extractedPath = yield tc.extractTar(gccDownloadPath, installPath, "xj");
+        else if (distData.url.endsWith('.tar.bz2')) {
+            extractedPath = yield tc.extractTar(gccDownloadPath, installPath, 'xj');
         }
-        else if (distData.url.endsWith(".tar.xz")) {
-            extractedPath = yield tc.extractTar(gccDownloadPath, installPath, "xJ");
+        else if (distData.url.endsWith('.tar.xz')) {
+            extractedPath = yield tc.extractTar(gccDownloadPath, installPath, 'xJ');
         }
         else {
             throw new Error(`Can't decompress ${distData.url}`);
         }
         // Adding installation to the cache
         core.info(`Adding to cache: ${extractedPath}`);
-        yield fs.promises.writeFile(path.join(extractedPath, "sha256asc"), downloadHash, { encoding: "utf8" });
+        yield fs.promises.writeFile(path.join(extractedPath, 'sha256asc'), downloadHash, { encoding: 'utf8' });
         try {
             yield cache.saveCache([extractedPath], cacheKey);
         }
@@ -447,16 +447,16 @@ function findGccRecursive(dir, executableName) {
         const st = fs.lstatSync(p);
         if (st.isDirectory()) {
             const result = findGccRecursive(p, executableName);
-            if (result !== "") {
+            if (result !== '') {
                 return result;
             }
         }
     }
-    return "";
+    return '';
 }
 function findGcc(root, platform) {
     platform = platform || process.platform;
-    return findGccRecursive(root, `aarch64-none-elf-gcc${platform === "win32" ? ".exe" : ""}`);
+    return findGccRecursive(root, `aarch64-none-elf-gcc${platform === 'win32' ? '.exe' : ''}`);
 }
 exports.findGcc = findGcc;
 

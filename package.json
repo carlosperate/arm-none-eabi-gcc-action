@@ -12,7 +12,7 @@
     "package": "ncc build --source-map --license licenses.txt",
     "test": "jest --config config/jest.config.js",
     "test:urls": "jest --config config/jest.config.js -t \"Check links work\"",
-    "all": "npm run build && npm run package && npm test"
+    "all": "npm run build && npm run format-check && npm run lint && npm run package && npm test"
   },
   "repository": {
     "type": "git",
