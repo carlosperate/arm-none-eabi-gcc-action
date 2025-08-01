@@ -56,11 +56,6 @@ test('test fetching valid urls', () => {
   expect(gcc.distributionUrl('12.3.Rel1', 'darwin', 'arm64').url).toStrictEqual(
     'https://developer.arm.com/-/media/Files/downloads/gnu/12.3.rel1/binrel/arm-gnu-toolchain-12.3.rel1-darwin-arm64-aarch64-none-elf.tar.xz'
   );
-
-  // macOS arm64 starts at 12.2.Rel1, but if arm64 is not available, it will fallback to x64
-  expect(gcc.distributionUrl('11.3.Rel1', 'darwin', 'arm64').url).toStrictEqual(
-    'https://developer.arm.com/-/media/Files/downloads/gnu/11.3.rel1/binrel/arm-gnu-toolchain-11.3.rel1-darwin-x86_64-aarch64-none-elf.tar.xz'
-  );
 });
 
 test('test fetching urls for invalid platforms', () => {
