@@ -42,9 +42,9 @@ jobs:
       - name: Print path via env var and output
         run: echo "output -> ${{ steps.action-under-test-id.outputs.path }} \n env var -> $AARCH64_NONE_ELF_GCC_PATH"
       - name: Check env var path is correct
-        run: echo "Path $AARCH64_NONE_ELF_GCC_PATH" | grep -q /home/runner/arm-gnu-toolchain-13.3.rel1-x86_64-aarch64-none-elf/aarch64-none-elf/bin
+        run: echo "Path $AARCH64_NONE_ELF_GCC_PATH" | grep -q /home/runner/gcc-aarch64-none-elf-13.3.1-linux-x64/arm-gnu-toolchain-13.3.rel1-x86_64-aarch64-none-elf/bin
       - name: Check output path is correct
-        run: echo "Path ${{ steps.action-under-test-id.outputs.path }}" | grep -q /home/runner/arm-gnu-toolchain-13.3.rel1-x86_64-aarch64-none-elf/aarch64-none-elf/bin
+        run: echo "Path ${{ steps.action-under-test-id.outputs.path }}" | grep -q /home/runner/gcc-aarch64-none-elf-13.3.1-linux-x64/arm-gnu-toolchain-13.3.rel1-x86_64-aarch64-none-elf/bin
 
   # Run Action without inputs
   test-default:
@@ -60,6 +60,6 @@ jobs:
       - name: Print out version
         run: aarch64-none-elf-gcc --version
       - name: Check the version matches
-        run: aarch64-none-elf-gcc --version | grep -qi 14.3.Rel1
+        run: aarch64-none-elf-gcc --version | grep -qi 14.2.Rel1
       - name: Check output path is correct
         run: echo "${{ steps.action-under-test-id.outputs.path }}" | grep -q /home/runner/arm-gnu-toolchain-14.3.rel1-x86_64-aarch64-none-elf/aarch64-none-elf/bin
