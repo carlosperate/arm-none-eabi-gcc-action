@@ -6,6 +6,7 @@ import * as core from "@actions/core";
 import * as tc from "@actions/tool-cache";
 import * as cache from "@actions/cache";
 import sha256File from "sha256-file";
+import axios from 'axios';
 
 import * as gcc from "./gcc";
 
