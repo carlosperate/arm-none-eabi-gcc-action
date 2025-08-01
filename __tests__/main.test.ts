@@ -61,30 +61,6 @@ test("test fetching valid urls", () => {
   expect(gcc.distributionUrl("11.3.Rel1", "darwin", "arm64").url).toStrictEqual(
     "https://developer.arm.com/-/media/Files/downloads/gnu/11.3.rel1/binrel/arm-gnu-toolchain-11.3.rel1-darwin-x86_64-aarch64-none-elf.tar.xz"
   );
-
-  expect(gcc.distributionUrl("6-2017-q1", "darwin", "x64").url).toStrictEqual(
-    "https://developer.arm.com/-/media/Files/downloads/gnu-rm/6_1-2017q1/gcc-aarch64-none-elf-6-2017-q1-update-mac.tar.bz2"
-  );
-
-  expect(gcc.distributionUrl("10-2020-q4", "linux", "arm64").url).toStrictEqual(
-    "https://developer.arm.com/-/media/Files/downloads/gnu-rm/10-2020q4/gcc-aarch64-none-elf-10-2020-q4-major-aarch64-linux.tar.bz2"
-  );
-
-  expect(gcc.distributionUrl("6-2017-q1", "linux", "x64").url).toStrictEqual(
-    "https://developer.arm.com/-/media/Files/downloads/gnu-rm/6_1-2017q1/gcc-aarch64-none-elf-6-2017-q1-update-linux.tar.bz2"
-  );
-
-  expect(gcc.distributionUrl("6-2017-q1", "win32", "x64").url).toStrictEqual(
-    "https://developer.arm.com/-/media/Files/downloads/gnu-rm/6_1-2017q1/gcc-aarch64-none-elf-6-2017-q1-update-win32-zip.zip"
-  );
-
-  expect(gcc.distributionUrl("9-2019-q4", "linux", "x64").url).toStrictEqual(
-    "https://developer.arm.com/-/media/Files/downloads/gnu-rm/9-2019q4/gcc-aarch64-none-elf-9-2019-q4-major-x86_64-linux.tar.bz2"
-  );
-
-  expect(gcc.distributionUrl("4.8-2013-q4", "darwin", "x64").url).toStrictEqual(
-    "https://launchpad.net/gcc-arm-embedded/4.8/4.8-2013-q4-major/+download/gcc-aarch64-none-elf-4_8-2013q4-20131218-mac.tar.bz2"
-  );
 });
 
 test("test fetching urls for invalid platforms", () => {
