@@ -1,12 +1,12 @@
 module.exports = {
-  rootDir: '../',
+  rootDir: "../",
   clearMocks: true,
-  moduleFileExtensions: ['js', 'ts'],
-  testEnvironment: 'node',
-  testMatch: ['**/*.test.ts'],
-  testRunner: 'jest-circus/runner',
+  moduleFileExtensions: ["js", "ts"],
+  testEnvironment: "node",
+  testMatch: ["**/*.test.ts"],
+  testRunner: "jest-circus/runner",
   transform: {
-    '^.+\\.ts$': 'ts-jest'
+    "^.+\\.ts$": "ts-jest",
   },
-  verbose: true
-}
+  verbose: true,
+};

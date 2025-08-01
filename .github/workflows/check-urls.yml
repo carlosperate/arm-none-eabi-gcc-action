@@ -3,13 +3,13 @@ name: Check download URLs
 on:
   schedule:
     # Runs every day at 19:30
-    - cron: '30 19 * * *'
+    - cron: "30 19 * * *"
 
 jobs:
   check-urls:
     name: Check file URLs
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - run: npm install
-    - run: npm run test:urls
+      - uses: actions/checkout@v4
+      - run: npm install
+      - run: npm run test:urls

@@ -1,20 +1,20 @@
-name: 'arm-none-eabi-gcc GNU Arm Embedded Toolchain'
-description: 'Install and set up the arm-none-eabi-gcc Arm compiler.'
-author: 'Carlos Pereira Atencio'
+name: "aarch64-none-elf-gcc GNU Arm64 Embedded Toolchain"
+description: "Install and set up the aarch64-none-elf-gcc Arm compiler."
+author: "Kai Law"
 inputs:
   release:
-    description: 'GNU Embedded Toolchain for Arm release name (e.g. "10.3-2021.07").'
-    default: 'latest'
+    description: 'GNU Embedded Toolchain for Arm64 release name (e.g. "14.3.Rel1").'
+    default: "latest"
     required: false
   path-env-var:
-    description: 'Name for an environmental variable to be created with the toolchain path.'
+    description: "Name for an environmental variable to be created with the toolchain path."
     required: false
 outputs:
   path:
-    description: 'Path to the bin folder with the toolchain executables.'
+    description: "Path to the bin folder with the toolchain executables."
 runs:
-  using: 'node20'
-  main: 'dist/index.js'
+  using: "node20"
+  main: "dist/index.js"
 branding:
-  icon: 'cpu'
-  color: 'blue'
+  icon: "cpu"
+  color: "blue"

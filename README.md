@@ -1,11 +1,10 @@
-# GitHub Action: Arm GNU Toolchain <br> (aarch64-none-elf-gcc)
+# GitHub Action: Arm64 GNU Toolchain <br> (aarch64-none-elf-gcc)
 
 [![CI](https://github.com/lawkai-vivo/aarch64-none-elf-gcc-action/actions/workflows/test.yml/badge.svg)](https://github.com/lawkai-vivo/aarch64-none-elf-gcc-action/actions/workflows/test.yml) [![CI](https://github.com/lawkai-vivo/aarch64-none-elf-gcc-action/actions/workflows/test-all-releases.yml/badge.svg)](https://github.com/lawkai-vivo/aarch64-none-elf-gcc-action/actions/workflows/test-all-releases.yml) [![CI](https://github.com/lawkai-vivo/aarch64-none-elf-gcc-action/actions/workflows/check-urls.yml/badge.svg)](https://github.com/lawkai-vivo/aarch64-none-elf-gcc-action/actions/workflows/check-urls.yml)
 
 GitHub Action (compatible with Linux x86_64 and aarch64, macOS x86_64
 and arm64, and Windows x86_64 platforms) to download, check, set up,
 and cache the `aarch64-none-elf-gcc` compiler toolchain.
-
 
 ## Usage
 
@@ -14,8 +13,8 @@ the latest `aarch64-none-elf-gcc` release:
 
 ```yaml
 steps:
-- uses: lawkai-vivo/aarch64-none-elf-gcc-action@v1
-- run: aarch64-none-elf-gcc --version
+  - uses: lawkai-vivo/aarch64-none-elf-gcc-action@v1
+  - run: aarch64-none-elf-gcc --version
 ```
 
 You can also specify a version (a list can be found in the
@@ -23,15 +22,14 @@ You can also specify a version (a list can be found in the
 
 ```yaml
 steps:
-- name: Install Arm GNU Toolchain (aarch64-none-elf-gcc)
-  uses: lawkai-vivo/aarch64-none-elf-gcc-action@v1
-  with:
-    release: '14.2.Rel1' # <-- The compiler release to use
+  - name: Install Arm GNU Toolchain (aarch64-none-elf-gcc)
+    uses: lawkai-vivo/aarch64-none-elf-gcc-action@v1
+    with:
+      release: "14.2.Rel1" # <-- The compiler release to use
 ```
 
 More information can be found in the [Advanced Options](#advanced-options)
 section.
-
 
 ## Advantages over other options
 
@@ -45,7 +43,6 @@ section.
 - 🐞 Issue tracker is enabled
 - 🧑‍💻 Actively maintained
 
-
 ## Available releases
 
 - `latest` <-- Always points to the latest release
@@ -58,7 +55,7 @@ architectures, specifically `arm64`.
 This table shows the first release compatible with each OS architecture.
 
 |         | x86_64       | arm64                  |
-|---------|--------------|------------------------|
+| ------- | ------------ | ---------------------- |
 | Linux   | All versions | From version 9-2019-q4 |
 | macOS   | All versions | From version 12.2.Rel1 |
 | Windows | All versions | Not supported          |
@@ -73,7 +70,7 @@ jobs:
   build:
     strategy:
       matrix:
-        gcc: ['14.2.Rel1', 'latest']
+        gcc: ["14.2.Rel1", "latest"]
     steps:
       - name: Install GNU Arm64 Embedded Toolchain - ${{ matrix.gcc }}
         uses: lawkai-vivo/aarch64-none-elf-gcc-action@v1
@@ -105,12 +102,10 @@ an input:
   run: echo "The output path is $AARCH64_NONE_ELF_GCC_PATH"
 ```
 
-
 ## Changelog
 
 The changes can be found in the [CHANGELOG.md](https://github.com/lawkai-vivo/aarch64-none-elf-gcc-action/blob/main/CHANGELOG.md)
 file, or the [GitHub Releases](https://github.com/lawkai-vivo/aarch64-none-elf-gcc-action/releases) notes.
-
 
 ## License & Attribution
 

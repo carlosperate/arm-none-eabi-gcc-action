@@ -10,6 +10,7 @@ git push origin v1 --force
 ## Self-Hosted Runner
 
 Remove any previously existing runner configuration:
+
 ```
 sudo ./svc.sh stop
 sudo ./svc.sh uninstall
@@ -18,9 +19,10 @@ rm .runner
 ```
 
 Then follow the instructions from:
-https://github.com/carlosperate/arm-none-eabi-gcc-action/settings/actions/runners/new?arch=arm64&os=linux
+https://github.com/lawkai-vivo/aarch64-none-elf-gcc-action/settings/actions/runners/new?arch=arm64&os=linux
 
 With this config:
+
 - Enter the name of the runner group to add this runner to: `<Enter>`
 - Enter the name of runner: linux-arm64-runner
 - Enter any additional labels (ex. label-1,label-2): self-hosted-linux-arm64
@@ -33,4 +35,4 @@ And install the service to run on start-up with:
 ```
 
 If no runners appear in this list, you might need to reconfigure one:
-https://github.com/carlosperate/arm-none-eabi-gcc-action/settings/actions/runners
+https://github.com/lawkai-vivo/aarch64-none-elf-gcc-action/settings/actions/runners
