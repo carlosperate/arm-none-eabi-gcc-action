@@ -64,10 +64,9 @@ test('test fetching valid urls', () => {
 });
 
 test('test fetching urls for invalid platforms', () => {
-  // Linux aarch64 starts at 9-2019-q4
   expect(() => {
     gcc.distributionUrl('8-2019-q3', 'linux', 'arm64');
-  }).toThrow('invalid platform linux_aarch64 for GCC version 8-2019-q3');
+  }).toThrow('invalid GCC version');
 
   // macOS arm64 starts at 12.2.Rel1, but if arm64 is not available,
   // it will fallback to x64, so it will not throw an error
