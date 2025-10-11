@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Upated @actions/cache to v4 (#64). v3 is deprecated and was triggering a warning:
   Failed to restore: Cache service responded with 422
 ### Security
-- Security update for third party dependencies (#65)
+- Security update for third party dependencies (#63) (#65)
 
 ## v1.10.0 - 2024-12-12
 ### Added

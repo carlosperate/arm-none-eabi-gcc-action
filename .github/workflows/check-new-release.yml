@@ -3,7 +3,7 @@ name: Check there is a new release available
 # RELEASE_STRING should be updated when a new release is available
 env:
   RELEASE_URL: 'https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads'
-  RELEASE_STRING: 'Released: December 10, 2024'
+  RELEASE_STRING: 'Released: July 3, 2025'
 
 on:
   schedule:
