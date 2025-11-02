@@ -18,6 +18,7 @@ jobs:
         os: [ubuntu-22.04, ubuntu-22.04-arm, macos-13, macos-14, windows-latest]
         release:
           - 'latest'
+          - '14.3.Rel1'
           - '14.2.Rel1'
           - '13.3.Rel1'
           - '13.2.Rel1'

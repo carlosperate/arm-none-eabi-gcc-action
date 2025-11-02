@@ -26,7 +26,7 @@ steps:
 - name: Install Arm GNU Toolchain (arm-none-eabi-gcc)
   uses: carlosperate/arm-none-eabi-gcc-action@v1
   with:
-    release: '14.2.Rel1' # <-- The compiler release to use
+    release: '14.3.Rel1' # <-- The compiler release to use
 ```
 
 More information can be found in the [Advanced Options](#advanced-options)
@@ -49,7 +49,7 @@ section.
 ## Available releases
 
 - `latest` <-- Always points to the latest release
-- `14.2.Rel1`
+- `14.3.Rel1` &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; `14.2.Rel1`
 - `13.3.Rel1` &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; `13.2.Rel1`
 - `12.3.Rel1` &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; `12.2.Rel1`
 - `11.3.Rel1` &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; `11.2-2022.02`
@@ -64,14 +64,16 @@ section.
 - `4.7-2014-q2` &nbsp;&nbsp; `4.7-2013-q3` &nbsp; `4.7-2013-q2` &nbsp; `4.7-2013-q1`
 
 Older GCC version might not have releases for all operating system
-architectures, specifically `arm64`.
-This table shows the first release compatible with each OS architecture.
+architectures, specifically `arm64`. Likewise, newer GCC versions might not
+have releases for all operating system architectures, specifically `x64` on
+macOS. This table shows the first and last release compatible with each OS
+architecture.
 
-|         | x86_64       | arm64                  |
-|---------|--------------|------------------------|
-| Linux   | All versions | From version 9-2019-q4 |
-| macOS   | All versions | From version 12.2.Rel1 |
-| Windows | All versions | Not supported          |
+|         | x86_64                  | arm64                  |
+|---------|-------------------------|------------------------|
+| Linux   | All versions            | From version 9-2019-q4 |
+| macOS   | Until version 14.2.Rel1 | From version 12.2.Rel1 |
+| Windows | All versions            | Not supported          |
 
 ## Advanced options
 
