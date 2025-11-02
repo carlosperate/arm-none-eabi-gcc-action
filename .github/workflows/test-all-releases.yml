@@ -55,6 +55,11 @@ jobs:
           - '4.7-2013-q2'
           - '4.7-2013-q1'
         exclude:
+          # macOS 13 is x86_64 and only has releases until 14.2.Rel1
+          - os: macos-13
+            release: 'latest'
+          - os: macos-13
+            release: '14.3.Rel1'
           # macOS 14 runner is arm64 and is only available from 12.2.Rel1
           - os: macos-14
             release: '11.3.Rel1'

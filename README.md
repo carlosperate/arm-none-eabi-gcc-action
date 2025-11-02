@@ -65,8 +65,10 @@ section.
 
 Older GCC version might not have releases for all operating system
 architectures, specifically `arm64`. Likewise, newer GCC versions might not
-have releases for all operating system architectures, specifically `x64` on
-macOS. This table shows the first and last release compatible with each OS
+have releases for older architectures, specifically `x86_64` on
+macOS.
+
+This table shows the first and last release compatible with each OS
 architecture.
 
 |         | x86_64                  | arm64                  |
@@ -74,6 +76,7 @@ architecture.
 | Linux   | All versions            | From version 9-2019-q4 |
 | macOS   | Until version 14.2.Rel1 | From version 12.2.Rel1 |
 | Windows | All versions            | Not supported          |
+
 
 ## Advanced options
 
