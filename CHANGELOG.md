@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## v1.11.0 - 2025-11-02
 ### Added
 - Add `14.3.Rel1` Arm GNU Toolchain release (#66)
+### Security
+- Security update for third party dependencies (#66) (#68) (#71)
 
 ## v1.10.1 - 2025-05-21
 ### Fixed
