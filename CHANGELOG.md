@@ -4,15 +4,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v1.11.1 - 2025-11-29
+### Fixed
+- Arm has moved the GCC downloads to different servers.
+  This action has been updated to be able to follow the URL redirections
+  accordingly (#80), and the URLs have been updated (#79) (#81) (thanks @gschwaer!)
+### Security
+- Security update for third party dependencies (#73)
+
 ## v1.11.0 - 2025-11-02
 ### Added
-- Add `14.3.Rel1` Arm GNU Toolchain release (#66)
+- Add `14.3.Rel1` Arm GNU Toolchain release (#69)
 ### Security
 - Security update for third party dependencies (#66) (#68) (#71)
 
 ## v1.10.1 - 2025-05-21
 ### Fixed
-- Upated @actions/cache to v4 (#64). v3 is deprecated and was triggering a warning:
+- Updated @actions/cache to v4 (#64). v3 is deprecated and was triggering a warning:
   Failed to restore: Cache service responded with 422
 ### Security
 - Security update for third party dependencies (#63) (#65)
