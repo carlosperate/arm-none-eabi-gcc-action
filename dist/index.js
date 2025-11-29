@@ -30,12 +30,22 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.gccVersionToSemver = exports.distributionUrl = exports.latestGccVersion = exports.availableVersions = void 0;
 const core = __importStar(__nccwpck_require__(2186));
+const http_client_1 = __nccwpck_require__(6255);
 const valid_1 = __importDefault(__nccwpck_require__(9601));
 const versions = {
     '14.3.Rel1': {
@@ -617,6 +627,48 @@ const versions = {
         },
     },
 };
+// Some Arm download endpoints reject unfamiliar user agents with a challenge page redirect.
+const redirectHttpClient = new http_client_1.HttpClient('curl/8.5.0 (arm-none-eabi-gcc-action)', [], { allowRedirects: false });
+function followRedirects(originalUrl) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const MAX_REDIRECTS = 5;
+        let currentUrl = originalUrl;
+        for (let attempt = 0; attempt < MAX_REDIRECTS; attempt++) {
+            const response = yield redirectHttpClient.head(currentUrl);
+            try {
+                const statusCode = response.message.statusCode || 0;
+                if (statusCode >= 300 && statusCode < 400) {
+                    const locationHeader = response.message.headers['location'];
+                    const locationValue = Array.isArray(locationHeader) ? locationHeader[0] : locationHeader;
+                    if (!locationValue) {
+                        core.debug(`Redirect for ${originalUrl} detected without location header at ${currentUrl}`);
+                        break;
+                    }
+                    const nextUrl = new URL(locationValue, currentUrl).toString();
+                    core.info(`Detected redirect (${statusCode}) for GCC download.`);
+                    core.info(`\tFollowing ${originalUrl}`);
+                    core.info(`\tto        ${nextUrl}`);
+                    currentUrl = nextUrl;
+                    continue;
+                }
+                break;
+            }
+            finally {
+                // Drain the response body to free up resources, otherwise we may run out of sockets
+                if (!response.message.complete) {
+                    try {
+                        yield response.readBody();
+                    }
+                    catch (error) {
+                        const message = error instanceof Error ? error.message : String(error);
+                        core.debug(`Failed to drain redirect response body: ${message}`);
+                    }
+                }
+            }
+        }
+        return currentUrl;
+    });
+}
 function availableVersions() {
     return Object.keys(versions);
 }
@@ -627,47 +679,62 @@ function latestGccVersion() {
 }
 exports.latestGccVersion = latestGccVersion;
 function distributionUrl(version, platform, arch) {
-    // Convert the node platform value to the versions URL keys
-    let osName = '';
-    switch (platform) {
-        case 'darwin':
-            if (arch === 'arm64') {
-                if (versions[version].hasOwnProperty('mac_arm64')) {
-                    osName = 'mac_arm64';
+    return __awaiter(this, void 0, void 0, function* () {
+        // Convert the node platform value to the versions URL keys
+        let osName = '';
+        switch (platform) {
+            case 'darwin':
+                if (arch === 'arm64') {
+                    if (versions[version].hasOwnProperty('mac_arm64')) {
+                        osName = 'mac_arm64';
+                    }
+                    else {
+                        // If the GCC version does not have an arm64 release,
+                        // use the x86_64 version as rosetta will be able to run it
+                        osName = 'mac_x86_64';
+                        core.warning(`No mac arm64 version found for GCC ${version}, using x86_64 version instead`);
+                    }
                 }
                 else {
-                    // If the GCC version does not have an arm64 release,
-                    // use the x86_64 version as rosetta will be able to run it
                     osName = 'mac_x86_64';
-                    core.warning(`No mac arm64 version found for GCC ${version}, using x86_64 version instead`);
                 }
-            }
-            else {
-                osName = 'mac_x86_64';
-            }
-            break;
-        case 'linux':
-            if (arch === 'arm64') {
-                osName = 'linux_aarch64';
-            }
-            else {
-                osName = 'linux_x86_64';
-            }
-            break;
-        case 'win32':
-            osName = 'win32';
-            break;
-        default:
-            throw new Error(`platform ${platform} is not supported`);
-    }
-    if (!versions.hasOwnProperty(version)) {
-        throw new Error(`invalid GCC version ${version}. Available: ${availableVersions()}`);
-    }
-    if (!versions[version].hasOwnProperty(osName)) {
-        throw new Error(`invalid platform ${osName} for GCC version ${version}.\n` +
-            'The action README has the list of available versions and platforms.');
-    }
-    return versions[version][osName];
+                break;
+            case 'linux':
+                if (arch === 'arm64') {
+                    osName = 'linux_aarch64';
+                }
+                else {
+                    osName = 'linux_x86_64';
+                }
+                break;
+            case 'win32':
+                osName = 'win32';
+                break;
+            default:
+                throw new Error(`platform ${platform} is not supported`);
+        }
+        if (!versions.hasOwnProperty(version)) {
+            throw new Error(`invalid GCC version ${version}. Available: ${availableVersions()}`);
+        }
+        if (!versions[version].hasOwnProperty(osName)) {
+            throw new Error(`invalid platform ${osName} for GCC version ${version}.\n` +
+                'The action README has the list of available versions and platforms.');
+        }
+        const distData = versions[version][osName];
+        let resolvedUrl = distData.url;
+        try {
+            resolvedUrl = yield followRedirects(distData.url);
+        }
+        catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            core.debug(`Redirect resolution failed for ${distData.url}: ${message}`);
+        }
+        return {
+            url: resolvedUrl,
+            urlOriginal: distData.url,
+            md5: distData.md5,
+        };
+    });
 }
 exports.distributionUrl = distributionUrl;
 function gccVersionToSemver(gccVersion) {
@@ -848,7 +915,7 @@ function install(release, platform, arch) {
     return __awaiter(this, void 0, void 0, function* () {
         const toolName = 'gcc-arm-none-eabi';
         // Get the GCC release info
-        const distData = gcc.distributionUrl(release, platform, arch);
+        const distData = yield gcc.distributionUrl(release, platform, arch);
         // Convert the GCC version to Semver so that it can be used with the GH cache
         const toolVersion = gcc.gccVersionToSemver(release);
         const cacheKey = `${toolName}-${toolVersion}-${platform}-${arch}`;

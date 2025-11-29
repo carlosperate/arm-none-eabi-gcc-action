@@ -1,6 +1,7 @@
 name: Check download URLs
 
 on:
+  workflow_dispatch:
   schedule:
     # Runs every day at 19:30
     - cron: '30 19 * * *'

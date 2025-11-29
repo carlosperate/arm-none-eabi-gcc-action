@@ -13,7 +13,7 @@ export async function install(release: string, platform: string, arch: string): 
   const toolName = 'gcc-arm-none-eabi';
 
   // Get the GCC release info
-  const distData = gcc.distributionUrl(release, platform, arch);
+  const distData = await gcc.distributionUrl(release, platform, arch);
 
   // Convert the GCC version to Semver so that it can be used with the GH cache
   const toolVersion = gcc.gccVersionToSemver(release);
