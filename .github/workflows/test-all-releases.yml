@@ -14,8 +14,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # macOS 13 runner is x86_64 and macOS 14 runner is arm64
-        os: [ubuntu-22.04, ubuntu-22.04-arm, macos-13, macos-14, windows-latest]
+        # macOS 15 Intel runner is x86_64 and macOS 14 runner is arm64
+        os: [ubuntu-22.04, ubuntu-22.04-arm, macos-15-intel, macos-14, windows-latest]
         release:
           - 'latest'
           - '14.3.Rel1'
@@ -56,9 +56,9 @@ jobs:
           - '4.7-2013-q1'
         exclude:
           # macOS 13 is x86_64 and only has releases until 14.2.Rel1
-          - os: macos-13
+          - os: macos-15-intel
             release: 'latest'
-          - os: macos-13
+          - os: macos-15-intel
             release: '14.3.Rel1'
           # macOS 14 runner is arm64 and is only available from 12.2.Rel1
           - os: macos-14
