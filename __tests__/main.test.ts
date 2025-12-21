@@ -102,14 +102,14 @@ test('test fetching urls for invalid platforms', async () => {
     'platform invalid-platform is not supported'
   );
 
-  // Mac x86_64 discontinued with 14.3.Rel1
+  // Mac x86_64 discontinued from 14.3.Rel1
   await expect(gcc.distributionUrl('14.3.Rel1', 'darwin', 'x64')).rejects.toThrow(
     'invalid platform mac_x86_64 for GCC version 14.3.Rel1'
   );
 });
 
 test('latest points to a known latest release', async () => {
-  const knownLatestRelease = '14.3.Rel1';
+  const knownLatestRelease = '15.2.Rel1';
 
   const latestRelease = gcc.latestGccVersion();
 
@@ -237,10 +237,10 @@ describe('Real install in temp dirs.', () => {
   test('6-2017-q1 linux', async () => await tmpInstall('6-2017-q1', 'linux', 'x64'));
   test('9-2019-q4 darwin', async () => await tmpInstall('9-2019-q4', 'darwin', 'x64'));
   test('10.3-2021.07 win32', async () => await tmpInstall('10.3-2021.07', 'win32', 'x64'));
-  test('14.2.Rel1 darwin', async () => await tmpInstall('14.2.Rel1', 'darwin', 'x64'));
+  test('14.2.Rel1 darwin x64', async () => await tmpInstall('14.2.Rel1', 'darwin', 'x64'));
 
-  test('14.3.Rel1 linux', async () => await tmpInstall('14.3.Rel1', 'linux', 'x64'));
-  test('14.3.Rel1 linux', async () => await tmpInstall('14.3.Rel1', 'linux', 'arm64'));
-  test('14.3.Rel1 darwin', async () => await tmpInstall('14.3.Rel1', 'darwin', 'arm64'));
-  test('14.3.Rel1 win32', async () => await tmpInstall('14.3.Rel1', 'win32', 'x64'));
+  test('15.2.Rel1 linux x64', async () => await tmpInstall('15.2.Rel1', 'linux', 'x64'));
+  test('15.2.Rel1 linux arm64', async () => await tmpInstall('15.2.Rel1', 'linux', 'arm64'));
+  test('15.2.Rel1 darwin arm64', async () => await tmpInstall('15.2.Rel1', 'darwin', 'arm64'));
+  test('15.2.Rel1 win32', async () => await tmpInstall('15.2.Rel1', 'win32', 'x64'));
 });
