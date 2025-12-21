@@ -48,6 +48,24 @@ const core = __importStar(__nccwpck_require__(2186));
 const http_client_1 = __nccwpck_require__(6255);
 const valid_1 = __importDefault(__nccwpck_require__(9601));
 const versions = {
+    '15.2.Rel1': {
+        win32: {
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu/15.2.rel1/binrel/arm-gnu-toolchain-15.2.rel1-mingw-w64-x86_64-arm-none-eabi.zip',
+            md5: '88cce5f8c71445cf54dfa1667b3ae6ab',
+        },
+        mac_arm64: {
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu/15.2.rel1/binrel/arm-gnu-toolchain-15.2.rel1-darwin-arm64-arm-none-eabi.tar.xz',
+            md5: 'e91fd6348ba0f3e5ec35eeba1ad7e2b8',
+        },
+        linux_x86_64: {
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu/15.2.rel1/binrel/arm-gnu-toolchain-15.2.rel1-x86_64-arm-none-eabi.tar.xz',
+            md5: 'da62bef8821e7fc2a9b5d023871036e0',
+        },
+        linux_aarch64: {
+            url: 'https://developer.arm.com/-/media/Files/downloads/gnu/15.2.rel1/binrel/arm-gnu-toolchain-15.2.rel1-aarch64-arm-none-eabi.tar.xz',
+            md5: '458c5d9b362726c9ac20c96f1894ae13',
+        },
+    },
     '14.3.Rel1': {
         win32: {
             // redirect from https://developer.arm.com/-/media/Files/downloads/gnu/14.3.rel1/binrel/arm-gnu-toolchain-14.3.rel1-mingw-w64-x86_64-arm-none-eabi.zip
