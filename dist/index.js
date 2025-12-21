@@ -1,68 +1,29 @@
 require('./sourcemap-register.js');/******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 7138:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+/***/ 1551:
+/***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
 
-/* eslint-disable @typescript-eslint/naming-convention */
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.gccVersionToSemver = exports.distributionUrl = exports.latestGccVersion = exports.availableVersions = void 0;
-const core = __importStar(__nccwpck_require__(2186));
-const http_client_1 = __nccwpck_require__(6255);
-const valid_1 = __importDefault(__nccwpck_require__(9601));
-const versions = {
+exports.gccVersions = void 0;
+exports.gccVersions = {
     '15.2.Rel1': {
         win32: {
-            url: 'https://developer.arm.com/-/media/Files/downloads/gnu/15.2.rel1/binrel/arm-gnu-toolchain-15.2.rel1-mingw-w64-x86_64-arm-none-eabi.zip',
+            url: 'https://armkeil.blob.core.windows.net/developer/files/downloads/gnu/15.2.rel1/binrel/arm-gnu-toolchain-15.2.rel1-mingw-w64-x86_64-arm-none-eabi.zip',
             md5: '88cce5f8c71445cf54dfa1667b3ae6ab',
         },
         mac_arm64: {
-            url: 'https://developer.arm.com/-/media/Files/downloads/gnu/15.2.rel1/binrel/arm-gnu-toolchain-15.2.rel1-darwin-arm64-arm-none-eabi.tar.xz',
+            url: 'https://armkeil.blob.core.windows.net/developer/files/downloads/gnu/15.2.rel1/binrel/arm-gnu-toolchain-15.2.rel1-darwin-arm64-arm-none-eabi.tar.xz',
             md5: 'e91fd6348ba0f3e5ec35eeba1ad7e2b8',
         },
         linux_x86_64: {
-            url: 'https://developer.arm.com/-/media/Files/downloads/gnu/15.2.rel1/binrel/arm-gnu-toolchain-15.2.rel1-x86_64-arm-none-eabi.tar.xz',
+            url: 'https://armkeil.blob.core.windows.net/developer/files/downloads/gnu/15.2.rel1/binrel/arm-gnu-toolchain-15.2.rel1-x86_64-arm-none-eabi.tar.xz',
             md5: 'da62bef8821e7fc2a9b5d023871036e0',
         },
         linux_aarch64: {
-            url: 'https://developer.arm.com/-/media/Files/downloads/gnu/15.2.rel1/binrel/arm-gnu-toolchain-15.2.rel1-aarch64-arm-none-eabi.tar.xz',
+            url: 'https://armkeil.blob.core.windows.net/developer/files/downloads/gnu/15.2.rel1/binrel/arm-gnu-toolchain-15.2.rel1-aarch64-arm-none-eabi.tar.xz',
             md5: '458c5d9b362726c9ac20c96f1894ae13',
         },
     },
@@ -771,6 +732,57 @@ const versions = {
         },
     },
 };
+
+
+/***/ }),
+
+/***/ 7138:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+/* eslint-disable @typescript-eslint/naming-convention */
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.gccVersionToSemver = exports.distributionUrl = exports.latestGccVersion = exports.availableVersions = void 0;
+const core = __importStar(__nccwpck_require__(2186));
+const http_client_1 = __nccwpck_require__(6255);
+const valid_1 = __importDefault(__nccwpck_require__(9601));
+const gcc_versions_1 = __nccwpck_require__(1551);
 // Some Arm download endpoints reject unfamiliar user agents with a challenge page redirect.
 const redirectHttpClient = new http_client_1.HttpClient('curl/8.5.0 (arm-none-eabi-gcc-action)', [], { allowRedirects: false });
 function followRedirects(originalUrl) {
@@ -817,12 +829,12 @@ function followRedirects(originalUrl) {
     });
 }
 function availableVersions() {
-    return Object.keys(versions);
+    return Object.keys(gcc_versions_1.gccVersions);
 }
 exports.availableVersions = availableVersions;
 function latestGccVersion() {
     // Since ES6 (from node v8.x) JS objects are ordered
-    return Object.keys(versions)[0];
+    return Object.keys(gcc_versions_1.gccVersions)[0];
 }
 exports.latestGccVersion = latestGccVersion;
 function distributionUrl(version, platform, arch) {
@@ -832,7 +844,7 @@ function distributionUrl(version, platform, arch) {
         switch (platform) {
             case 'darwin':
                 if (arch === 'arm64') {
-                    if (versions[version].hasOwnProperty('mac_arm64')) {
+                    if (gcc_versions_1.gccVersions[version].hasOwnProperty('mac_arm64')) {
                         osName = 'mac_arm64';
                     }
                     else {
@@ -860,14 +872,14 @@ function distributionUrl(version, platform, arch) {
             default:
                 throw new Error(`platform ${platform} is not supported`);
         }
-        if (!versions.hasOwnProperty(version)) {
+        if (!gcc_versions_1.gccVersions.hasOwnProperty(version)) {
             throw new Error(`invalid GCC version ${version}. Available: ${availableVersions()}`);
         }
-        if (!versions[version].hasOwnProperty(osName)) {
+        if (!gcc_versions_1.gccVersions[version].hasOwnProperty(osName)) {
             throw new Error(`invalid platform ${osName} for GCC version ${version}.\n` +
                 'The action README has the list of available versions and platforms.');
         }
-        const distData = versions[version][osName];
+        const distData = gcc_versions_1.gccVersions[version][osName];
         // Arm download files have been moved between servers in the past, so
         // we try to resolve any redirects here up-front to avoid issues later
         let resolvedUrl = distData.url;
