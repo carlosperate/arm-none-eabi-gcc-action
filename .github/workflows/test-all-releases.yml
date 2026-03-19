@@ -174,7 +174,7 @@ jobs:
     name: ${{ matrix.release }} @ ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     # - run: node -e "console.log(process.platform, process.arch)"
     - name: Ensure the compiler is not present (Unix)
       if: runner.os != 'Windows'
@@ -195,7 +195,7 @@ jobs:
          && (matrix.release != 'latest'))
       run: arm-none-eabi-gcc --version | grep -qi ${{ matrix.release }}
     - name: Clone STM32 project
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         repository: 'trebisky/stm32f103'
         ref: 7cfe5feaf02c653352331374d2ad178eb04efde7

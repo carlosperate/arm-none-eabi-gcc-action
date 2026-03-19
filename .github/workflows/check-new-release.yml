@@ -20,7 +20,7 @@ jobs:
     name: Check for a new release
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - run: pip install requests
     - name: Check HTML to see if there is a new release
       shell: bash
