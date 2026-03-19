@@ -1,50 +1,40 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 
 import * as core from '@actions/core';
-import {HttpClient} from '@actions/http-client';
 import semverValid from 'semver/functions/valid';
 
 import {GccDownloadInfo, gccVersions} from './gcc-versions';
 
 // Some Arm download endpoints reject unfamiliar user agents with a challenge page redirect.
-const redirectHttpClient = new HttpClient('curl/8.5.0 (arm-none-eabi-gcc-action)', [], {allowRedirects: false});
+const userAgent = 'curl/8.5.0 (arm-none-eabi-gcc-action)';
 
 async function followRedirects(originalUrl: string): Promise<string> {
   const MAX_REDIRECTS = 5;
   let currentUrl = originalUrl;
   for (let attempt = 0; attempt < MAX_REDIRECTS; attempt++) {
-    const response = await redirectHttpClient.head(currentUrl);
-    try {
-      const statusCode = response.message.statusCode || 0;
-      if (statusCode >= 300 && statusCode < 400) {
-        const locationHeader = response.message.headers['location'];
-        const locationValue = Array.isArray(locationHeader) ? locationHeader[0] : locationHeader;
-        if (!locationValue) {
-          core.debug(`Redirect for ${originalUrl} detected without location header at ${currentUrl}`);
-          break;
-        }
-        const nextUrl = new URL(locationValue, currentUrl).toString();
-        core.info(`Detected redirect (${statusCode}) for GCC download.`);
-        core.info(`\tFollowing ${originalUrl}`);
-        core.info(`\tto        ${nextUrl}`);
-        if (attempt >= MAX_REDIRECTS - 1) {
-          core.warning(`Maximum redirects reached for ${originalUrl}`);
-        }
-        currentUrl = nextUrl;
-        continue;
+    const response = await fetch(currentUrl, {
+      method: 'HEAD',
+      redirect: 'manual',
+      headers: {'User-Agent': userAgent},
+    });
+    const statusCode = response.status;
+    if (statusCode >= 300 && statusCode < 400) {
+      const locationValue = response.headers.get('location');
+      if (!locationValue) {
+        core.debug(`Redirect for ${originalUrl} detected without location header at ${currentUrl}`);
+        break;
       }
-      break;
-    } finally {
-      // Drain the response body to free up resources, otherwise we may run out of sockets
-      if (!response.message.complete) {
-        try {
-          await response.readBody();
-        } catch (error) {
-          const message = error instanceof Error ? error.message : String(error);
-          core.debug(`Failed to drain redirect response body: ${message}`);
-        }
+      const nextUrl = new URL(locationValue, currentUrl).toString();
+      core.info(`Detected redirect (${statusCode}) for GCC download.`);
+      core.info(`\tFollowing ${originalUrl}`);
+      core.info(`\tto        ${nextUrl}`);
+      if (attempt >= MAX_REDIRECTS - 1) {
+        core.warning(`Maximum redirects reached for ${originalUrl}`);
       }
+      currentUrl = nextUrl;
+      continue;
     }
+    break;
   }
   return currentUrl;
 }
