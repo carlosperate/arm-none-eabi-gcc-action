@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v1.12.1 - 2026-03-19
+### Changed
+- Upgraded the running node version from v20 to v24 (#88 thanks @ETSells!)
+- Minor refactor to switch `@actions/http-client` with `fetch` (441583d)
+
+### Security
+- Security update for third party dependencies (#85)
+
 ## v1.12.0 - 2025-12-21
 ### Added
 - Add `15.2.Rel1` Arm GNU Toolchain release (#83)
