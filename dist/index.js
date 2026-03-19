@@ -780,50 +780,38 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.gccVersionToSemver = exports.distributionUrl = exports.latestGccVersion = exports.availableVersions = void 0;
 const core = __importStar(__nccwpck_require__(2186));
-const http_client_1 = __nccwpck_require__(6255);
 const valid_1 = __importDefault(__nccwpck_require__(9601));
 const gcc_versions_1 = __nccwpck_require__(1551);
 // Some Arm download endpoints reject unfamiliar user agents with a challenge page redirect.
-const redirectHttpClient = new http_client_1.HttpClient('curl/8.5.0 (arm-none-eabi-gcc-action)', [], { allowRedirects: false });
+const userAgent = 'curl/8.5.0 (arm-none-eabi-gcc-action)';
 function followRedirects(originalUrl) {
     return __awaiter(this, void 0, void 0, function* () {
         const MAX_REDIRECTS = 5;
         let currentUrl = originalUrl;
         for (let attempt = 0; attempt < MAX_REDIRECTS; attempt++) {
-            const response = yield redirectHttpClient.head(currentUrl);
-            try {
-                const statusCode = response.message.statusCode || 0;
-                if (statusCode >= 300 && statusCode < 400) {
-                    const locationHeader = response.message.headers['location'];
-                    const locationValue = Array.isArray(locationHeader) ? locationHeader[0] : locationHeader;
-                    if (!locationValue) {
-                        core.debug(`Redirect for ${originalUrl} detected without location header at ${currentUrl}`);
-                        break;
-                    }
-                    const nextUrl = new URL(locationValue, currentUrl).toString();
-                    core.info(`Detected redirect (${statusCode}) for GCC download.`);
-                    core.info(`\tFollowing ${originalUrl}`);
-                    core.info(`\tto        ${nextUrl}`);
-                    if (attempt >= MAX_REDIRECTS - 1) {
-                        core.warning(`Maximum redirects reached for ${originalUrl}`);
-                    }
-                    currentUrl = nextUrl;
-                    continue;
+            const response = yield fetch(currentUrl, {
+                method: 'HEAD',
+                redirect: 'manual',
+                headers: { 'User-Agent': userAgent },
+            });
+            const statusCode = response.status;
+            if (statusCode >= 300 && statusCode < 400) {
+                const locationValue = response.headers.get('location');
+                if (!locationValue) {
+                    core.debug(`Redirect for ${originalUrl} detected without location header at ${currentUrl}`);
+                    break;
                 }
-                break;
-            }
-            finally {
-                // Drain the response body to free up resources, otherwise we may run out of sockets
-                if (!response.message.complete) {
-                    try {
-                        yield response.readBody();
-                    }
-                    catch (error) {
-                        const message = error instanceof Error ? error.message : String(error);
-                        core.debug(`Failed to drain redirect response body: ${message}`);
-                    }
+                const nextUrl = new URL(locationValue, currentUrl).toString();
+                core.info(`Detected redirect (${statusCode}) for GCC download.`);
+                core.info(`\tFollowing ${originalUrl}`);
+                core.info(`\tto        ${nextUrl}`);
+                if (attempt >= MAX_REDIRECTS - 1) {
+                    core.warning(`Maximum redirects reached for ${originalUrl}`);
                 }
+                currentUrl = nextUrl;
+                continue;
             }
+            break;
         }
         return currentUrl;
     });
