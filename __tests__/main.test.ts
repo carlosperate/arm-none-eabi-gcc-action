@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-import rimraf from 'rimraf';
+import {rimraf, rimrafSync} from 'rimraf';
 import * as semver from 'semver';
 
 jest.mock('os');
@@ -19,9 +19,9 @@ const TEMP_CACHE_DIR = path.join(TEMP_LOCAL_PATH, 'CACHE');
 jest.setTimeout(7 * 60 * 1000);
 
 beforeAll(() => {
-  if (fs.existsSync(TEMP_HOME_DIR)) rimraf.sync(TEMP_HOME_DIR);
-  if (fs.existsSync(TEMP_CACHE_DIR)) rimraf.sync(TEMP_CACHE_DIR);
-  if (fs.existsSync(TEMP_LOCAL_PATH)) rimraf.sync(TEMP_LOCAL_PATH);
+  if (fs.existsSync(TEMP_HOME_DIR)) rimrafSync(TEMP_HOME_DIR);
+  if (fs.existsSync(TEMP_CACHE_DIR)) rimrafSync(TEMP_CACHE_DIR);
+  if (fs.existsSync(TEMP_LOCAL_PATH)) rimrafSync(TEMP_LOCAL_PATH);
 
   fs.mkdirSync(TEMP_LOCAL_PATH);
   fs.mkdirSync(TEMP_HOME_DIR);
@@ -39,11 +39,9 @@ beforeAll(() => {
   process.env['RUNNER_DEBUG'] = '';
 });
 
-afterAll(done => {
+afterAll(async () => {
   if (fs.existsSync(TEMP_LOCAL_PATH)) {
-    rimraf(TEMP_LOCAL_PATH, {disableGlob: true}, function () {
-      done();
-    });
+    await rimraf(TEMP_LOCAL_PATH);
   }
 });
 
