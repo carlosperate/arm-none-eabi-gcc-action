@@ -1,7 +1,7 @@
 import * as core from '@actions/core';
 
-import * as setup from './setup';
-import {latestGccVersion} from './gcc';
+import * as setup from './setup.js';
+import {latestGccVersion} from './gcc.js';
 
 async function run(): Promise<void> {
   try {

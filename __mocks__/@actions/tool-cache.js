@@ -1,6 +1,6 @@
 'use strict';
 
-const originalTc = require('@actions/tool-cache');
+const originalTc = jest.requireActual('@actions/tool-cache');
 const tc = jest.createMockFromModule('@actions/tool-cache');
 
 tc.find = () => '';

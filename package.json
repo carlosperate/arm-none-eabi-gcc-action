@@ -3,15 +3,15 @@
   "version": "1.12.1",
   "private": true,
   "description": "GitHub Action to install arm-none-eabi-gcc",
-  "main": "lib/main.js",
+  "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
     "format": "prettier --config config/prettierrc.json --write **/*.ts",
     "format-check": "prettier --config config/prettierrc.json --check **/*.ts",
     "lint": "eslint --config config/eslintrc.json src/**/*.ts",
-    "package": "ncc build --source-map --license licenses.txt",
-    "test": "jest --config config/jest.config.js",
-    "test:urls": "jest --config config/jest.cionly.config.js",
+    "package": "npx rollup --config rollup.config.ts --configPlugin @rollup/plugin-typescript",
+    "test": "npx jest --config config/jest.config.js",
+    "test:urls": "npx jest --config config/jest.cionly.config.js",
     "all": "npm run build && npm run format-check && npm run lint && npm run package && npm test"
   },
   "repository": {
@@ -25,6 +25,7 @@
     "arm-none-eabi-gcc"
   ],
   "author": "Carlos Pereira Atencio",
+  "type": "module",
   "license": "MIT",
   "engines": {
     "node": ">=24"
@@ -34,22 +35,28 @@
     "@actions/core": "^1.10.1",
     "@actions/tool-cache": "^2.0.1",
     "md5-file": "^5.0.0",
-    "semver": "^7.5.2"
+    "semver": "^7.5.2",
+    "tslib": "^2.8.1"
   },
   "devDependencies": {
+    "@rollup/plugin-commonjs": "^29.0.0",
+    "@rollup/plugin-json": "^6.1.0",
+    "@rollup/plugin-node-resolve": "^16.0.3",
+    "@rollup/plugin-typescript": "^12.3.0",
     "@types/jest": "^29.2.0",
-    "@types/node": "^18.11.2",
+    "@types/node": "^22.19.15",
     "@types/rimraf": "^3.0.2",
     "@types/semver": "^7.3.12",
     "@typescript-eslint/parser": "^5.40.1",
-    "@vercel/ncc": "^0.34.0",
     "eslint": "^8.6.0",
     "eslint-plugin-github": "^4.3.7",
     "eslint-plugin-jest": "^27.1.3",
     "jest": "^29.2.1",
     "prettier": "^2.2.1",
     "rimraf": "^3.0.2",
-    "ts-jest": "^29.0.3",
+    "rollup": "^4.59.0",
+    "ts-jest": "^29.4.6",
+    "ts-jest-resolver": "^2.0.1",
     "typescript": "^4.8.4"
   }
 }

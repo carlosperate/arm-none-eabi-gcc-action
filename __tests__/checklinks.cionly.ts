@@ -1,7 +1,5 @@
-import fetch from 'node-fetch';
-
-import * as gcc from '../src/gcc';
-import {GccDownloadInfo} from '../src/gcc-versions';
+import * as gcc from '../src/gcc.js';
+import {GccDownloadInfo} from '../src/gcc-versions.js';
 
 jest.setTimeout(5 * 60 * 1000);
 

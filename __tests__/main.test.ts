@@ -1,16 +1,16 @@
-// Mocking OS for os.homedir()
-jest.mock('os');
-
 import * as fs from 'fs';
-import * as os from 'os';
 import * as path from 'path';
 
 import rimraf from 'rimraf';
-import fetch from 'node-fetch';
 import * as semver from 'semver';
 
-import * as gcc from '../src/gcc';
-import * as setup from '../src/setup';
+jest.mock('os');
+jest.mock('@actions/cache');
+jest.mock('@actions/tool-cache');
+
+import * as os from 'os';
+import * as gcc from '../src/gcc.js';
+import * as setup from '../src/setup.js';
 
 const TEMP_LOCAL_PATH = path.join(__dirname, '..', 'TESTS_TEMP_DELETE');
 const TEMP_HOME_DIR = path.join(TEMP_LOCAL_PATH, 'HOME');

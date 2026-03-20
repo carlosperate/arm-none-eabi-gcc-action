@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 
 import * as core from '@actions/core';
-import semverValid from 'semver/functions/valid';
+import semver from 'semver';
 
-import {GccDownloadInfo, gccVersions} from './gcc-versions';
+import {GccDownloadInfo, gccVersions} from './gcc-versions.js';
 
 // Some Arm download endpoints reject unfamiliar user agents with a challenge page redirect.
 const userAgent = 'curl/8.5.0 (arm-none-eabi-gcc-action)';
@@ -149,7 +149,7 @@ export function gccVersionToSemver(gccVersion: string): string {
   }
   const gccSemver = gccVerIntArray.slice(0, 3).join('.');
 
-  if (!semverValid(gccSemver)) {
+  if (!semver.valid(gccSemver)) {
     throw new Error(`Could not convert the GCC version to a valid Semver: ${gccSemver}`);
   }
 

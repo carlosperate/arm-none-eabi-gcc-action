@@ -7,7 +7,7 @@ import * as tc from '@actions/tool-cache';
 import * as cache from '@actions/cache';
 import md5File from 'md5-file';
 
-import * as gcc from './gcc';
+import * as gcc from './gcc.js';
 
 export async function install(release: string, platform: string, arch: string): Promise<string> {
   const toolName = 'gcc-arm-none-eabi';
