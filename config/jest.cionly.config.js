@@ -2,18 +2,21 @@ export default {
   rootDir: '../',
   clearMocks: true,
   moduleFileExtensions: ['ts', 'js'],
-  resolver: 'ts-jest-resolver',
+  resolver: './config/jest-resolver.cjs',
   testEnvironment: 'node',
   testMatch: ['**/*.cionly.ts'],
   testPathIgnorePatterns: ['/dist/', '/node_modules/'],
   testRunner: 'jest-circus/runner',
   transform: {
-    '^.+\.ts$': [
+    '^.+\.[jt]s$': [
       'ts-jest',
       {
         tsconfig: 'config/tsconfig.jest.json',
       },
     ],
   },
+  transformIgnorePatterns: [
+    'node_modules/(?!@actions/)',
+  ],
   verbose: true,
 }
