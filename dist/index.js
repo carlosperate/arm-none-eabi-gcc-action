@@ -77256,7 +77256,11 @@ async function install(release, platform, arch) {
     // Convert the GCC version to Semver so that it can be used with the GH cache
     const toolVersion = gccVersionToSemver(release);
     const cacheKey = `${toolName}-${toolVersion}-${platform}-${arch}`;
-    const installPath = path.join(os.homedir(), cacheKey);
+    // On Windows, normalize path separators to forward slashes so that
+    // @actions/cache can resolve the path via @actions/glob (minimatch), which
+    // cannot match backslash-separated paths (actions/toolkit#2085).
+    const rawInstallPath = path.join(os.homedir(), cacheKey);
+    const installPath = process.platform === 'win32' ? rawInstallPath.replace(/\\/g, '/') : rawInstallPath;
     debug(`Cache key: ${cacheKey}`);
     // Try to load the GCC installation from the cache
     let cacheKeyMatched = undefined;
