@@ -18,14 +18,7 @@ export async function install(release: string, platform: string, arch: string): 
   // Convert the GCC version to Semver so that it can be used with the GH cache
   const toolVersion = gcc.gccVersionToSemver(release);
   const cacheKey = `${toolName}-${toolVersion}-${platform}-${arch}`;
-  let installPath = path.join(os.homedir(), cacheKey);
-  if (process.platform === 'win32') {
-    // On Windows, normalize path separators to forward slashes so that
-    // @actions/glob (called by @actions/cache) can resolve the path, as it
-    // cannot match backslash-separated paths (actions/toolkit#2085).
-    // https://github.com/carlosperate/arm-none-eabi-gcc-action/issues/94
-    installPath = installPath.replace(/\\/g, '/');
-  }
+  const installPath = path.join(os.homedir(), cacheKey);
   core.debug(`Cache key: ${cacheKey}`);
 
   // Try to load the GCC installation from the cache
@@ -78,10 +71,19 @@ export async function install(release: string, platform: string, arch: string): 
   // Adding installation to the cache
   core.info(`Adding to cache: ${extractedPath}`);
   await fs.promises.writeFile(path.join(extractedPath, 'md5.txt'), downloadHash, {encoding: 'utf8'});
-  try {
-    await cache.saveCache([extractedPath], cacheKey);
-  } catch (err) {
-    core.warning(`⚠️ Could not save to the cache.\n${err.message}`);
+  if (process.platform === 'win32') {
+    // On Windows, @actions/glob (used internally by @actions/cache) fails to
+    // match paths due to a backslash vs forward-slash mismatch in its pattern
+    // matching (actions/toolkit#2085). This causes cache.saveCache() to throw
+    // "Path Validation Error" because resolvePaths() returns an empty list.
+    // Skip saving to the cache on Windows until the upstream bug is fixed.
+    core.warning('⚠️ Saving to the GitHub Actions cache is not supported on Windows (actions/toolkit#2085).');
+  } else {
+    try {
+      await cache.saveCache([extractedPath], cacheKey);
+    } catch (err) {
+      core.warning(`⚠️ Could not save to the cache.\n${err.message}`);
+    }
   }
 
   return extractedPath;

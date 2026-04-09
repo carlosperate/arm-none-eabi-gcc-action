@@ -34591,11 +34591,6 @@ class Pattern {
             // Normalize slashes and trim unnecessary trailing slash
             itemPath = safeTrimTrailingSeparator(itemPath);
         }
-        // On Windows, convert to forward slashes for minimatch matching, since
-        // the pattern was also converted to forward slashes in the constructor.
-        if (IS_WINDOWS$2) {
-            itemPath = itemPath.replace(/\\/g, '/');
-        }
         // Match
         if (this.minimatch.match(itemPath)) {
             return this.trailingSeparator ? MatchKind.Directory : MatchKind.All;
@@ -77261,14 +77256,7 @@ async function install(release, platform, arch) {
     // Convert the GCC version to Semver so that it can be used with the GH cache
     const toolVersion = gccVersionToSemver(release);
     const cacheKey = `${toolName}-${toolVersion}-${platform}-${arch}`;
-    let installPath = path.join(os.homedir(), cacheKey);
-    if (process.platform === 'win32') {
-        // On Windows, normalize path separators to forward slashes so that
-        // @actions/glob (called by @actions/cache) can resolve the path, as it
-        // cannot match backslash-separated paths (actions/toolkit#2085).
-        // https://github.com/carlosperate/arm-none-eabi-gcc-action/issues/94
-        installPath = installPath.replace(/\\/g, '/');
-    }
+    const installPath = path.join(os.homedir(), cacheKey);
     debug(`Cache key: ${cacheKey}`);
     // Try to load the GCC installation from the cache
     let cacheKeyMatched = undefined;
@@ -77322,11 +77310,21 @@ async function install(release, platform, arch) {
     // Adding installation to the cache
     info(`Adding to cache: ${extractedPath}`);
     await fs.promises.writeFile(path.join(extractedPath, 'md5.txt'), downloadHash, { encoding: 'utf8' });
-    try {
-        await saveCache([extractedPath], cacheKey);
+    if (process.platform === 'win32') {
+        // On Windows, @actions/glob (used internally by @actions/cache) fails to
+        // match paths due to a backslash vs forward-slash mismatch in its pattern
+        // matching (actions/toolkit#2085). This causes cache.saveCache() to throw
+        // "Path Validation Error" because resolvePaths() returns an empty list.
+        // Skip saving to the cache on Windows until the upstream bug is fixed.
+        warning('⚠️ Saving to the GitHub Actions cache is not supported on Windows (actions/toolkit#2085).');
     }
-    catch (err) {
-        warning(`⚠️ Could not save to the cache.\n${err.message}`);
+    else {
+        try {
+            await saveCache([extractedPath], cacheKey);
+        }
+        catch (err) {
+            warning(`⚠️ Could not save to the cache.\n${err.message}`);
+        }
     }
     return extractedPath;
 }
