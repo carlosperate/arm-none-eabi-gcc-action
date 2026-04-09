@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## v1.12.3 - (unreleased)
+## v1.12.3 - (2026-04-09)
 ### Fixed
 - Fix cache path validation error on Windows by providing require polyfill in ESM
   bundle so minimatch resolves path.sep correctly (actions/toolkit#2085) (#95).
