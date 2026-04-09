@@ -1,3 +1,6 @@
+import { createRequire as __bundleRequire } from 'module';
+const require = __bundleRequire(import.meta.url);
+
 import * as os from 'os';
 import os__default from 'os';
 import * as crypto$1 from 'crypto';
@@ -77310,21 +77313,11 @@ async function install(release, platform, arch) {
     // Adding installation to the cache
     info(`Adding to cache: ${extractedPath}`);
     await fs.promises.writeFile(path.join(extractedPath, 'md5.txt'), downloadHash, { encoding: 'utf8' });
-    if (process.platform === 'win32') {
-        // On Windows, @actions/glob (used internally by @actions/cache) fails to
-        // match paths due to a backslash vs forward-slash mismatch in its pattern
-        // matching (actions/toolkit#2085). This causes cache.saveCache() to throw
-        // "Path Validation Error" because resolvePaths() returns an empty list.
-        // Skip saving to the cache on Windows until the upstream bug is fixed.
-        warning('⚠️ Saving to the GitHub Actions cache is not supported on Windows (actions/toolkit#2085).');
+    try {
+        await saveCache([extractedPath], cacheKey);
     }
-    else {
-        try {
-            await saveCache([extractedPath], cacheKey);
-        }
-        catch (err) {
-            warning(`⚠️ Could not save to the cache.\n${err.message}`);
-        }
+    catch (err) {
+        warning(`⚠️ Could not save to the cache.\n${err.message}`);
     }
     return extractedPath;
 }
