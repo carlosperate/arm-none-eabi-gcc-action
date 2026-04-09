@@ -12,6 +12,14 @@ const config = {
     file: 'dist/index.js',
     format: 'es',
     sourcemap: true,
+    // Provide a `require` function for CJS dependencies bundled into this ESM
+    // output. Some dependencies (e.g. minimatch v3) use `require('path')` with
+    // a try/catch fallback to `{ sep: '/' }`. Without a real `require`, the
+    // fallback causes `path.sep` to be '/' on Windows, breaking path matching
+    // in @actions/glob (actions/toolkit#2085).
+    // https://github.com/carlosperate/arm-none-eabi-gcc-action/issues/94
+    banner: `import { createRequire as __bundleRequire } from 'module';`,
+    intro: `const require = __bundleRequire(import.meta.url);`,
   },
   plugins: [
     typescript(),

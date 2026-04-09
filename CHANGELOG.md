@@ -4,7 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## v1.12.2 - 2026-04-8
+## v1.12.3 - (unreleased)
+### Fixed
+- Fix cache path validation error on Windows by providing require polyfill in ESM
+  bundle so minimatch resolves path.sep correctly (actions/toolkit#2085) (#95).
+### Changed
+- As there can be OS specific issues when building the action, `test-build`
+  job now runs on all supported OSes.
+
+## v1.12.2 - 2026-04-08
 ### Changed
 - Replace ncc with rollup, for compat with ESM-only dependencies.
 - Updated most of the direct dependencies to their latest version.

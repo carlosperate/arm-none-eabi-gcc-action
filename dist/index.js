@@ -1,3 +1,6 @@
+import { createRequire as __bundleRequire } from 'module';
+const require = __bundleRequire(import.meta.url);
+
 import * as os from 'os';
 import os__default from 'os';
 import * as crypto$1 from 'crypto';
