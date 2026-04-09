@@ -6,9 +6,9 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
-    "format": "prettier --config config/prettierrc.json --write **/*.ts",
-    "format-check": "prettier --config config/prettierrc.json --check **/*.ts",
-    "lint": "eslint --config config/eslint.config.js src/**/*.ts",
+    "format": "prettier --config config/prettierrc.json --write \"**/*.ts\"",
+    "format-check": "prettier --config config/prettierrc.json --check \"**/*.ts\"",
+    "lint": "eslint --config config/eslint.config.js \"src/**/*.ts\"",
     "package": "npx rollup --config rollup.config.ts --configPlugin @rollup/plugin-typescript",
     "test": "npx jest --config config/jest.config.js",
     "test:urls": "npx jest --config config/jest.cionly.config.js",

@@ -9,11 +9,19 @@ on:
 jobs:
   # Test and check build errors
   test-build:
+    strategy:
+      fail-fast: false
+      matrix:
+        # macOS 15 Intel runner is x86_64 and macOS 14 runner is arm64
+        os: [ubuntu-22.04, ubuntu-22.04-arm, macos-15-intel, macos-14, windows-latest]
     name: Run tests and build Action
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v6
     - run: npm install
+    - run: npx prettier --version
+    - run: npm run format
+    - run: git diff
     - run: npm run all
     - name: Run action to check no exceptions are thrown
       uses: ./
