@@ -6,9 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## v1.12.3 - (unreleased)
 ### Fixed
-- Fix cache path validation error on Windows by normalizing path separators
-  to forward slashes before passing to `@actions/cache`
-  (upstream bug in `@actions/glob` actions/toolkit#2085) (#95).
+- Fix cache path validation error on Windows by providing require polyfill in ESM
+  bundle so minimatch resolves path.sep correctly (actions/toolkit#2085) (#95).
 ### Changed
 - As there can be OS specific issues when building the action, `test-build`
   job now runs on all supported OSes.
