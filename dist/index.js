@@ -34591,6 +34591,11 @@ class Pattern {
             // Normalize slashes and trim unnecessary trailing slash
             itemPath = safeTrimTrailingSeparator(itemPath);
         }
+        // On Windows, convert to forward slashes for minimatch matching, since
+        // the pattern was also converted to forward slashes in the constructor.
+        if (IS_WINDOWS$2) {
+            itemPath = itemPath.replace(/\\/g, '/');
+        }
         // Match
         if (this.minimatch.match(itemPath)) {
             return this.trailingSeparator ? MatchKind.Directory : MatchKind.All;
