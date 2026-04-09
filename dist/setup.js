@@ -13,7 +13,14 @@ export async function install(release, platform, arch) {
     // Convert the GCC version to Semver so that it can be used with the GH cache
     const toolVersion = gcc.gccVersionToSemver(release);
     const cacheKey = `${toolName}-${toolVersion}-${platform}-${arch}`;
-    const installPath = path.join(os.homedir(), cacheKey);
+    let installPath = path.join(os.homedir(), cacheKey);
+    if (process.platform === 'win32') {
+        // On Windows, normalize path separators to forward slashes so that
+        // @actions/glob (called by @actions/cache) can resolve the path, as it
+        // cannot match backslash-separated paths (actions/toolkit#2085).
+        // https://github.com/carlosperate/arm-none-eabi-gcc-action/issues/94
+        installPath = installPath.replace(/\\/g, '/');
+    }
     core.debug(`Cache key: ${cacheKey}`);
     // Try to load the GCC installation from the cache
     let cacheKeyMatched = undefined;

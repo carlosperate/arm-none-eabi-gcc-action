@@ -4,16 +4,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## v1.12.3 - 2026-04-08
+## v1.12.3 - (unreleased)
 ### Fixed
 - Fix cache path validation error on Windows by normalizing path separators
-  to forward slashes (only on Windows) before passing to `@actions/cache`
-  (upstream bug in `@actions/glob`/minimatch: actions/toolkit#2085).
+  to forward slashes before passing to `@actions/cache`
+  (upstream bug in `@actions/glob` actions/toolkit#2085) (#95).
 ### Changed
-- CI: `test-build` job now runs on all supported OSes
-  (`ubuntu-22.04`, `ubuntu-22.04-arm`, `macos-15-intel`, `macos-14`, `windows-latest`).
+- As there can be OS specific issues when building the action, `test-build`
+  job now runs on all supported OSes.
 
-## v1.12.2 - 2026-04-8
+## v1.12.2 - 2026-04-08
 ### Changed
 - Replace ncc with rollup, for compat with ESM-only dependencies.
 - Updated most of the direct dependencies to their latest version.
