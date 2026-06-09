@@ -242,3 +242,39 @@ describe('Real install in temp dirs.', () => {
   test('15.2.Rel1 darwin arm64', async () => await tmpInstall('15.2.Rel1', 'darwin', 'arm64'));
   test('15.2.Rel1 win32', async () => await tmpInstall('15.2.Rel1', 'win32', 'x64'));
 });
+
+describe('test persisting to host tool cache', () => {
+  beforeEach(() => {
+    if (fs.existsSync(TEMP_CACHE_DIR)) rimrafSync(TEMP_CACHE_DIR);
+    fs.mkdirSync(TEMP_CACHE_DIR);
+    // tool cache dir env variable already set before
+  });
+
+  test('ensure installation is persisted to host tool cache when enabled', async () => {
+    function hasGcc(dir: string): boolean {
+      for (const filename of ['arm-none-eabi-gcc', 'arm-none-eabi-gcc.exe']) {
+        const exe = path.join(dir, filename);
+        if (fs.existsSync(exe)) {
+          console.log(`✅ Executable exists: ${exe}`);
+          return true;
+        }
+      }
+      return false;
+    }
+
+    const installPath = await setup.install('15.2.Rel1', 'linux', 'x64', false, true);
+    expect(installPath).not.toBe('');
+
+    const gccCachePath = setup.findGcc(TEMP_CACHE_DIR, 'linux');
+    expect(gccCachePath).not.toBe('');
+    expect(hasGcc(gccCachePath)).toBeTruthy();
+  });
+
+  test("ensure installation isn't persisted to host tool cache when disabled", async () => {
+    const installPath = await setup.install('14.2.Rel1', 'linux', 'x64', false, false);
+    expect(installPath).not.toBe('');
+
+    const gccCachePath = setup.findGcc(TEMP_CACHE_DIR, 'linux');
+    expect(gccCachePath).toBe('');
+  });
+});
