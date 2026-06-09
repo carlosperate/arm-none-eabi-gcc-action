@@ -225,7 +225,7 @@ describe('Real install in temp dirs.', () => {
   }
 
   async function tmpInstall(release: string, platform: string, arch: string): Promise<void> {
-    const installPath = await setup.install(release, platform, arch);
+    const installPath = await setup.install(release, platform, arch, true, false);
     const gccPath = setup.findGcc(installPath, platform);
     expect(gccPath).not.toBe('');
     expect(hasGcc(gccPath)).toBeTruthy();

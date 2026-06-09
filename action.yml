@@ -9,6 +9,14 @@ inputs:
   path-env-var:
     description: 'Name for an environmental variable to be created with the toolchain path.'
     required: false
+  use-cache:
+    description: 'Save arm-none-eabi-gcc installation to GitHub Actions cache.'
+    default: 'true'
+    required: false
+  use-tools-cache:
+    description: 'Try to find arm-none-eabi-gcc installation in runner''s local tool cache before downloading from actions cache.'
+    default: 'false'
+    required: false
 outputs:
   path:
     description: 'Path to the bin folder with the toolchain executables.'
