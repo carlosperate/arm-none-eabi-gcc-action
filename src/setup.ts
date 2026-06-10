@@ -105,7 +105,7 @@ export function findGcc(root: string, platform?: string): string {
   return findGccRecursive(root, `arm-none-eabi-gcc${platform === 'win32' ? '.exe' : ''}`);
 }
 
-async function saveToCache(extractedPath: string, distHash: string, cacheKey: string) {
+async function saveToCache(extractedPath: string, distHash: string, cacheKey: string): Promise<void> {
   core.info(`Adding to cache: ${extractedPath}`);
   await fs.promises.writeFile(path.join(extractedPath, 'md5.txt'), distHash, {
     encoding: 'utf8',
@@ -118,7 +118,7 @@ async function saveToCache(extractedPath: string, distHash: string, cacheKey: st
 }
 
 // returns path to gcc installation downloaded from cache, or undefined if it wasn't found or was wrong.
-async function loadFromCache(installPath: string, cacheKey: string, distData: GccDownloadInfo) {
+async function loadFromCache(installPath: string, cacheKey: string, distData: GccDownloadInfo): Promise<string> {
   // Try to load the GCC installation from the cache
   let cacheKeyMatched: string | undefined = undefined;
   try {
@@ -126,7 +126,7 @@ async function loadFromCache(installPath: string, cacheKey: string, distData: Gc
     core.debug(`Matched cache.restoreCache() key: ${cacheKeyMatched}`);
   } catch (err) {
     core.warning(`⚠️ Could not find contents in the cache.\n${err.message}`);
-    return;
+    return '';
   }
   if (cacheKeyMatched === cacheKey) {
     core.info(`Cache found: ${installPath}`);
@@ -137,17 +137,18 @@ async function loadFromCache(installPath: string, cacheKey: string, distData: Gc
       });
     } catch (err) {
       core.warning(`⚠️ Could not read the contents of the cached GCC version MD5.\n${err.message}`);
-      return;
+      return '';
     }
     core.info(`Cached version MD5: ${cacheMd5}`);
     if (cacheMd5 !== distData.md5) {
       core.warning(`⚠️ Cached version MD5 does not match: ${cacheMd5} != ${distData.md5}`);
-      return;
+      return '';
     } else {
       core.info('Cached version loaded.');
       return installPath;
     }
   }
+  return '';
 }
 
 async function loadFromToolsCache(
@@ -157,7 +158,7 @@ async function loadFromToolsCache(
   arch: string,
   cacheKey: string,
   useCache: boolean
-) {
+): Promise<string> {
   // hosted tools cache should always have the tools matching its platform...
   const hcPath = tc.find(toolName, toolVersion, arch);
   const hcMd5 = await fs.promises.readFile(path.join(hcPath, 'md5.txt'), 'utf8').catch(e => {
@@ -177,4 +178,5 @@ async function loadFromToolsCache(
       return hcPath;
     }
   }
+  return '';
 }
