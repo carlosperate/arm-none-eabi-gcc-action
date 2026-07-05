@@ -207,8 +207,8 @@ describe('Check links work.', () => {
           let fileUrl = '';
           // Not all releases have builds for all platforms/archs
           try {
-            let dist = await gcc.distributionUrl(version, platform, arch);
-            fileUrl = dist.url;
+            const dist = await gcc.distributionUrl(version, platform, arch);
+            fileUrl = dist.resolvedUrl ?? dist.url;
           } catch (error) {
             return;
           }

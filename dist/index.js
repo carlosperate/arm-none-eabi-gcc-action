@@ -78359,6 +78359,11 @@ const gccVersions = {
 /* eslint-disable @typescript-eslint/naming-convention */
 // Some Arm download endpoints reject unfamiliar user agents with a challenge page redirect.
 const userAgent = 'curl/8.5.0 (arm-none-eabi-gcc-action)';
+// Short lived signed URL (e.g. an AWS link the Arm GitLab registry redirects to).
+function isEphemeralUrl(url) {
+    const params = new URL(url).searchParams;
+    return (params.has('X-Amz-Signature') || params.has('X-Amz-Expires') || (params.has('Expires') && params.has('Signature')));
+}
 async function followRedirects(originalUrl) {
     const MAX_REDIRECTS = 5;
     let currentUrl = originalUrl;
@@ -78438,21 +78443,25 @@ async function distributionUrl(version, platform, arch) {
             'The action README has the list of available versions and platforms.');
     }
     const distData = gccVersions[version][osName];
-    // Arm download files have been moved between servers in the past, so
-    // we try to resolve any redirects here up-front to avoid issues later
+    // Arm download files have been moved between servers in the past, so we resolve redirects
+    // up-front and expose the result as resolvedUrl. When resolvedUrl is a short-lived signed
+    // URL it is flagged (ephemeralUrl) so consumers fall back to the durable url instead.
     let resolvedUrl = distData.url;
+    let ephemeralUrl = false;
     try {
         resolvedUrl = await followRedirects(distData.url);
+        ephemeralUrl = isEphemeralUrl(resolvedUrl);
     }
     catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         debug(`Redirect resolution failed for ${distData.url}: ${message}`);
     }
     return {
-        url: resolvedUrl,
-        urlOriginal: distData.url,
+        url: distData.url,
+        resolvedUrl,
         md5: distData.md5,
         sha256: distData.sha256,
+        ephemeralUrl,
     };
 }
 function gccVersionToSemver(gccVersion) {
@@ -78519,6 +78528,9 @@ async function install(release, platform, arch) {
     const toolName = 'gcc-arm-none-eabi';
     // Get the GCC release info
     const distData = await distributionUrl(release, platform, arch);
+    // Download from the resolvedUrl, unless it is a short-lived signed URL (ephemeralUrl) that
+    // expires and is method-locked (retrieved with HEAD, so downloading with GET fails)
+    const downloadUrl = distData.ephemeralUrl ? distData.url : (distData.resolvedUrl ?? distData.url);
     // Prioritise SHA256 over MD5
     const checksumTag = distData.sha256 ? `sha256:${distData.sha256}` : distData.md5 ? `md5:${distData.md5}` : null;
     if (!checksumTag) {
@@ -78542,23 +78554,23 @@ async function install(release, platform, arch) {
         info(`Cached version loaded: ${installPath}`);
         return installPath;
     }
-    info(`Cache miss, downloading GCC ${release} from ${distData.url}`);
-    const gccDownloadPath = await downloadTool(distData.url);
+    info(`Cache miss, downloading GCC ${release} from ${downloadUrl}`);
+    const gccDownloadPath = await downloadTool(downloadUrl);
     await verifyChecksum(checksumTag, gccDownloadPath);
     info(`Downloaded and verified (${checksumTag}).`);
     info(`Extracting ${gccDownloadPath}`);
     let extractedPath = '';
-    if (distData.url.endsWith('.zip')) {
+    if (downloadUrl.endsWith('.zip')) {
         extractedPath = await extractZip(gccDownloadPath, installPath);
     }
-    else if (distData.url.endsWith('.tar.bz2')) {
+    else if (downloadUrl.endsWith('.tar.bz2')) {
         extractedPath = await extractTar$1(gccDownloadPath, installPath, 'xj');
     }
-    else if (distData.url.endsWith('.tar.xz')) {
+    else if (downloadUrl.endsWith('.tar.xz')) {
         extractedPath = await extractTar$1(gccDownloadPath, installPath, 'xJ');
     }
     else {
-        throw new Error(`Can't decompress ${distData.url}`);
+        throw new Error(`Can't decompress ${downloadUrl}`);
     }
     // Adding installation to the cache
     info(`Adding to cache: ${extractedPath}`);

@@ -29,6 +29,10 @@ export async function install(release: string, platform: string, arch: string): 
   // Get the GCC release info
   const distData = await gcc.distributionUrl(release, platform, arch);
 
+  // Download from the resolvedUrl, unless it is a short-lived signed URL (ephemeralUrl) that
+  // expires and is method-locked (retrieved with HEAD, so downloading with GET fails)
+  const downloadUrl = distData.ephemeralUrl ? distData.url : (distData.resolvedUrl ?? distData.url);
+
   // Prioritise SHA256 over MD5
   const checksumTag = distData.sha256 ? `sha256:${distData.sha256}` : distData.md5 ? `md5:${distData.md5}` : null;
   if (!checksumTag) {
@@ -54,21 +58,21 @@ export async function install(release: string, platform: string, arch: string): 
     return installPath;
   }
 
-  core.info(`Cache miss, downloading GCC ${release} from ${distData.url}`);
-  const gccDownloadPath = await tc.downloadTool(distData.url);
+  core.info(`Cache miss, downloading GCC ${release} from ${downloadUrl}`);
+  const gccDownloadPath = await tc.downloadTool(downloadUrl);
   await verifyChecksum(checksumTag, gccDownloadPath);
   core.info(`Downloaded and verified (${checksumTag}).`);
 
   core.info(`Extracting ${gccDownloadPath}`);
   let extractedPath = '';
-  if (distData.url.endsWith('.zip')) {
+  if (downloadUrl.endsWith('.zip')) {
     extractedPath = await tc.extractZip(gccDownloadPath, installPath);
-  } else if (distData.url.endsWith('.tar.bz2')) {
+  } else if (downloadUrl.endsWith('.tar.bz2')) {
     extractedPath = await tc.extractTar(gccDownloadPath, installPath, 'xj');
-  } else if (distData.url.endsWith('.tar.xz')) {
+  } else if (downloadUrl.endsWith('.tar.xz')) {
     extractedPath = await tc.extractTar(gccDownloadPath, installPath, 'xJ');
   } else {
-    throw new Error(`Can't decompress ${distData.url}`);
+    throw new Error(`Can't decompress ${downloadUrl}`);
   }
 
   // Adding installation to the cache

@@ -8,6 +8,14 @@ import {GccDownloadInfo, gccVersions} from './gcc-versions.js';
 // Some Arm download endpoints reject unfamiliar user agents with a challenge page redirect.
 const userAgent = 'curl/8.5.0 (arm-none-eabi-gcc-action)';
 
+// Short lived signed URL (e.g. an AWS link the Arm GitLab registry redirects to).
+function isEphemeralUrl(url: string): boolean {
+  const params = new URL(url).searchParams;
+  return (
+    params.has('X-Amz-Signature') || params.has('X-Amz-Expires') || (params.has('Expires') && params.has('Signature'))
+  );
+}
+
 async function followRedirects(originalUrl: string): Promise<string> {
   const MAX_REDIRECTS = 5;
   let currentUrl = originalUrl;
@@ -89,20 +97,24 @@ export async function distributionUrl(version: string, platform: string, arch: s
     );
   }
   const distData = gccVersions[version][osName];
-  // Arm download files have been moved between servers in the past, so
-  // we try to resolve any redirects here up-front to avoid issues later
+  // Arm download files have been moved between servers in the past, so we resolve redirects
+  // up-front and expose the result as resolvedUrl. When resolvedUrl is a short-lived signed
+  // URL it is flagged (ephemeralUrl) so consumers fall back to the durable url instead.
   let resolvedUrl = distData.url;
+  let ephemeralUrl = false;
   try {
     resolvedUrl = await followRedirects(distData.url);
+    ephemeralUrl = isEphemeralUrl(resolvedUrl);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     core.debug(`Redirect resolution failed for ${distData.url}: ${message}`);
   }
   return {
-    url: resolvedUrl,
-    urlOriginal: distData.url,
+    url: distData.url,
+    resolvedUrl,
     md5: distData.md5,
     sha256: distData.sha256,
+    ephemeralUrl,
   };
 }
 
