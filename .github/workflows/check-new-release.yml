@@ -11,9 +11,8 @@ on:
     - cron: '30 19 * * *'
   push:
     # On push only when this file is changed
-    branches: '*'
     paths:
-    - ".github/workflows/check-new-release.yml"
+      - '.github/workflows/check-new-release.yml'
 
 jobs:
   check-new-release:
