@@ -97,6 +97,7 @@ export async function distributionUrl(version, platform, arch) {
         url: resolvedUrl,
         urlOriginal: distData.url,
         md5: distData.md5,
+        sha256: distData.sha256,
     };
 }
 export function gccVersionToSemver(gccVersion) {
