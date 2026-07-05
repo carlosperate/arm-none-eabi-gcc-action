@@ -10,18 +10,22 @@ export const gccVersions: {[gccRelease: string]: {[platform: string]: GccDownloa
     win32: {
       url: 'https://armkeil.blob.core.windows.net/developer/files/downloads/gnu/15.2.rel1/binrel/arm-gnu-toolchain-15.2.rel1-mingw-w64-x86_64-arm-none-eabi.zip',
       md5: '88cce5f8c71445cf54dfa1667b3ae6ab',
+      sha256: '7936cac895611023ffb22a64b8e426098c7104cb689778c1894572ca840b9ece',
     },
     mac_arm64: {
       url: 'https://armkeil.blob.core.windows.net/developer/files/downloads/gnu/15.2.rel1/binrel/arm-gnu-toolchain-15.2.rel1-darwin-arm64-arm-none-eabi.tar.xz',
       md5: 'e91fd6348ba0f3e5ec35eeba1ad7e2b8',
+      sha256: '1938a84b7105c192e3fb4fa5e893ba25f425f7ddab40515ae608cd40f68669a8',
     },
     linux_x86_64: {
       url: 'https://armkeil.blob.core.windows.net/developer/files/downloads/gnu/15.2.rel1/binrel/arm-gnu-toolchain-15.2.rel1-x86_64-arm-none-eabi.tar.xz',
       md5: 'da62bef8821e7fc2a9b5d023871036e0',
+      sha256: '597893282ac8c6ab1a4073977f2362990184599643b4c5ee34870a8215783a16',
     },
     linux_aarch64: {
       url: 'https://armkeil.blob.core.windows.net/developer/files/downloads/gnu/15.2.rel1/binrel/arm-gnu-toolchain-15.2.rel1-aarch64-arm-none-eabi.tar.xz',
       md5: '458c5d9b362726c9ac20c96f1894ae13',
+      sha256: 'd061559d814b205ed30c5b7c577c03317ec447ca51cd5a159d26b12a5bbeb20c',
     },
   },
   '14.3.Rel1': {

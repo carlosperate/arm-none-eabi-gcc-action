@@ -53,6 +53,7 @@ test('test fetching valid urls', async () => {
   let dist = await gcc.distributionUrl('12.3.Rel1', 'darwin', 'arm64');
   expect(dist.url).toContain('arm-gnu-toolchain-12.3.rel1-darwin-arm64-arm-none-eabi.tar.xz');
   expect(dist.md5).toStrictEqual('53d034e9423e7f470acc5ed2a066758e');
+  expect(dist.sha256).toStrictEqual('3b2eee0bdf71c1bbeb3c3b7424fbf7bd9d5c3f0f5a3a4a78159c9e3ad219e7bd');
 
   // macOS arm64 starts at 12.2.Rel1, but if arm64 is not available, it will fallback to x64
   dist = await gcc.distributionUrl('11.3.Rel1', 'darwin', 'arm64');
@@ -104,6 +105,16 @@ test('test fetching urls for invalid platforms', async () => {
   await expect(gcc.distributionUrl('14.3.Rel1', 'darwin', 'x64')).rejects.toThrow(
     'invalid platform mac_x86_64 for GCC version 14.3.Rel1'
   );
+});
+
+test('install refuses when no checksum is available', async () => {
+  jest.spyOn(gcc, 'distributionUrl').mockResolvedValue({
+    url: 'https://example.com/gcc.tar.xz',
+    md5: null,
+    sha256: null,
+  });
+  await expect(setup.install('12.3.Rel1', 'linux', 'x64')).rejects.toThrow('refusing to install unverified');
+  jest.restoreAllMocks();
 });
 
 test('latest points to a known latest release', async () => {

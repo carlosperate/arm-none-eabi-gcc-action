@@ -1,13 +1,27 @@
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
+import * as crypto from 'crypto';
 
 import * as core from '@actions/core';
 import * as tc from '@actions/tool-cache';
 import * as cache from '@actions/cache';
-import md5File from 'md5-file';
 
 import * as gcc from './gcc.js';
+
+async function verifyChecksum(expectedTag: string, file: string): Promise<void> {
+  const [algorithm, expected] = expectedTag.split(':');
+  const hash = await new Promise<string>((resolve, reject) => {
+    const h = crypto.createHash(algorithm);
+    fs.createReadStream(file)
+      .on('error', reject)
+      .on('data', chunk => h.update(chunk))
+      .on('end', () => resolve(h.digest('hex')));
+  });
+  if (hash !== expected) {
+    throw new Error(`Downloaded GCC ${algorithm} doesn't match expected value: ${hash} != ${expected}`);
+  }
+}
 
 export async function install(release: string, platform: string, arch: string): Promise<string> {
   const toolName = 'gcc-arm-none-eabi';
@@ -15,10 +29,16 @@ export async function install(release: string, platform: string, arch: string): 
   // Get the GCC release info
   const distData = await gcc.distributionUrl(release, platform, arch);
 
-  // Convert the GCC version to Semver so that it can be used with the GH cache
+  // Prioritise SHA256 over MD5
+  const checksumTag = distData.sha256 ? `sha256:${distData.sha256}` : distData.md5 ? `md5:${distData.md5}` : null;
+  if (!checksumTag) {
+    throw new Error(`No checksum (sha256 or md5) available for GCC ${release}; refusing to install unverified.`);
+  }
+
+  // The checksum is part of the cache key, so no need to verify cache hit
   const toolVersion = gcc.gccVersionToSemver(release);
-  const cacheKey = `${toolName}-${toolVersion}-${platform}-${arch}`;
-  const installPath = path.join(os.homedir(), cacheKey);
+  const cacheKey = `${toolName}-${toolVersion}-${platform}-${arch}-${checksumTag.replace(':', '-')}`;
+  const installPath = path.join(os.homedir(), `${toolName}-${toolVersion}-${platform}-${arch}`);
   core.debug(`Cache key: ${cacheKey}`);
 
   // Try to load the GCC installation from the cache
@@ -30,31 +50,14 @@ export async function install(release: string, platform: string, arch: string): 
     core.warning(`⚠️ Could not find contents in the cache.\n${err.message}`);
   }
   if (cacheKeyMatched === cacheKey) {
-    core.info(`Cache found: ${installPath}`);
-    let cacheMd5 = 'MD5 not found in cached installation';
-    try {
-      cacheMd5 = await fs.promises.readFile(path.join(installPath, 'md5.txt'), {encoding: 'utf8'});
-    } catch (err) {
-      core.warning(`⚠️ Could not read the contents of the cached GCC version MD5.\n${err.message}`);
-    }
-    core.info(`Cached version MD5: ${cacheMd5}`);
-    if (cacheMd5 !== distData.md5) {
-      core.warning(`⚠️ Cached version MD5 does not match: ${cacheMd5} != ${distData.md5}`);
-    } else {
-      core.info('Cached version loaded.');
-      return installPath;
-    }
+    core.info(`Cached version loaded: ${installPath}`);
+    return installPath;
   }
 
-  core.info(`Cache miss, downloading GCC ${release} from ${distData.url} ; MD5 ${distData.md5}`);
+  core.info(`Cache miss, downloading GCC ${release} from ${distData.url}`);
   const gccDownloadPath = await tc.downloadTool(distData.url);
-
-  core.info(`GCC release downloaded, calculating MD5...`);
-  const downloadHash = await md5File(gccDownloadPath);
-  core.info(`Downloaded file MD5: ${downloadHash}`);
-  if (distData.md5 && downloadHash !== distData.md5) {
-    throw new Error(`Downloaded GCC MD5 doesn't match expected value: ${downloadHash} != ${distData.md5}`);
-  }
+  await verifyChecksum(checksumTag, gccDownloadPath);
+  core.info(`Downloaded and verified (${checksumTag}).`);
 
   core.info(`Extracting ${gccDownloadPath}`);
   let extractedPath = '';
@@ -70,7 +73,6 @@ export async function install(release: string, platform: string, arch: string): 
 
   // Adding installation to the cache
   core.info(`Adding to cache: ${extractedPath}`);
-  await fs.promises.writeFile(path.join(extractedPath, 'md5.txt'), downloadHash, {encoding: 'utf8'});
   try {
     await cache.saveCache([extractedPath], cacheKey);
   } catch (err) {

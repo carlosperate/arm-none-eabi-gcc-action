@@ -102,6 +102,7 @@ export async function distributionUrl(version: string, platform: string, arch: s
     url: resolvedUrl,
     urlOriginal: distData.url,
     md5: distData.md5,
+    sha256: distData.sha256,
   };
 }
 

@@ -4,9 +4,8 @@ const require = __bundleRequire(import.meta.url);
 import * as os from 'os';
 import os__default from 'os';
 import * as crypto$1 from 'crypto';
-import crypto__default from 'crypto';
 import * as fs from 'fs';
-import fs__default, { promises, writeFileSync, existsSync } from 'fs';
+import { promises, writeFileSync, existsSync } from 'fs';
 import * as path from 'path';
 import * as http from 'http';
 import http__default from 'http';
@@ -2819,15 +2818,24 @@ function requireDispatcherBase () {
 	const kOnDestroyed = Symbol('onDestroyed');
 	const kOnClosed = Symbol('onClosed');
 	const kInterceptedDispatch = Symbol('Intercepted Dispatch');
+	const kWebSocketOptions = Symbol('webSocketOptions');
 
 	class DispatcherBase extends Dispatcher {
-	  constructor () {
+	  constructor (opts) {
 	    super();
 
 	    this[kDestroyed] = false;
 	    this[kOnDestroyed] = null;
 	    this[kClosed] = false;
 	    this[kOnClosed] = [];
+	    this[kWebSocketOptions] = opts?.webSocket ?? {};
+	  }
+
+	  get webSocketOptions () {
+	    return {
+	      maxFragments: this[kWebSocketOptions].maxFragments ?? 131072,
+	      maxPayloadSize: this[kWebSocketOptions].maxPayloadSize ?? 128 * 1024 * 1024
+	    }
 	  }
 
 	  get destroyed () {
@@ -8777,6 +8785,9 @@ function requireClientH1 () {
 	const FastBuffer = Buffer[Symbol.species];
 	const addListener = util.addListener;
 	const removeAllListeners = util.removeAllListeners;
+	const kIdleSocketValidation = Symbol('kIdleSocketValidation');
+	const kIdleSocketValidationTimeout = Symbol('kIdleSocketValidationTimeout');
+	const kSocketUsed = Symbol('kSocketUsed');
 
 	let extractBody;
 
@@ -8999,27 +9010,69 @@ function requireClientH1 () {
 
 	      const offset = llhttp.llhttp_get_error_pos(this.ptr) - currentBufferPtr;
 
-	      if (ret === constants.ERROR.PAUSED_UPGRADE) {
-	        this.onUpgrade(data.slice(offset));
-	      } else if (ret === constants.ERROR.PAUSED) {
-	        this.paused = true;
-	        socket.unshift(data.slice(offset));
-	      } else if (ret !== constants.ERROR.OK) {
-	        const ptr = llhttp.llhttp_get_error_reason(this.ptr);
-	        let message = '';
-	        /* istanbul ignore else: difficult to make a test case for */
-	        if (ptr) {
-	          const len = new Uint8Array(llhttp.memory.buffer, ptr).indexOf(0);
-	          message =
-	            'Response does not match the HTTP/1.1 protocol (' +
-	            Buffer.from(llhttp.memory.buffer, ptr, len).toString() +
-	            ')';
+	      if (ret !== constants.ERROR.OK) {
+	        const body = data.subarray(offset);
+
+	        if (ret === constants.ERROR.PAUSED_UPGRADE) {
+	          this.onUpgrade(body);
+	        } else if (ret === constants.ERROR.PAUSED) {
+	          this.paused = true;
+	          socket.unshift(body);
+	        } else {
+	          throw this.createError(ret, body)
 	        }
-	        throw new HTTPParserError(message, constants.ERROR[ret], data.slice(offset))
 	      }
 	    } catch (err) {
 	      util.destroy(socket, err);
 	    }
+	  }
+
+	  finish () {
+	    assert(currentParser === null);
+	    assert(this.ptr != null);
+	    assert(!this.paused);
+
+	    const { llhttp } = this;
+
+	    let ret;
+
+	    try {
+	      currentParser = this;
+	      ret = llhttp.llhttp_finish(this.ptr);
+	    } finally {
+	      currentParser = null;
+	    }
+
+	    if (ret === constants.ERROR.OK) {
+	      return null
+	    }
+
+	    if (ret === constants.ERROR.PAUSED || ret === constants.ERROR.PAUSED_UPGRADE) {
+	      this.paused = true;
+	      return null
+	    }
+
+	    return this.createError(ret, EMPTY_BUF)
+	  }
+
+	  createError (ret, data) {
+	    const { llhttp, contentLength, bytesRead } = this;
+
+	    if (contentLength && bytesRead !== parseInt(contentLength, 10)) {
+	      return new ResponseContentLengthMismatchError()
+	    }
+
+	    const ptr = llhttp.llhttp_get_error_reason(this.ptr);
+	    let message = '';
+	    if (ptr) {
+	      const len = new Uint8Array(llhttp.memory.buffer, ptr).indexOf(0);
+	      message =
+	        'Response does not match the HTTP/1.1 protocol (' +
+	        Buffer.from(llhttp.memory.buffer, ptr, len).toString() +
+	        ')';
+	    }
+
+	    return new HTTPParserError(message, constants.ERROR[ret], data)
 	  }
 
 	  destroy () {
@@ -9046,6 +9099,11 @@ function requireClientH1 () {
 
 	    /* istanbul ignore next: difficult to make a test case for */
 	    if (socket.destroyed) {
+	      return -1
+	    }
+
+	    if (client[kRunning] === 0) {
+	      util.destroy(socket, new SocketError('bad response', util.getSocketInfo(socket)));
 	      return -1
 	    }
 
@@ -9149,6 +9207,11 @@ function requireClientH1 () {
 
 	    /* istanbul ignore next: difficult to make a test case for */
 	    if (socket.destroyed) {
+	      return -1
+	    }
+
+	    if (client[kRunning] === 0) {
+	      util.destroy(socket, new SocketError('bad response', util.getSocketInfo(socket)));
 	      return -1
 	    }
 
@@ -9325,6 +9388,7 @@ function requireClientH1 () {
 	    request.onComplete(headers);
 
 	    client[kQueue][client[kRunningIdx]++] = null;
+	    socket[kSocketUsed] = true;
 
 	    if (socket[kWriting]) {
 	      assert(client[kRunning] === 0);
@@ -9383,6 +9447,9 @@ function requireClientH1 () {
 	  socket[kWriting] = false;
 	  socket[kReset] = false;
 	  socket[kBlocking] = false;
+	  socket[kIdleSocketValidation] = 0;
+	  socket[kIdleSocketValidationTimeout] = null;
+	  socket[kSocketUsed] = false;
 	  socket[kParser] = new Parser(client, socket, llhttpInstance);
 
 	  addListener(socket, 'error', function (err) {
@@ -9393,8 +9460,11 @@ function requireClientH1 () {
 	    // On Mac OS, we get an ECONNRESET even if there is a full body to be forwarded
 	    // to the user.
 	    if (err.code === 'ECONNRESET' && parser.statusCode && !parser.shouldKeepAlive) {
-	      // We treat all incoming data so for as a valid response.
-	      parser.onMessageComplete();
+	      const parserErr = parser.finish();
+	      if (parserErr) {
+	        this[kError] = parserErr;
+	        this[kClient][kOnError](parserErr);
+	      }
 	      return
 	    }
 
@@ -9413,8 +9483,10 @@ function requireClientH1 () {
 	    const parser = this[kParser];
 
 	    if (parser.statusCode && !parser.shouldKeepAlive) {
-	      // We treat all incoming data so far as a valid response.
-	      parser.onMessageComplete();
+	      const parserErr = parser.finish();
+	      if (parserErr) {
+	        util.destroy(this, parserErr);
+	      }
 	      return
 	    }
 
@@ -9424,10 +9496,11 @@ function requireClientH1 () {
 	    const client = this[kClient];
 	    const parser = this[kParser];
 
+	    clearIdleSocketValidation(this);
+
 	    if (parser) {
 	      if (!this[kError] && parser.statusCode && !parser.shouldKeepAlive) {
-	        // We treat all incoming data so far as a valid response.
-	        parser.onMessageComplete();
+	        this[kError] = parser.finish() || this[kError];
 	      }
 
 	      this[kParser].destroy();
@@ -9490,7 +9563,7 @@ function requireClientH1 () {
 	      return socket.destroyed
 	    },
 	    busy (request) {
-	      if (socket[kWriting] || socket[kReset] || socket[kBlocking]) {
+	      if (socket[kWriting] || socket[kReset] || socket[kBlocking] || socket[kIdleSocketValidation] === 1) {
 	        return true
 	      }
 
@@ -9528,6 +9601,31 @@ function requireClientH1 () {
 	  }
 	}
 
+	function clearIdleSocketValidation (socket) {
+	  if (socket[kIdleSocketValidationTimeout]) {
+	    clearTimeout(socket[kIdleSocketValidationTimeout]);
+	    socket[kIdleSocketValidationTimeout] = null;
+	  }
+
+	  socket[kIdleSocketValidation] = 0;
+	}
+
+	function scheduleIdleSocketValidation (client, socket) {
+	  socket[kIdleSocketValidation] = 1;
+	  socket[kIdleSocketValidationTimeout] = setTimeout(() => {
+	    socket[kIdleSocketValidationTimeout] = null;
+	    socket[kIdleSocketValidation] = 2;
+
+	    if (client[kSocket] === socket && !socket.destroyed) {
+	      client[kResume]();
+	    }
+	  }, 0);
+	  socket[kIdleSocketValidationTimeout].unref?.();
+	}
+
+	/**
+	 * @param {import('./client.js')} client
+	 */
 	function resumeH1 (client) {
 	  const socket = client[kSocket];
 
@@ -9540,6 +9638,32 @@ function requireClientH1 () {
 	    } else if (socket[kNoRef] && socket.ref) {
 	      socket.ref();
 	      socket[kNoRef] = false;
+	    }
+
+	    if (client[kRunning] === 0 && client[kPending] > 0 && socket[kSocketUsed]) {
+	      if (socket[kIdleSocketValidation] === 0) {
+	        scheduleIdleSocketValidation(client, socket);
+	        socket[kParser].readMore();
+	        if (socket.destroyed) {
+	          return
+	        }
+	        return
+	      }
+
+	      if (socket[kIdleSocketValidation] === 1) {
+	        socket[kParser].readMore();
+	        if (socket.destroyed) {
+	          return
+	        }
+	        return
+	      }
+	    }
+
+	    if (client[kRunning] === 0) {
+	      socket[kParser].readMore();
+	      if (socket.destroyed) {
+	        return
+	      }
 	    }
 
 	    if (client[kSize] === 0) {
@@ -9635,6 +9759,7 @@ function requireClientH1 () {
 	  }
 
 	  const socket = client[kSocket];
+	  clearIdleSocketValidation(socket);
 
 	  const abort = (err) => {
 	    if (request.aborted || request.completed) {
@@ -11205,9 +11330,10 @@ function requireClient () {
 	    autoSelectFamilyAttemptTimeout,
 	    // h2
 	    maxConcurrentStreams,
-	    allowH2
+	    allowH2,
+	    webSocket
 	  } = {}) {
-	    super();
+	    super({ webSocket });
 
 	    if (keepAlive !== undefined) {
 	      throw new InvalidArgumentError('unsupported keepAlive, use pipelining=0 instead')
@@ -11914,8 +12040,8 @@ function requirePoolBase () {
 	const kStats = Symbol('stats');
 
 	class PoolBase extends DispatcherBase {
-	  constructor () {
-	    super();
+	  constructor (opts) {
+	    super(opts);
 
 	    this[kQueue] = new FixedQueue();
 	    this[kClients] = [];
@@ -12134,8 +12260,6 @@ function requirePool () {
 	    allowH2,
 	    ...options
 	  } = {}) {
-	    super();
-
 	    if (connections != null && (!Number.isFinite(connections) || connections < 0)) {
 	      throw new InvalidArgumentError('invalid connections')
 	    }
@@ -12159,6 +12283,8 @@ function requirePool () {
 	        ...connect
 	      });
 	    }
+
+	    super(options);
 
 	    this[kInterceptors] = options.interceptors?.Pool && Array.isArray(options.interceptors.Pool)
 	      ? options.interceptors.Pool
@@ -12453,8 +12579,6 @@ function requireAgent () {
 
 	class Agent extends DispatcherBase {
 	  constructor ({ factory = defaultFactory, maxRedirections = 0, connect, ...options } = {}) {
-	    super();
-
 	    if (typeof factory !== 'function') {
 	      throw new InvalidArgumentError('factory must be a function.')
 	    }
@@ -12466,6 +12590,8 @@ function requireAgent () {
 	    if (!Number.isInteger(maxRedirections) || maxRedirections < 0) {
 	      throw new InvalidArgumentError('maxRedirections must be a positive number')
 	    }
+
+	    super(options);
 
 	    if (connect && typeof connect !== 'function') {
 	      connect = { ...connect };
@@ -24116,32 +24242,25 @@ function requireParse$1 () {
 	    // If the attribute-name case-insensitively matches the string
 	    // "SameSite", the user agent MUST process the cookie-av as follows:
 
-	    // 1. Let enforcement be "Default".
-	    let enforcement = 'Default';
-
 	    const attributeValueLowercase = attributeValue.toLowerCase();
-	    // 2. If cookie-av's attribute-value is a case-insensitive match for
-	    //    "None", set enforcement to "None".
-	    if (attributeValueLowercase.includes('none')) {
-	      enforcement = 'None';
-	    }
 
-	    // 3. If cookie-av's attribute-value is a case-insensitive match for
-	    //    "Strict", set enforcement to "Strict".
-	    if (attributeValueLowercase.includes('strict')) {
-	      enforcement = 'Strict';
+	    // 1. If cookie-av's attribute-value is a case-insensitive match for
+	    //    "None", append an attribute to the cookie-attribute-list with an
+	    //    attribute-name of "SameSite" and an attribute-value of "None".
+	    if (attributeValueLowercase === 'none') {
+	      cookieAttributeList.sameSite = 'None';
+	    } else if (attributeValueLowercase === 'strict') {
+	      // 2. If cookie-av's attribute-value is a case-insensitive match for
+	      //    "Strict", append an attribute to the cookie-attribute-list with
+	      //    an attribute-name of "SameSite" and an attribute-value of
+	      //    "Strict".
+	      cookieAttributeList.sameSite = 'Strict';
+	    } else if (attributeValueLowercase === 'lax') {
+	      // 3. If cookie-av's attribute-value is a case-insensitive match for
+	      //    "Lax", append an attribute to the cookie-attribute-list with an
+	      //    attribute-name of "SameSite" and an attribute-value of "Lax".
+	      cookieAttributeList.sameSite = 'Lax';
 	    }
-
-	    // 4. If cookie-av's attribute-value is a case-insensitive match for
-	    //    "Lax", set enforcement to "Lax".
-	    if (attributeValueLowercase.includes('lax')) {
-	      enforcement = 'Lax';
-	    }
-
-	    // 5. Append an attribute to the cookie-attribute-list with an
-	    //    attribute-name of "SameSite" and an attribute-value of
-	    //    enforcement.
-	    cookieAttributeList.sameSite = enforcement;
 	  } else {
 	    cookieAttributeList.unparsed ??= [];
 
@@ -25607,40 +25726,35 @@ function requirePermessageDeflate () {
 	const kBuffer = Symbol('kBuffer');
 	const kLength = Symbol('kLength');
 
-	// Default maximum decompressed message size: 4 MB
-	const kDefaultMaxDecompressedSize = 4 * 1024 * 1024;
-
 	class PerMessageDeflate {
 	  /** @type {import('node:zlib').InflateRaw} */
 	  #inflate
 
 	  #options = {}
 
-	  /** @type {boolean} */
-	  #aborted = false
-
-	  /** @type {Function|null} */
-	  #currentCallback = null
+	  #maxPayloadSize = 0
 
 	  /**
 	   * @param {Map<string, string>} extensions
 	   */
-	  constructor (extensions) {
+	  constructor (extensions, options) {
 	    this.#options.serverNoContextTakeover = extensions.has('server_no_context_takeover');
 	    this.#options.serverMaxWindowBits = extensions.get('server_max_window_bits');
+
+	    this.#maxPayloadSize = options.maxPayloadSize;
 	  }
 
+	  /**
+	   * Decompress a compressed payload.
+	   * @param {Buffer} chunk Compressed data
+	   * @param {boolean} fin Final fragment flag
+	   * @param {Function} callback Callback function
+	   */
 	  decompress (chunk, fin, callback) {
 	    // An endpoint uses the following algorithm to decompress a message.
 	    // 1.  Append 4 octets of 0x00 0x00 0xff 0xff to the tail end of the
 	    //     payload of the message.
 	    // 2.  Decompress the resulting data using DEFLATE.
-
-	    if (this.#aborted) {
-	      callback(new MessageSizeExceededError());
-	      return
-	    }
-
 	    if (!this.#inflate) {
 	      let windowBits = Z_DEFAULT_WINDOWBITS;
 
@@ -25663,23 +25777,12 @@ function requirePermessageDeflate () {
 	      this.#inflate[kLength] = 0;
 
 	      this.#inflate.on('data', (data) => {
-	        if (this.#aborted) {
-	          return
-	        }
-
 	        this.#inflate[kLength] += data.length;
 
-	        if (this.#inflate[kLength] > kDefaultMaxDecompressedSize) {
-	          this.#aborted = true;
+	        if (this.#maxPayloadSize > 0 && this.#inflate[kLength] > this.#maxPayloadSize) {
+	          callback(new MessageSizeExceededError());
 	          this.#inflate.removeAllListeners();
-	          this.#inflate.destroy();
 	          this.#inflate = null;
-
-	          if (this.#currentCallback) {
-	            const cb = this.#currentCallback;
-	            this.#currentCallback = null;
-	            cb(new MessageSizeExceededError());
-	          }
 	          return
 	        }
 
@@ -25692,14 +25795,13 @@ function requirePermessageDeflate () {
 	      });
 	    }
 
-	    this.#currentCallback = callback;
 	    this.#inflate.write(chunk);
 	    if (fin) {
 	      this.#inflate.write(tail);
 	    }
 
 	    this.#inflate.flush(() => {
-	      if (this.#aborted || !this.#inflate) {
+	      if (!this.#inflate) {
 	        return
 	      }
 
@@ -25707,7 +25809,6 @@ function requirePermessageDeflate () {
 
 	      this.#inflate[kBuffer].length = 0;
 	      this.#inflate[kLength] = 0;
-	      this.#currentCallback = null;
 
 	      callback(null, full);
 	    });
@@ -25743,6 +25844,12 @@ function requireReceiver () {
 	const { WebsocketFrameSend } = requireFrame();
 	const { closeWebSocketConnection } = requireConnection();
 	const { PerMessageDeflate } = requirePermessageDeflate();
+	const { MessageSizeExceededError } = requireErrors();
+
+	function failWebsocketConnectionWithCode (ws, code, reason) {
+	  closeWebSocketConnection(ws, code, reason, Buffer.byteLength(reason));
+	  failWebsocketConnection(ws, reason);
+	}
 
 	// This code was influenced by ws released under the MIT license.
 	// Copyright (c) 2011 Einar Otto Stangvik <einaros@gmail.com>
@@ -25751,6 +25858,7 @@ function requireReceiver () {
 
 	class ByteParser extends Writable {
 	  #buffers = []
+	  #fragmentsBytes = 0
 	  #byteOffset = 0
 	  #loop = false
 
@@ -25762,18 +25870,27 @@ function requireReceiver () {
 	  /** @type {Map<string, PerMessageDeflate>} */
 	  #extensions
 
+	  /** @type {number} */
+	  #maxFragments
+
+	  /** @type {number} */
+	  #maxPayloadSize
+
 	  /**
 	   * @param {import('./websocket').WebSocket} ws
 	   * @param {Map<string, string>|null} extensions
+	   * @param {{ maxFragments?: number, maxPayloadSize?: number }} [options]
 	   */
-	  constructor (ws, extensions) {
+	  constructor (ws, extensions, options = {}) {
 	    super();
 
 	    this.ws = ws;
 	    this.#extensions = extensions == null ? new Map() : extensions;
+	    this.#maxFragments = options.maxFragments ?? 0;
+	    this.#maxPayloadSize = options.maxPayloadSize ?? 0;
 
 	    if (this.#extensions.has('permessage-deflate')) {
-	      this.#extensions.set('permessage-deflate', new PerMessageDeflate(extensions));
+	      this.#extensions.set('permessage-deflate', new PerMessageDeflate(extensions, options));
 	    }
 	  }
 
@@ -25787,6 +25904,19 @@ function requireReceiver () {
 	    this.#loop = true;
 
 	    this.run(callback);
+	  }
+
+	  #validatePayloadLength () {
+	    if (
+	      this.#maxPayloadSize > 0 &&
+	      !isControlFrame(this.#info.opcode) &&
+	      this.#info.payloadLength + this.#fragmentsBytes > this.#maxPayloadSize
+	    ) {
+	      failWebsocketConnectionWithCode(this.ws, 1009, 'Payload size exceeds maximum allowed size');
+	      return false
+	    }
+
+	    return true
 	  }
 
 	  /**
@@ -25877,6 +26007,10 @@ function requireReceiver () {
 	        if (payloadLength <= 125) {
 	          this.#info.payloadLength = payloadLength;
 	          this.#state = parserStates.READ_DATA;
+
+	          if (!this.#validatePayloadLength()) {
+	            return
+	          }
 	        } else if (payloadLength === 126) {
 	          this.#state = parserStates.PAYLOADLENGTH_16;
 	        } else if (payloadLength === 127) {
@@ -25901,6 +26035,10 @@ function requireReceiver () {
 
 	        this.#info.payloadLength = buffer.readUInt16BE(0);
 	        this.#state = parserStates.READ_DATA;
+
+	        if (!this.#validatePayloadLength()) {
+	          return
+	        }
 	      } else if (this.#state === parserStates.PAYLOADLENGTH_64) {
 	        if (this.#byteOffset < 8) {
 	          return callback()
@@ -25923,6 +26061,10 @@ function requireReceiver () {
 
 	        this.#info.payloadLength = lower;
 	        this.#state = parserStates.READ_DATA;
+
+	        if (!this.#validatePayloadLength()) {
+	          return
+	        }
 	      } else if (this.#state === parserStates.READ_DATA) {
 	        if (this.#byteOffset < this.#info.payloadLength) {
 	          return callback()
@@ -25935,42 +26077,58 @@ function requireReceiver () {
 	          this.#state = parserStates.INFO;
 	        } else {
 	          if (!this.#info.compressed) {
-	            this.#fragments.push(body);
+	            if (!this.writeFragments(body)) {
+	              return
+	            }
+
+	            if (this.#maxPayloadSize > 0 && this.#fragmentsBytes > this.#maxPayloadSize) {
+	              failWebsocketConnectionWithCode(this.ws, 1009, new MessageSizeExceededError().message);
+	              return
+	            }
 
 	            // If the frame is not fragmented, a message has been received.
 	            // If the frame is fragmented, it will terminate with a fin bit set
 	            // and an opcode of 0 (continuation), therefore we handle that when
 	            // parsing continuation frames, not here.
 	            if (!this.#info.fragmented && this.#info.fin) {
-	              const fullMessage = Buffer.concat(this.#fragments);
-	              websocketMessageReceived(this.ws, this.#info.binaryType, fullMessage);
-	              this.#fragments.length = 0;
+	              websocketMessageReceived(this.ws, this.#info.binaryType, this.consumeFragments());
 	            }
 
 	            this.#state = parserStates.INFO;
 	          } else {
-	            this.#extensions.get('permessage-deflate').decompress(body, this.#info.fin, (error, data) => {
-	              if (error) {
-	                failWebsocketConnection(this.ws, error.message);
-	                return
-	              }
+	            this.#extensions.get('permessage-deflate').decompress(
+	              body,
+	              this.#info.fin,
+	              (error, data) => {
+	                if (error) {
+	                  const code = error instanceof MessageSizeExceededError ? 1009 : 1007;
+	                  failWebsocketConnectionWithCode(this.ws, code, error.message);
+	                  return
+	                }
 
-	              this.#fragments.push(data);
+	                if (!this.writeFragments(data)) {
+	                  return
+	                }
 
-	              if (!this.#info.fin) {
-	                this.#state = parserStates.INFO;
+	                if (this.#maxPayloadSize > 0 && this.#fragmentsBytes > this.#maxPayloadSize) {
+	                  failWebsocketConnectionWithCode(this.ws, 1009, new MessageSizeExceededError().message);
+	                  return
+	                }
+
+	                if (!this.#info.fin) {
+	                  this.#state = parserStates.INFO;
+	                  this.#loop = true;
+	                  this.run(callback);
+	                  return
+	                }
+
+	                websocketMessageReceived(this.ws, this.#info.binaryType, this.consumeFragments());
+
 	                this.#loop = true;
+	                this.#state = parserStates.INFO;
 	                this.run(callback);
-	                return
 	              }
-
-	              websocketMessageReceived(this.ws, this.#info.binaryType, Buffer.concat(this.#fragments));
-
-	              this.#loop = true;
-	              this.#state = parserStates.INFO;
-	              this.#fragments.length = 0;
-	              this.run(callback);
-	            });
+	            );
 
 	            this.#loop = false;
 	            break
@@ -26020,6 +26178,35 @@ function requireReceiver () {
 	    this.#byteOffset -= n;
 
 	    return buffer
+	  }
+
+	  writeFragments (fragment) {
+	    if (
+	      this.#maxFragments > 0 &&
+	      this.#fragments.length === this.#maxFragments
+	    ) {
+	      failWebsocketConnectionWithCode(this.ws, 1008, 'Too many message fragments');
+	      return false
+	    }
+
+	    this.#fragmentsBytes += fragment.length;
+	    this.#fragments.push(fragment);
+	    return true
+	  }
+
+	  consumeFragments () {
+	    const fragments = this.#fragments;
+
+	    if (fragments.length === 1) {
+	      this.#fragmentsBytes = 0;
+	      return fragments.shift()
+	    }
+
+	    const output = Buffer.concat(fragments, this.#fragmentsBytes);
+	    this.#fragments = [];
+	    this.#fragmentsBytes = 0;
+
+	    return output
 	  }
 
 	  parseCloseBody (data) {
@@ -26707,7 +26894,14 @@ function requireWebsocket () {
 	    // once this happens, the connection is open
 	    this[kResponse] = response;
 
-	    const parser = new ByteParser(this, parsedExtensions);
+	    const webSocketOptions = this[kController]?.dispatcher?.webSocketOptions;
+	    const maxFragments = webSocketOptions?.maxFragments;
+	    const maxPayloadSize = webSocketOptions?.maxPayloadSize;
+
+	    const parser = new ByteParser(this, parsedExtensions, {
+	      maxFragments,
+	      maxPayloadSize
+	    });
 	    parser.on('drain', onParserDrain);
 	    parser.on('error', onParserError.bind(this));
 
@@ -43941,6 +44135,612 @@ function getPositionFromMatch(match) {
   return match.startIndex + match[1].length;
 }
 
+// ---------------------------------------------------------------------------
+// Complete HTML5 named entity reference
+// Organized by logical categories for easy maintenance and selective importing
+// ---------------------------------------------------------------------------
+
+
+/**
+ * Currency Symbols
+ * @type {Record<string, string>}
+ */
+const CURRENCY = {
+  cent: '¢',
+  pound: '£',
+  curren: '¤',
+  yen: '¥',
+  euro: '€',
+  dollar: '$',
+  euro: '€',
+  fnof: 'ƒ',
+  inr: '₹',
+  af: '؋',
+  birr: 'ብር',
+  peso: '₱',
+  rub: '₽',
+  won: '₩',
+  yuan: '¥',
+  cedil: '¸',
+};
+
+const XML = {
+  amp: "&",
+  apos: "'",
+  gt: ">",
+  lt: "<",
+  quot: "\""
+};
+const COMMON_HTML = {
+  nbsp: '\u00a0',
+  copy: '\u00a9',
+  reg: '\u00ae',
+  trade: '\u2122',
+  mdash: '\u2014',
+  ndash: '\u2013',
+  hellip: '\u2026',
+  laquo: '\u00ab',
+  raquo: '\u00bb',
+  lsquo: '\u2018',
+  rsquo: '\u2019',
+  ldquo: '\u201c',
+  rdquo: '\u201d',
+  bull: '\u2022',
+  para: '\u00b6',
+  sect: '\u00a7',
+  deg: '\u00b0',
+  frac12: '\u00bd',
+  frac14: '\u00bc',
+  frac34: '\u00be',
+};
+// ---------------------------------------------------------------------------
+// Note: NUMERIC_ENTITIES (&#NNN; / &#xHH;) are handled by the scanner directly
+// via String.fromCodePoint() without any map lookup.
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Built-in named entity map  (name → replacement string)
+// No regex, no {regex,val} objects — just flat key/value pairs.
+// ---------------------------------------------------------------------------
+
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+const SPECIAL_CHARS = new Set('!?\\\\/[]$%{}^&*()<>|+');
+
+/**
+ * Validate that an entity name contains no dangerous characters.
+ * @param {string} name
+ * @returns {string} the name, unchanged
+ * @throws {Error} on invalid characters
+ */
+function validateEntityName$1(name) {
+  if (name[0] === '#') {
+    throw new Error(`[EntityReplacer] Invalid character '#' in entity name: "${name}"`);
+  }
+  for (const ch of name) {
+    if (SPECIAL_CHARS.has(ch)) {
+      throw new Error(`[EntityReplacer] Invalid character '${ch}' in entity name: "${name}"`);
+    }
+  }
+  return name;
+}
+
+/**
+ * Merge one or more entity maps into a flat name→string map.
+ * Accepts either:
+ *   - plain string values:             { amp: '&' }
+ *   - legacy {regex,val} / {regx,val}: { lt: { regex: /.../, val: '<' } }
+ *
+ * Values containing '&' are skipped (recursive expansion risk).
+ *
+ * @param {...object} maps
+ * @returns {Record<string, string>}
+ */
+function mergeEntityMaps(...maps) {
+  const out = Object.create(null);
+  for (const map of maps) {
+    if (!map) continue;
+    for (const key of Object.keys(map)) {
+      const raw = map[key];
+      if (typeof raw === 'string') {
+        out[key] = raw;
+      } else if (raw && typeof raw === 'object' && raw.val !== undefined) {
+        // Legacy {regex,val} or {regx,val} — extract the string val only
+        const val = raw.val;
+        if (typeof val === 'string') {
+          out[key] = val;
+        }
+        // function vals are not supported in the scanner — skip
+      }
+    }
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+// applyLimitsTo helpers
+// ---------------------------------------------------------------------------
+
+const LIMIT_TIER_EXTERNAL = 'external'; // input/runtime + persistent external maps
+const LIMIT_TIER_BASE = 'base';     // DEFAULT_XML_ENTITIES + namedEntities (system) maps
+const LIMIT_TIER_ALL = 'all';      // every entity regardless of tier
+
+/**
+ * Resolve `applyLimitsTo` option into a normalised Set of tier strings.
+ * Accepted values: 'external' | 'base' | 'all' | string[]
+ * Default: 'external' (only untrusted injected entities are counted).
+ * @param {string|string[]|undefined} raw
+ * @returns {Set<string>}
+ */
+function parseLimitTiers(raw) {
+  if (!raw || raw === LIMIT_TIER_EXTERNAL) return new Set([LIMIT_TIER_EXTERNAL]);
+  if (raw === LIMIT_TIER_ALL) return new Set([LIMIT_TIER_ALL]);
+  if (raw === LIMIT_TIER_BASE) return new Set([LIMIT_TIER_BASE]);
+  if (Array.isArray(raw)) return new Set(raw);
+  return new Set([LIMIT_TIER_EXTERNAL]); // safe default for unrecognised values
+}
+
+// ---------------------------------------------------------------------------
+// NCR (Numeric Character Reference) classification
+// ---------------------------------------------------------------------------
+
+// Severity order — higher number = stricter action.
+// Used to enforce minimum action levels for specific codepoint ranges.
+const NCR_LEVEL = Object.freeze({ allow: 0, leave: 1, remove: 2, throw: 3 });
+
+// XML 1.0 §2.2: allowed chars are #x9 | #xA | #xD | [#x20-#xD7FF] | [#xE000-#xFFFD] | [#x10000-#x10FFFF]
+// Restricted C0: U+0001–U+001F excluding U+0009, U+000A, U+000D
+const XML10_ALLOWED_C0 = new Set([0x09, 0x0A, 0x0D]);
+
+/**
+ * Parse the `ncr` constructor option into flat, hot-path-friendly fields.
+ * @param {object|undefined} ncr
+ * @returns {{ xmlVersion: number, onLevel: number, nullLevel: number }}
+ */
+function parseNCRConfig(ncr) {
+  if (!ncr) {
+    return { xmlVersion: 1.0, onLevel: NCR_LEVEL.allow, nullLevel: NCR_LEVEL.remove };
+  }
+  const xmlVersion = ncr.xmlVersion === 1.1 ? 1.1 : 1.0;
+  const onLevel = NCR_LEVEL[ncr.onNCR] ?? NCR_LEVEL.allow;
+  const nullLevel = NCR_LEVEL[ncr.nullNCR] ?? NCR_LEVEL.remove;
+  // 'allow' is not meaningful for null — clamp to at least 'remove'
+  const clampedNull = Math.max(nullLevel, NCR_LEVEL.remove);
+  return { xmlVersion, onLevel, nullLevel: clampedNull };
+}
+
+// ---------------------------------------------------------------------------
+// EntityReplacer
+// ---------------------------------------------------------------------------
+
+/**
+ * Single-pass, zero-regex entity replacer for XML/HTML content.
+ *
+ * Algorithm: scan the string once for '&', read to ';', resolve via map
+ * or direct codepoint conversion, build output chunks, join once at the end.
+ *
+ * Entity lookup priority (highest → lowest):
+ *   1. input / runtime  (DOCTYPE entities for current document)
+ *   2. persistent external (survive across documents)
+ *   3. base named map   (DEFAULT_XML_ENTITIES + user-supplied namedEntities)
+ *
+ * Both input and external resolve as the 'external' tier for limit purposes.
+ * Base map entities resolve as the 'base' tier.
+ *
+ * Numeric / hex references (&#NNN; / &#xHH;) are resolved directly via
+ * String.fromCodePoint() — no map needed. They count as 'base' tier.
+ *
+ * @example
+ * const replacer = new EntityReplacer({ namedEntities: COMMON_HTML });
+ * replacer.setExternalEntities({ brand: 'Acme' });
+ *
+ * const instance = replacer.reset();
+ * instance.addInputEntities({ version: '1.0' });
+ * instance.encode('&brand; v&version; &lt;'); // 'Acme v1.0 <'
+ */
+class EntityDecoder {
+  /**
+   * @param {object} [options]
+   * @param {object|null}  [options.namedEntities]        — extra named entities merged into base map
+   * @param {object}  [options.limit]                 — security limits
+   * @param {number}       [options.limit.maxTotalExpansions=0]  — 0 = unlimited
+   * @param {number}       [options.limit.maxExpandedLength=0]   — 0 = unlimited
+   * @param {'external'|'base'|'all'|string[]} [options.limit.applyLimitsTo='external']
+   *   Which entity tiers count against the security limits:
+   *   - 'external' (default) — only input/runtime + persistent external entities
+   *   - 'base'               — only DEFAULT_XML_ENTITIES + namedEntities
+   *   - 'all'                — every entity regardless of tier
+   *   - string[]             — explicit combination, e.g. ['external', 'base']
+   * @param {((resolved: string, original: string) => string)|null} [options.postCheck=null]
+   * @param {string[]} [options.remove=[]] — entity names (e.g. ['nbsp', '#13']) to delete (replace with empty string)
+   * @param {string[]} [options.leave=[]]  — entity names to keep as literal (unchanged in output)
+   * @param {object}   [options.ncr]       — Numeric Character Reference controls
+   * @param {1.0|1.1}  [options.ncr.xmlVersion=1.0]
+   *   XML version governing which codepoint ranges are restricted:
+   *   - 1.0 — C0 controls U+0001–U+001F (except U+0009/000A/000D) are prohibited
+   *   - 1.1 — C0 controls are allowed when written as NCRs; C1 (U+007F–U+009F) decoded as-is
+   * @param {'allow'|'leave'|'remove'|'throw'} [options.ncr.onNCR='allow']
+   *   Base action for numeric references. Severity order: allow < leave < remove < throw.
+   *   For codepoint ranges that carry a minimum level (surrogates → remove, XML 1.0 C0 → remove),
+   *   the effective action is max(onNCR, rangeMinimum).
+   * @param {'remove'|'throw'} [options.ncr.nullNCR='remove']
+   *   Action for U+0000 (null). 'allow' and 'leave' are clamped to 'remove' since null is never safe.
+   */
+  constructor(options = {}) {
+    this._limit = options.limit || {};
+    this._maxTotalExpansions = this._limit.maxTotalExpansions || 0;
+    this._maxExpandedLength = this._limit.maxExpandedLength || 0;
+    this._postCheck = typeof options.postCheck === 'function' ? options.postCheck : r => r;
+    this._limitTiers = parseLimitTiers(this._limit.applyLimitsTo ?? LIMIT_TIER_EXTERNAL);
+    this._numericAllowed = options.numericAllowed ?? true;
+    // Base map: DEFAULT_XML_ENTITIES + user-supplied extras. Immutable after construction.
+    this._baseMap = mergeEntityMaps(XML, options.namedEntities || null);
+
+    // Persistent external entities — survive across documents.
+    // Stored as a separate map so reset() never touches them.
+    /** @type {Record<string, string>} */
+    this._externalMap = Object.create(null);
+
+    // Input / runtime entities — current document only, wiped on reset().
+    /** @type {Record<string, string>} */
+    this._inputMap = Object.create(null);
+
+    // Per-document counters
+    this._totalExpansions = 0;
+    this._expandedLength = 0;
+
+    // --- New: remove / leave sets ---
+    /** @type {Set<string>} */
+    this._removeSet = new Set(options.remove && Array.isArray(options.remove) ? options.remove : []);
+    /** @type {Set<string>} */
+    this._leaveSet = new Set(options.leave && Array.isArray(options.leave) ? options.leave : []);
+
+    // --- NCR config (parsed into flat fields for hot-path speed) ---
+    const ncrCfg = parseNCRConfig(options.ncr);
+    this._ncrXmlVersion = ncrCfg.xmlVersion;
+    this._ncrOnLevel = ncrCfg.onLevel;
+    this._ncrNullLevel = ncrCfg.nullLevel;
+  }
+
+  // -------------------------------------------------------------------------
+  // Persistent external entity registration
+  // -------------------------------------------------------------------------
+
+  /**
+   * Replace the full set of persistent external entities.
+   * All keys are validated — throws on invalid characters.
+   * @param {Record<string, string | { regex?: RegExp, val: string }>} map
+   */
+  setExternalEntities(map) {
+    if (map) {
+      for (const key of Object.keys(map)) {
+        validateEntityName$1(key);
+      }
+    }
+    this._externalMap = mergeEntityMaps(map);
+  }
+
+  /**
+   * Add a single persistent external entity.
+   * @param {string} key
+   * @param {string} value
+   */
+  addExternalEntity(key, value) {
+    validateEntityName$1(key);
+    if (typeof value === 'string' && value.indexOf('&') === -1) {
+      this._externalMap[key] = value;
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Input / runtime entity registration (per document)
+  // -------------------------------------------------------------------------
+
+  /**
+   * Inject DOCTYPE entities for the current document.
+   * Also resets per-document expansion counters.
+   * @param {Record<string, string | { regx?: RegExp, regex?: RegExp, val: string }>} map
+   */
+  addInputEntities(map) {
+    this._totalExpansions = 0;
+    this._expandedLength = 0;
+    this._inputMap = mergeEntityMaps(map);
+  }
+
+  // -------------------------------------------------------------------------
+  // Per-document reset
+  // -------------------------------------------------------------------------
+
+  /**
+   * Wipe input/runtime entities and reset counters.
+   * Call this before processing each new document.
+   * @returns {this}
+   */
+  reset() {
+    this._inputMap = Object.create(null);
+    this._totalExpansions = 0;
+    this._expandedLength = 0;
+    return this;
+  }
+
+  // -------------------------------------------------------------------------
+  // XML version (can be set after construction, e.g. once parser reads <?xml?>)
+  // -------------------------------------------------------------------------
+
+  /**
+   * Update the XML version used for NCR classification.
+   * Call this as soon as the document's `<?xml version="...">` declaration is parsed.
+   * @param {1.0|1.1|number} version
+   */
+  setXmlVersion(version) {
+    this._ncrXmlVersion = version === 1.1 ? 1.1 : 1.0;
+  }
+
+  // -------------------------------------------------------------------------
+  // Primary API
+  // -------------------------------------------------------------------------
+
+  /**
+   * Replace all entity references in `str` in a single pass.
+   *
+   * @param {string} str
+   * @returns {string}
+   */
+  decode(str) {
+    if (typeof str !== 'string' || str.length === 0) return str;
+    //TODO: check if needed
+    //if (str.indexOf('&') === -1) return str; // fast path — no entities at all
+
+    const original = str;
+    const chunks = [];
+    const len = str.length;
+    let last = 0; // start of next unprocessed literal chunk
+    let i = 0;
+
+    const limitExpansions = this._maxTotalExpansions > 0;
+    const limitLength = this._maxExpandedLength > 0;
+    const checkLimits = limitExpansions || limitLength;
+
+    while (i < len) {
+      // Scan forward to next '&'
+      if (str.charCodeAt(i) !== 38 /* '&' */) { i++; continue; }
+
+      // --- Found '&' at position i ---
+
+      // Scan forward to ';'
+      let j = i + 1;
+      while (j < len && str.charCodeAt(j) !== 59 /* ';' */ && (j - i) <= 32) j++;
+
+      if (j >= len || str.charCodeAt(j) !== 59) {
+        // No closing ';' within window — treat '&' as literal
+        i++;
+        continue;
+      }
+
+      // Raw token between '&' and ';' (exclusive)
+      const token = str.slice(i + 1, j);
+      if (token.length === 0) { i++; continue; }
+
+      let replacement;
+      let tier; // which limit tier this entity belongs to
+
+      if (this._removeSet.has(token)) {
+        // Remove entity: replace with empty string
+        replacement = '';
+        // If entity was unknown (replacement undefined), we still need a tier for limits.
+        // Treat as external tier because it's user-directed removal of an unknown reference.
+        if (tier === undefined) {
+          tier = LIMIT_TIER_EXTERNAL;
+        }
+      } else if (this._leaveSet.has(token)) {
+        // Do not replace — keep original &token; as literal
+        i++;
+        continue;
+      } else if (token.charCodeAt(0) === 35 /* '#' */) {
+        // ---- Numeric / NCR reference ----
+        // NCR classification always runs first — prohibited codepoints must be
+        // caught regardless of numericAllowed.
+        const ncrResult = this._resolveNCR(token);
+        if (ncrResult === undefined) {
+          // 'leave' action — keep original &token; as-is
+          i++;
+          continue;
+        }
+        replacement = ncrResult; // '' for remove, char string for allow
+        tier = LIMIT_TIER_BASE;
+      } else {
+        // ---- Named reference ----
+        const resolved = this._resolveName(token);
+        replacement = resolved?.value;
+        tier = resolved?.tier;
+      }
+
+      if (replacement === undefined) {
+        // Unknown entity — leave as-is, advance past '&' only
+        i++;
+        continue;
+      }
+
+      // Flush literal chunk before this entity
+      if (i > last) chunks.push(str.slice(last, i));
+      chunks.push(replacement);
+      last = j + 1; // skip past ';'
+      i = last;
+
+      // Apply expansion limits only if this tier is being tracked
+      if (checkLimits && this._tierCounts(tier)) {
+        if (limitExpansions) {
+          this._totalExpansions++;
+          if (this._totalExpansions > this._maxTotalExpansions) {
+            throw new Error(
+              `[EntityReplacer] Entity expansion count limit exceeded: ` +
+              `${this._totalExpansions} > ${this._maxTotalExpansions}`
+            );
+          }
+        }
+        if (limitLength) {
+          // delta: replacement.length minus the raw &token; length (token.length + 2 for '&' and ';')
+          const delta = replacement.length - (token.length + 2);
+          if (delta > 0) {
+            this._expandedLength += delta;
+            if (this._expandedLength > this._maxExpandedLength) {
+              throw new Error(
+                `[EntityReplacer] Expanded content length limit exceeded: ` +
+                `${this._expandedLength} > ${this._maxExpandedLength}`
+              );
+            }
+          }
+        }
+      }
+    }
+
+    // Flush trailing literal
+    if (last < len) chunks.push(str.slice(last));
+
+    // If nothing was replaced, chunks is empty — return original
+    const result = chunks.length === 0 ? str : chunks.join('');
+
+    return this._postCheck(result, original);
+  }
+
+  // -------------------------------------------------------------------------
+  // Private: limit tier check
+  // -------------------------------------------------------------------------
+
+  /**
+   * Returns true if a resolved entity of the given tier should count
+   * against the expansion/length limits.
+   * @param {string} tier  — LIMIT_TIER_EXTERNAL | LIMIT_TIER_BASE
+   * @returns {boolean}
+   */
+  _tierCounts(tier) {
+    if (this._limitTiers.has(LIMIT_TIER_ALL)) return true;
+    return this._limitTiers.has(tier);
+  }
+
+  // -------------------------------------------------------------------------
+  // Private: entity resolution
+  // -------------------------------------------------------------------------
+
+  /**
+   * Resolve a named entity token (without & and ;).
+   * Priority: inputMap > externalMap > baseMap
+   * Returns the resolved value tagged with its limit tier.
+   *
+   * @param {string} name
+   * @returns {{ value: string, tier: string }|undefined}
+   */
+  _resolveName(name) {
+    // input and external both count as 'external' tier for limit purposes —
+    // they are injected at runtime and are the untrusted surface.
+    if (name in this._inputMap) return { value: this._inputMap[name], tier: LIMIT_TIER_EXTERNAL };
+    if (name in this._externalMap) return { value: this._externalMap[name], tier: LIMIT_TIER_EXTERNAL };
+    if (name in this._baseMap) return { value: this._baseMap[name], tier: LIMIT_TIER_BASE };
+    return undefined;
+  }
+
+  /**
+   * Classify a codepoint and return the minimum action level that must be applied.
+   * Returns -1 when no minimum is imposed (normal allow path).
+   *
+   * Ranges checked (in priority order):
+   *   1. U+0000            — null, governed by nullNCR (always ≥ remove)
+   *   2. U+D800–U+DFFF     — surrogates, always prohibited (min: remove)
+   *   3. U+0001–U+001F \ {0x09,0x0A,0x0D}  — XML 1.0 restricted C0 (min: remove)
+   *      (skipped in XML 1.1 — C0 controls are allowed when written as NCRs)
+   *
+   * @param {number} cp  — codepoint
+   * @returns {number}   — minimum NCR_LEVEL value, or -1 for no restriction
+   */
+  _classifyNCR(cp) {
+    // 1. Null
+    if (cp === 0) return this._ncrNullLevel;
+
+    // 2. Surrogates — always prohibited, minimum 'remove'
+    if (cp >= 0xD800 && cp <= 0xDFFF) return NCR_LEVEL.remove;
+
+    // 3. XML 1.0 restricted C0 controls
+    if (this._ncrXmlVersion === 1.0) {
+      if (cp >= 0x01 && cp <= 0x1F && !XML10_ALLOWED_C0.has(cp)) return NCR_LEVEL.remove;
+    }
+
+    return -1; // no restriction
+  }
+
+  /**
+   * Execute a resolved NCR action.
+   *
+   * @param {number} action   — NCR_LEVEL value
+   * @param {string} token    — raw token (e.g. '#38') for error messages
+   * @param {number} cp       — codepoint, used only for error messages
+   * @returns {string|undefined}
+   *   - decoded character string  → 'allow'
+   *   - ''                        → 'remove'
+   *   - undefined                 → 'leave' (caller must skip past '&' only)
+   *   - throws Error              → 'throw'
+   */
+  _applyNCRAction(action, token, cp) {
+    switch (action) {
+      case NCR_LEVEL.allow: return String.fromCodePoint(cp);
+      case NCR_LEVEL.remove: return '';
+      case NCR_LEVEL.leave: return undefined; // signal: keep literal
+      case NCR_LEVEL.throw:
+        throw new Error(
+          `[EntityDecoder] Prohibited numeric character reference ` +
+          `&${token}; (U+${cp.toString(16).toUpperCase().padStart(4, '0')})`
+        );
+      default: return String.fromCodePoint(cp);
+    }
+  }
+
+  /**
+   * Full NCR resolution pipeline for a numeric token.
+   *
+   * Steps:
+   *   1. Parse the codepoint (decimal or hex).
+   *   2. Validate the raw codepoint range (NaN, <0, >0x10FFFF).
+   *   3. If numericAllowed is false and no minimum restriction applies → leave as-is.
+   *   4. Classify the codepoint to find the minimum required action level.
+   *   5. Resolve effective action = max(onNCR, minimum).
+   *   6. Apply and return.
+   *
+   * @param {string} token  — e.g. '#38', '#x26', '#X26'
+   * @returns {string|undefined}
+   *   - string (incl. '')  — replacement ('' = remove)
+   *   - undefined          — leave original &token; as-is
+   */
+  _resolveNCR(token) {
+    // Step 1: parse codepoint
+    const second = token.charCodeAt(1);
+    let cp;
+    if (second === 120 /* x */ || second === 88 /* X */) {
+      cp = parseInt(token.slice(2), 16);
+    } else {
+      cp = parseInt(token.slice(1), 10);
+    }
+
+    // Step 2: out-of-range → leave as-is unconditionally
+    if (Number.isNaN(cp) || cp < 0 || cp > 0x10FFFF) return undefined;
+
+    // Step 3: classify to get minimum action level
+    const minimum = this._classifyNCR(cp);
+
+    // Step 4: if numericAllowed is false and no hard minimum → leave
+    if (!this._numericAllowed && minimum < NCR_LEVEL.remove) return undefined;
+
+    // Step 5: effective action = max(configured onNCR, range minimum)
+    const effective = minimum === -1
+      ? this._ncrOnLevel
+      : Math.max(this._ncrOnLevel, minimum);
+
+    // Step 6: apply
+    return this._applyNCRAction(effective, token, cp);
+  }
+}
+
 const defaultOnDangerousProperty = (name) => {
   if (DANGEROUS_PROPERTY_NAMES.includes(name)) {
     return "__" + name;
@@ -43980,6 +44780,7 @@ const defaultOptions$1 = {
   unpairedTags: [],
   processEntities: true,
   htmlEntities: false,
+  entityDecoder: null,
   ignoreDeclaration: false,
   ignorePiTags: false,
   transformTagName: false,
@@ -44026,18 +44827,19 @@ function validatePropertyName(propertyName, optionName) {
  * @param {boolean|object} value 
  * @returns {object} Always returns normalized object
  */
-function normalizeProcessEntities(value) {
+function normalizeProcessEntities(value, htmlEntities) {
   // Boolean backward compatibility
   if (typeof value === 'boolean') {
     return {
       enabled: value, // true or false
       maxEntitySize: 10000,
-      maxExpansionDepth: 10,
-      maxTotalExpansions: 1000,
+      maxExpansionDepth: 10000,
+      maxTotalExpansions: Infinity,
       maxExpandedLength: 100000,
-      maxEntityCount: 100,
+      maxEntityCount: 1000,
       allowedTags: null,
-      tagFilter: null
+      tagFilter: null,
+      appliesTo: "all",
     };
   }
 
@@ -44046,12 +44848,13 @@ function normalizeProcessEntities(value) {
     return {
       enabled: value.enabled !== false,
       maxEntitySize: Math.max(1, value.maxEntitySize ?? 10000),
-      maxExpansionDepth: Math.max(1, value.maxExpansionDepth ?? 10),
-      maxTotalExpansions: Math.max(1, value.maxTotalExpansions ?? 1000),
+      maxExpansionDepth: Math.max(1, value.maxExpansionDepth ?? 10000),
+      maxTotalExpansions: Math.max(1, value.maxTotalExpansions ?? Infinity),
       maxExpandedLength: Math.max(1, value.maxExpandedLength ?? 100000),
-      maxEntityCount: Math.max(1, value.maxEntityCount ?? 100),
+      maxEntityCount: Math.max(1, value.maxEntityCount ?? 1000),
       allowedTags: value.allowedTags ?? null,
-      tagFilter: value.tagFilter ?? null
+      tagFilter: value.tagFilter ?? null,
+      appliesTo: value.appliesTo ?? "all",
     };
   }
 
@@ -44082,8 +44885,8 @@ const buildOptions = function (options) {
   }
 
   // Always normalize processEntities for backward compatibility and validation
-  built.processEntities = normalizeProcessEntities(built.processEntities);
-
+  built.processEntities = normalizeProcessEntities(built.processEntities, built.htmlEntities);
+  built.unpairedTagsSet = new Set(built.unpairedTags);
   // Convert old-style stopNodes for backward compatibility
   if (built.stopNodes && Array.isArray(built.stopNodes)) {
     built.stopNodes = built.stopNodes.map(node => {
@@ -44173,11 +44976,8 @@ class DocTypeReader {
                                 );
                             }
                             //const escaped = entityName.replace(/[.\-+*:]/g, '\\.');
-                            const escaped = entityName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                            entities[entityName] = {
-                                regx: RegExp(`&${escaped};`, "g"),
-                                val: val
-                            };
+                            //const escaped = entityName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                            entities[entityName] = val;
                             entityCount++;
                         }
                     }
@@ -44569,8 +45369,9 @@ function toNumber(str, options = {}) {
 
     let trimmedStr = str.trim();
 
-    if (options.skipLike !== undefined && options.skipLike.test(trimmedStr)) return str;
-    else if (str === "0") return 0;
+    if (trimmedStr.length === 0) return str;
+    else if (options.skipLike !== undefined && options.skipLike.test(trimmedStr)) return str;
+    else if (trimmedStr === "0") return 0;
     else if (options.hex && hexRegex.test(trimmedStr)) {
         return parse_int(trimmedStr, 16);
         // }else if (options.oct && octRegex.test(str)) {
@@ -44744,11 +45545,11 @@ class Expression {
    * @param {Object} options - Configuration options
    * @param {string} options.separator - Path separator (default: '.')
    */
-  constructor(pattern, options = {}) {
+  constructor(pattern, options = {}, data) {
     this.pattern = pattern;
     this.separator = options.separator || '.';
     this.segments = this._parse(pattern);
-
+    this.data = data;
     // Cache expensive checks for performance (O(1) instead of O(n))
     this._hasDeepWildcard = this.segments.some(seg => seg.type === 'deep-wildcard');
     this._hasAttributeCondition = this.segments.some(seg => seg.attrName !== undefined);
@@ -44961,55 +45762,413 @@ class Expression {
 }
 
 /**
- * Matcher - Tracks current path in XML/JSON tree and matches against Expressions
- * 
+ * ExpressionSet - An indexed collection of Expressions for efficient bulk matching
+ *
+ * Instead of iterating all expressions on every tag, ExpressionSet pre-indexes
+ * them at insertion time by depth and terminal tag name. At match time, only
+ * the relevant bucket is evaluated — typically reducing checks from O(E) to O(1)
+ * lookup plus O(small bucket) matches.
+ *
+ * Three buckets are maintained:
+ *  - `_byDepthAndTag`  — exact depth + exact tag name  (tightest, used first)
+ *  - `_wildcardByDepth` — exact depth + wildcard tag `*` (depth-matched only)
+ *  - `_deepWildcards`  — expressions containing `..`  (cannot be depth-indexed)
+ *
+ * @example
+ * import { Expression, ExpressionSet } from 'fast-xml-tagger';
+ *
+ * // Build once at config time
+ * const stopNodes = new ExpressionSet();
+ * stopNodes.add(new Expression('root.users.user'));
+ * stopNodes.add(new Expression('root.config.setting'));
+ * stopNodes.add(new Expression('..script'));
+ *
+ * // Query on every tag — hot path
+ * if (stopNodes.matchesAny(matcher)) { ... }
+ */
+class ExpressionSet {
+  constructor() {
+    /** @type {Map<string, import('./Expression.js').default[]>} depth:tag → expressions */
+    this._byDepthAndTag = new Map();
+
+    /** @type {Map<number, import('./Expression.js').default[]>} depth → wildcard-tag expressions */
+    this._wildcardByDepth = new Map();
+
+    /** @type {import('./Expression.js').default[]} expressions containing deep wildcard (..) */
+    this._deepWildcards = [];
+
+    /** @type {Set<string>} pattern strings already added — used for deduplication */
+    this._patterns = new Set();
+
+    /** @type {boolean} whether the set is sealed against further additions */
+    this._sealed = false;
+  }
+
+  /**
+   * Add an Expression to the set.
+   * Duplicate patterns (same pattern string) are silently ignored.
+   *
+   * @param {import('./Expression.js').default} expression - A pre-constructed Expression instance
+   * @returns {this} for chaining
+   * @throws {TypeError} if called after seal()
+   *
+   * @example
+   * set.add(new Expression('root.users.user'));
+   * set.add(new Expression('..script'));
+   */
+  add(expression) {
+    if (this._sealed) {
+      throw new TypeError(
+        'ExpressionSet is sealed. Create a new ExpressionSet to add more expressions.'
+      );
+    }
+
+    // Deduplicate by pattern string
+    if (this._patterns.has(expression.pattern)) return this;
+    this._patterns.add(expression.pattern);
+
+    if (expression.hasDeepWildcard()) {
+      this._deepWildcards.push(expression);
+      return this;
+    }
+
+    const depth = expression.length;
+    const lastSeg = expression.segments[expression.segments.length - 1];
+    const tag = lastSeg?.tag;
+
+    if (!tag || tag === '*') {
+      // Can index by depth but not by tag
+      if (!this._wildcardByDepth.has(depth)) this._wildcardByDepth.set(depth, []);
+      this._wildcardByDepth.get(depth).push(expression);
+    } else {
+      // Tightest bucket: depth + tag
+      const key = `${depth}:${tag}`;
+      if (!this._byDepthAndTag.has(key)) this._byDepthAndTag.set(key, []);
+      this._byDepthAndTag.get(key).push(expression);
+    }
+
+    return this;
+  }
+
+  /**
+   * Add multiple expressions at once.
+   *
+   * @param {import('./Expression.js').default[]} expressions - Array of Expression instances
+   * @returns {this} for chaining
+   *
+   * @example
+   * set.addAll([
+   *   new Expression('root.users.user'),
+   *   new Expression('root.config.setting'),
+   * ]);
+   */
+  addAll(expressions) {
+    for (const expr of expressions) this.add(expr);
+    return this;
+  }
+
+  /**
+   * Check whether a pattern string is already present in the set.
+   *
+   * @param {import('./Expression.js').default} expression
+   * @returns {boolean}
+   */
+  has(expression) {
+    return this._patterns.has(expression.pattern);
+  }
+
+  /**
+   * Number of expressions in the set.
+   * @type {number}
+   */
+  get size() {
+    return this._patterns.size;
+  }
+
+  /**
+   * Seal the set against further modifications.
+   * Useful to prevent accidental mutations after config is built.
+   * Calling add() or addAll() on a sealed set throws a TypeError.
+   *
+   * @returns {this}
+   */
+  seal() {
+    this._sealed = true;
+    return this;
+  }
+
+  /**
+   * Whether the set has been sealed.
+   * @type {boolean}
+   */
+  get isSealed() {
+    return this._sealed;
+  }
+
+  /**
+   * Test whether the matcher's current path matches any expression in the set.
+   *
+   * Evaluation order (cheapest → most expensive):
+   *  1. Exact depth + tag bucket  — O(1) lookup, typically 0–2 expressions
+   *  2. Depth-only wildcard bucket — O(1) lookup, rare
+   *  3. Deep-wildcard list         — always checked, but usually small
+   *
+   * @param {import('./Matcher.js').default} matcher - Matcher instance (or readOnly view)
+   * @returns {boolean} true if any expression matches the current path
+   *
+   * @example
+   * if (stopNodes.matchesAny(matcher)) {
+   *   // handle stop node
+   * }
+   */
+  matchesAny(matcher) {
+    return this.findMatch(matcher) !== null;
+  }
+  /**
+ * Find and return the first Expression that matches the matcher's current path.
+ *
+ * Uses the same evaluation order as matchesAny (cheapest → most expensive):
+ *  1. Exact depth + tag bucket
+ *  2. Depth-only wildcard bucket
+ *  3. Deep-wildcard list
+ *
+ * @param {import('./Matcher.js').default} matcher - Matcher instance (or readOnly view)
+ * @returns {import('./Expression.js').default | null} the first matching Expression, or null
+ *
+ * @example
+ * const expr = stopNodes.findMatch(matcher);
+ * if (expr) {
+ *   // access expr.config, expr.pattern, etc.
+ * }
+ */
+  findMatch(matcher) {
+    const depth = matcher.getDepth();
+    const tag = matcher.getCurrentTag();
+
+    // 1. Tightest bucket — most expressions live here
+    const exactKey = `${depth}:${tag}`;
+    const exactBucket = this._byDepthAndTag.get(exactKey);
+    if (exactBucket) {
+      for (let i = 0; i < exactBucket.length; i++) {
+        if (matcher.matches(exactBucket[i])) return exactBucket[i];
+      }
+    }
+
+    // 2. Depth-matched wildcard-tag expressions
+    const wildcardBucket = this._wildcardByDepth.get(depth);
+    if (wildcardBucket) {
+      for (let i = 0; i < wildcardBucket.length; i++) {
+        if (matcher.matches(wildcardBucket[i])) return wildcardBucket[i];
+      }
+    }
+
+    // 3. Deep wildcards — cannot be pre-filtered by depth or tag
+    for (let i = 0; i < this._deepWildcards.length; i++) {
+      if (matcher.matches(this._deepWildcards[i])) return this._deepWildcards[i];
+    }
+
+    return null;
+  }
+}
+
+/**
+ * MatcherView - A lightweight read-only view over a Matcher's internal state.
+ *
+ * Created once by Matcher and reused across all callbacks. Holds a direct
+ * reference to the parent Matcher so it always reflects current parser state
+ * with zero copying or freezing overhead.
+ *
+ * Users receive this via {@link Matcher#readOnly} or directly from parser
+ * callbacks. It exposes all query and matching methods but has no mutation
+ * methods — misuse is caught at the TypeScript level rather than at runtime.
+ *
+ * @example
+ * const matcher = new Matcher();
+ * const view = matcher.readOnly();
+ *
+ * matcher.push("root", {});
+ * view.getCurrentTag(); // "root"
+ * view.getDepth();      // 1
+ */
+class MatcherView {
+  /**
+   * @param {Matcher} matcher - The parent Matcher instance to read from.
+   */
+  constructor(matcher) {
+    this._matcher = matcher;
+  }
+
+  /**
+   * Get the path separator used by the parent matcher.
+   * @returns {string}
+   */
+  get separator() {
+    return this._matcher.separator;
+  }
+
+  /**
+   * Get current tag name.
+   * @returns {string|undefined}
+   */
+  getCurrentTag() {
+    const path = this._matcher.path;
+    return path.length > 0 ? path[path.length - 1].tag : undefined;
+  }
+
+  /**
+   * Get current namespace.
+   * @returns {string|undefined}
+   */
+  getCurrentNamespace() {
+    const path = this._matcher.path;
+    return path.length > 0 ? path[path.length - 1].namespace : undefined;
+  }
+
+  /**
+   * Get current node's attribute value.
+   * @param {string} attrName
+   * @returns {*}
+   */
+  getAttrValue(attrName) {
+    const path = this._matcher.path;
+    if (path.length === 0) return undefined;
+    return path[path.length - 1].values?.[attrName];
+  }
+
+  /**
+   * Check if current node has an attribute.
+   * @param {string} attrName
+   * @returns {boolean}
+   */
+  hasAttr(attrName) {
+    const path = this._matcher.path;
+    if (path.length === 0) return false;
+    const current = path[path.length - 1];
+    return current.values !== undefined && attrName in current.values;
+  }
+
+  /**
+   * Get current node's sibling position (child index in parent).
+   * @returns {number}
+   */
+  getPosition() {
+    const path = this._matcher.path;
+    if (path.length === 0) return -1;
+    return path[path.length - 1].position ?? 0;
+  }
+
+  /**
+   * Get current node's repeat counter (occurrence count of this tag name).
+   * @returns {number}
+   */
+  getCounter() {
+    const path = this._matcher.path;
+    if (path.length === 0) return -1;
+    return path[path.length - 1].counter ?? 0;
+  }
+
+  /**
+   * Get current node's sibling index (alias for getPosition).
+   * @returns {number}
+   * @deprecated Use getPosition() or getCounter() instead
+   */
+  getIndex() {
+    return this.getPosition();
+  }
+
+  /**
+   * Get current path depth.
+   * @returns {number}
+   */
+  getDepth() {
+    return this._matcher.path.length;
+  }
+
+  /**
+   * Get path as string.
+   * @param {string} [separator] - Optional separator (uses default if not provided)
+   * @param {boolean} [includeNamespace=true]
+   * @returns {string}
+   */
+  toString(separator, includeNamespace = true) {
+    return this._matcher.toString(separator, includeNamespace);
+  }
+
+  /**
+   * Get path as array of tag names.
+   * @returns {string[]}
+   */
+  toArray() {
+    return this._matcher.path.map(n => n.tag);
+  }
+
+  /**
+   * Match current path against an Expression.
+   * @param {Expression} expression
+   * @returns {boolean}
+   */
+  matches(expression) {
+    return this._matcher.matches(expression);
+  }
+
+  /**
+   * Match any expression in the given set against the current path.
+   * @param {ExpressionSet} exprSet
+   * @returns {boolean}
+   */
+  matchesAny(exprSet) {
+    return exprSet.matchesAny(this._matcher);
+  }
+}
+
+/**
+ * Matcher - Tracks current path in XML/JSON tree and matches against Expressions.
+ *
  * The matcher maintains a stack of nodes representing the current path from root to
  * current tag. It only stores attribute values for the current (top) node to minimize
  * memory usage. Sibling tracking is used to auto-calculate position and counter.
- * 
+ *
+ * Use {@link Matcher#readOnly} to obtain a {@link MatcherView} safe to pass to
+ * user callbacks — it always reflects current state with no Proxy overhead.
+ *
  * @example
  * const matcher = new Matcher();
  * matcher.push("root", {});
  * matcher.push("users", {});
  * matcher.push("user", { id: "123", type: "admin" });
- * 
+ *
  * const expr = new Expression("root.users.user");
  * matcher.matches(expr); // true
  */
-
-/**
- * Names of methods that mutate Matcher state.
- * Any attempt to call these on a read-only view throws a TypeError.
- * @type {Set<string>}
- */
-const MUTATING_METHODS = new Set(['push', 'pop', 'reset', 'updateCurrent', 'restore']);
-
 class Matcher {
   /**
-   * Create a new Matcher
-   * @param {Object} options - Configuration options
-   * @param {string} options.separator - Default path separator (default: '.')
+   * Create a new Matcher.
+   * @param {Object} [options={}]
+   * @param {string} [options.separator='.'] - Default path separator
    */
   constructor(options = {}) {
     this.separator = options.separator || '.';
     this.path = [];
     this.siblingStacks = [];
-    // Each path node: { tag: string, values: object, position: number, counter: number }
+    // Each path node: { tag, values, position, counter, namespace? }
     // values only present for current (last) node
     // Each siblingStacks entry: Map<tagName, count> tracking occurrences at each level
+    this._pathStringCache = null;
+    this._view = new MatcherView(this);
   }
 
   /**
-   * Push a new tag onto the path
-   * @param {string} tagName - Name of the tag
-   * @param {Object} attrValues - Attribute key-value pairs for current node (optional)
-   * @param {string} namespace - Namespace for the tag (optional)
+   * Push a new tag onto the path.
+   * @param {string} tagName
+   * @param {Object|null} [attrValues=null]
+   * @param {string|null} [namespace=null]
    */
   push(tagName, attrValues = null, namespace = null) {
+    this._pathStringCache = null;
+
     // Remove values from previous current node (now becoming ancestor)
     if (this.path.length > 0) {
-      const prev = this.path[this.path.length - 1];
-      prev.values = undefined;
+      this.path[this.path.length - 1].values = undefined;
     }
 
     // Get or create sibling tracking for current level
@@ -45042,12 +46201,10 @@ class Matcher {
       counter: counter
     };
 
-    // Store namespace if provided
     if (namespace !== null && namespace !== undefined) {
       node.namespace = namespace;
     }
 
-    // Store values only for current node
     if (attrValues !== null && attrValues !== undefined) {
       node.values = attrValues;
     }
@@ -45056,19 +46213,15 @@ class Matcher {
   }
 
   /**
-   * Pop the last tag from the path
+   * Pop the last tag from the path.
    * @returns {Object|undefined} The popped node
    */
   pop() {
-    if (this.path.length === 0) {
-      return undefined;
-    }
+    if (this.path.length === 0) return undefined;
+    this._pathStringCache = null;
 
     const node = this.path.pop();
 
-    // Clean up sibling tracking for levels deeper than current
-    // After pop, path.length is the new depth
-    // We need to clean up siblingStacks[path.length + 1] and beyond
     if (this.siblingStacks.length > this.path.length + 1) {
       this.siblingStacks.length = this.path.length + 1;
     }
@@ -45077,9 +46230,9 @@ class Matcher {
   }
 
   /**
-   * Update current node's attribute values
-   * Useful when attributes are parsed after push
-   * @param {Object} attrValues - Attribute values
+   * Update current node's attribute values.
+   * Useful when attributes are parsed after push.
+   * @param {Object} attrValues
    */
   updateCurrent(attrValues) {
     if (this.path.length > 0) {
@@ -45091,7 +46244,7 @@ class Matcher {
   }
 
   /**
-   * Get current tag name
+   * Get current tag name.
    * @returns {string|undefined}
    */
   getCurrentTag() {
@@ -45099,7 +46252,7 @@ class Matcher {
   }
 
   /**
-   * Get current namespace
+   * Get current namespace.
    * @returns {string|undefined}
    */
   getCurrentNamespace() {
@@ -45107,19 +46260,18 @@ class Matcher {
   }
 
   /**
-   * Get current node's attribute value
-   * @param {string} attrName - Attribute name
-   * @returns {*} Attribute value or undefined
+   * Get current node's attribute value.
+   * @param {string} attrName
+   * @returns {*}
    */
   getAttrValue(attrName) {
     if (this.path.length === 0) return undefined;
-    const current = this.path[this.path.length - 1];
-    return current.values?.[attrName];
+    return this.path[this.path.length - 1].values?.[attrName];
   }
 
   /**
-   * Check if current node has an attribute
-   * @param {string} attrName - Attribute name
+   * Check if current node has an attribute.
+   * @param {string} attrName
    * @returns {boolean}
    */
   hasAttr(attrName) {
@@ -45129,7 +46281,7 @@ class Matcher {
   }
 
   /**
-   * Get current node's sibling position (child index in parent)
+   * Get current node's sibling position (child index in parent).
    * @returns {number}
    */
   getPosition() {
@@ -45138,7 +46290,7 @@ class Matcher {
   }
 
   /**
-   * Get current node's repeat counter (occurrence count of this tag name)
+   * Get current node's repeat counter (occurrence count of this tag name).
    * @returns {number}
    */
   getCounter() {
@@ -45147,7 +46299,7 @@ class Matcher {
   }
 
   /**
-   * Get current node's sibling index (alias for getPosition for backward compatibility)
+   * Get current node's sibling index (alias for getPosition).
    * @returns {number}
    * @deprecated Use getPosition() or getCounter() instead
    */
@@ -45156,7 +46308,7 @@ class Matcher {
   }
 
   /**
-   * Get current path depth
+   * Get current path depth.
    * @returns {number}
    */
   getDepth() {
@@ -45164,23 +46316,33 @@ class Matcher {
   }
 
   /**
-   * Get path as string
-   * @param {string} separator - Optional separator (uses default if not provided)
-   * @param {boolean} includeNamespace - Whether to include namespace in output (default: true)
+   * Get path as string.
+   * @param {string} [separator] - Optional separator (uses default if not provided)
+   * @param {boolean} [includeNamespace=true]
    * @returns {string}
    */
   toString(separator, includeNamespace = true) {
     const sep = separator || this.separator;
-    return this.path.map(n => {
-      if (includeNamespace && n.namespace) {
-        return `${n.namespace}:${n.tag}`;
+    const isDefault = (sep === this.separator && includeNamespace === true);
+
+    if (isDefault) {
+      if (this._pathStringCache !== null) {
+        return this._pathStringCache;
       }
-      return n.tag;
-    }).join(sep);
+      const result = this.path.map(n =>
+        (n.namespace) ? `${n.namespace}:${n.tag}` : n.tag
+      ).join(sep);
+      this._pathStringCache = result;
+      return result;
+    }
+
+    return this.path.map(n =>
+      (includeNamespace && n.namespace) ? `${n.namespace}:${n.tag}` : n.tag
+    ).join(sep);
   }
 
   /**
-   * Get path as array of tag names
+   * Get path as array of tag names.
    * @returns {string[]}
    */
   toArray() {
@@ -45188,17 +46350,18 @@ class Matcher {
   }
 
   /**
-   * Reset the path to empty
+   * Reset the path to empty.
    */
   reset() {
+    this._pathStringCache = null;
     this.path = [];
     this.siblingStacks = [];
   }
 
   /**
-   * Match current path against an Expression
-   * @param {Expression} expression - The expression to match against
-   * @returns {boolean} True if current path matches the expression
+   * Match current path against an Expression.
+   * @param {Expression} expression
+   * @returns {boolean}
    */
   matches(expression) {
     const segments = expression.segments;
@@ -45207,32 +46370,23 @@ class Matcher {
       return false;
     }
 
-    // Handle deep wildcard patterns
     if (expression.hasDeepWildcard()) {
       return this._matchWithDeepWildcard(segments);
     }
 
-    // Simple path matching (no deep wildcards)
     return this._matchSimple(segments);
   }
 
   /**
-   * Match simple path (no deep wildcards)
    * @private
    */
   _matchSimple(segments) {
-    // Path must be same length as segments
     if (this.path.length !== segments.length) {
       return false;
     }
 
-    // Match each segment bottom-to-top
     for (let i = 0; i < segments.length; i++) {
-      const segment = segments[i];
-      const node = this.path[i];
-      const isCurrentNode = (i === this.path.length - 1);
-
-      if (!this._matchSegment(segment, node, isCurrentNode)) {
+      if (!this._matchSegment(segments[i], this.path[i], i === this.path.length - 1)) {
         return false;
       }
     }
@@ -45241,32 +46395,27 @@ class Matcher {
   }
 
   /**
-   * Match path with deep wildcards
    * @private
    */
   _matchWithDeepWildcard(segments) {
-    let pathIdx = this.path.length - 1;  // Start from current node (bottom)
-    let segIdx = segments.length - 1;     // Start from last segment
+    let pathIdx = this.path.length - 1;
+    let segIdx = segments.length - 1;
 
     while (segIdx >= 0 && pathIdx >= 0) {
       const segment = segments[segIdx];
 
       if (segment.type === 'deep-wildcard') {
-        // ".." matches zero or more levels
         segIdx--;
 
         if (segIdx < 0) {
-          // Pattern ends with "..", always matches
           return true;
         }
 
-        // Find where next segment matches in the path
         const nextSeg = segments[segIdx];
         let found = false;
 
         for (let i = pathIdx; i >= 0; i--) {
-          const isCurrentNode = (i === this.path.length - 1);
-          if (this._matchSegment(nextSeg, this.path[i], isCurrentNode)) {
+          if (this._matchSegment(nextSeg, this.path[i], i === this.path.length - 1)) {
             pathIdx = i - 1;
             segIdx--;
             found = true;
@@ -45278,9 +46427,7 @@ class Matcher {
           return false;
         }
       } else {
-        // Regular segment
-        const isCurrentNode = (pathIdx === this.path.length - 1);
-        if (!this._matchSegment(segment, this.path[pathIdx], isCurrentNode)) {
+        if (!this._matchSegment(segment, this.path[pathIdx], pathIdx === this.path.length - 1)) {
           return false;
         }
         pathIdx--;
@@ -45288,38 +46435,25 @@ class Matcher {
       }
     }
 
-    // All segments must be consumed
     return segIdx < 0;
   }
 
   /**
-   * Match a single segment against a node
    * @private
-   * @param {Object} segment - Segment from Expression
-   * @param {Object} node - Node from path
-   * @param {boolean} isCurrentNode - Whether this is the current (last) node
-   * @returns {boolean}
    */
   _matchSegment(segment, node, isCurrentNode) {
-    // Match tag name (* is wildcard)
     if (segment.tag !== '*' && segment.tag !== node.tag) {
       return false;
     }
 
-    // Match namespace if specified in segment
     if (segment.namespace !== undefined) {
-      // Segment has namespace - node must match it
       if (segment.namespace !== '*' && segment.namespace !== node.namespace) {
         return false;
       }
     }
-    // If segment has no namespace, it matches nodes with or without namespace
 
-    // Match attribute name (check if node has this attribute)
-    // Can only check for current node since ancestors don't have values
     if (segment.attrName !== undefined) {
       if (!isCurrentNode) {
-        // Can't check attributes for ancestor nodes (values not stored)
         return false;
       }
 
@@ -45327,20 +46461,15 @@ class Matcher {
         return false;
       }
 
-      // Match attribute value (only possible for current node)
       if (segment.attrValue !== undefined) {
-        const actualValue = node.values[segment.attrName];
-        // Both should be strings
-        if (String(actualValue) !== String(segment.attrValue)) {
+        if (String(node.values[segment.attrName]) !== String(segment.attrValue)) {
           return false;
         }
       }
     }
 
-    // Match position (only for current node)
     if (segment.position !== undefined) {
       if (!isCurrentNode) {
-        // Can't check position for ancestor nodes
         return false;
       }
 
@@ -45352,10 +46481,8 @@ class Matcher {
         return false;
       } else if (segment.position === 'even' && counter % 2 !== 0) {
         return false;
-      } else if (segment.position === 'nth') {
-        if (counter !== segment.positionValue) {
-          return false;
-        }
+      } else if (segment.position === 'nth' && counter !== segment.positionValue) {
+        return false;
       }
     }
 
@@ -45363,8 +46490,17 @@ class Matcher {
   }
 
   /**
-   * Create a snapshot of current state
-   * @returns {Object} State snapshot
+   * Match any expression in the given set against the current path.
+   * @param {ExpressionSet} exprSet
+   * @returns {boolean}
+   */
+  matchesAny(exprSet) {
+    return exprSet.matchesAny(this);
+  }
+
+  /**
+   * Create a snapshot of current state.
+   * @returns {Object}
    */
   snapshot() {
     return {
@@ -45374,88 +46510,33 @@ class Matcher {
   }
 
   /**
-   * Restore state from snapshot
-   * @param {Object} snapshot - State snapshot
+   * Restore state from snapshot.
+   * @param {Object} snapshot
    */
   restore(snapshot) {
+    this._pathStringCache = null;
     this.path = snapshot.path.map(node => ({ ...node }));
     this.siblingStacks = snapshot.siblingStacks.map(map => new Map(map));
   }
 
   /**
-   * Return a read-only view of this matcher.
+   * Return the read-only {@link MatcherView} for this matcher.
    *
-   * The returned object exposes all query/inspection methods but throws a
-   * TypeError if any state-mutating method is called (`push`, `pop`, `reset`,
-   * `updateCurrent`, `restore`).  Property reads (e.g. `.path`, `.separator`)
-   * are allowed but the returned arrays/objects are frozen so callers cannot
-   * mutate internal state through them either.
+   * The same instance is returned on every call — no allocation occurs.
+   * It always reflects the current parser state and is safe to pass to
+   * user callbacks without risk of accidental mutation.
    *
-   * @returns {ReadOnlyMatcher} A proxy that forwards read operations and blocks writes.
+   * @returns {MatcherView}
    *
    * @example
-   * const matcher = new Matcher();
-   * matcher.push("root", {});
-   *
-   * const ro = matcher.readOnly();
-   * ro.matches(expr);      // ✓ works
-   * ro.getCurrentTag();    // ✓ works
-   * ro.push("child", {}); // ✗ throws TypeError
-   * ro.reset();            // ✗ throws TypeError
+   * const view = matcher.readOnly();
+   * // pass view to callbacks — it stays in sync automatically
+   * view.matches(expr);       // ✓
+   * view.getCurrentTag();     // ✓
+   * // view.push(...)         // ✗ method does not exist — caught by TypeScript
    */
   readOnly() {
-    const self = this;
-
-    return new Proxy(self, {
-      get(target, prop, receiver) {
-        // Block mutating methods
-        if (MUTATING_METHODS.has(prop)) {
-          return () => {
-            throw new TypeError(
-              `Cannot call '${prop}' on a read-only Matcher. ` +
-              `Obtain a writable instance to mutate state.`
-            );
-          };
-        }
-
-        const value = Reflect.get(target, prop, receiver);
-
-        // Freeze array/object properties so callers can't mutate internal
-        // state through direct property access (e.g. matcher.path.push(...))
-        if (prop === 'path' || prop === 'siblingStacks') {
-          return Object.freeze(
-            Array.isArray(value)
-              ? value.map(item =>
-                item instanceof Map
-                  ? Object.freeze(new Map(item))   // freeze a copy of each Map
-                  : Object.freeze({ ...item })      // freeze a copy of each node
-              )
-              : value
-          );
-        }
-
-        // Bind methods so `this` inside them still refers to the real Matcher
-        if (typeof value === 'function') {
-          return value.bind(target);
-        }
-
-        return value;
-      },
-
-      // Prevent any property assignment on the read-only view
-      set(_target, prop) {
-        throw new TypeError(
-          `Cannot set property '${String(prop)}' on a read-only Matcher.`
-        );
-      },
-
-      // Prevent property deletion
-      deleteProperty(_target, prop) {
-        throw new TypeError(
-          `Cannot delete property '${String(prop)}' from a read-only Matcher.`
-        );
-      }
-    });
+    return this._view;
   }
 }
 
@@ -45522,32 +46603,6 @@ class OrderedObjParser {
     this.options = options;
     this.currentNode = null;
     this.tagsNodeStack = [];
-    this.docTypeEntities = {};
-    this.lastEntities = {
-      "apos": { regex: /&(apos|#39|#x27);/g, val: "'" },
-      "gt": { regex: /&(gt|#62|#x3E);/g, val: ">" },
-      "lt": { regex: /&(lt|#60|#x3C);/g, val: "<" },
-      "quot": { regex: /&(quot|#34|#x22);/g, val: "\"" },
-    };
-    this.ampEntity = { regex: /&(amp|#38|#x26);/g, val: "&" };
-    this.htmlEntities = {
-      "space": { regex: /&(nbsp|#160);/g, val: " " },
-      // "lt" : { regex: /&(lt|#60);/g, val: "<" },
-      // "gt" : { regex: /&(gt|#62);/g, val: ">" },
-      // "amp" : { regex: /&(amp|#38);/g, val: "&" },
-      // "quot" : { regex: /&(quot|#34);/g, val: "\"" },
-      // "apos" : { regex: /&(apos|#39);/g, val: "'" },
-      "cent": { regex: /&(cent|#162);/g, val: "¢" },
-      "pound": { regex: /&(pound|#163);/g, val: "£" },
-      "yen": { regex: /&(yen|#165);/g, val: "¥" },
-      "euro": { regex: /&(euro|#8364);/g, val: "€" },
-      "copyright": { regex: /&(copy|#169);/g, val: "©" },
-      "reg": { regex: /&(reg|#174);/g, val: "®" },
-      "inr": { regex: /&(inr|#8377);/g, val: "₹" },
-      "num_dec": { regex: /&#([0-9]{1,7});/g, val: (_, str) => fromCodePoint(str, 10, "&#") },
-      "num_hex": { regex: /&#x([0-9a-fA-F]{1,6});/g, val: (_, str) => fromCodePoint(str, 16, "&#x") },
-    };
-    this.addExternalEntities = addExternalEntities;
     this.parseXml = parseXml;
     this.parseTextData = parseTextData;
     this.resolveNameSpace = resolveNameSpace;
@@ -45560,6 +46615,23 @@ class OrderedObjParser {
     this.ignoreAttributesFn = getIgnoreAttributesFn$1(this.options.ignoreAttributes);
     this.entityExpansionCount = 0;
     this.currentExpandedLength = 0;
+    let namedEntities = { ...XML };
+    if (this.options.entityDecoder) {
+      this.entityDecoder = this.options.entityDecoder;
+    } else {
+      if (typeof this.options.htmlEntities === "object") namedEntities = this.options.htmlEntities;
+      else if (this.options.htmlEntities === true) namedEntities = { ...COMMON_HTML, ...CURRENCY };
+      this.entityDecoder = new EntityDecoder({
+        namedEntities: namedEntities,
+        numericAllowed: this.options.htmlEntities,
+        limit: {
+          maxTotalExpansions: this.options.processEntities.maxTotalExpansions,
+          maxExpandedLength: this.options.processEntities.maxExpandedLength,
+          applyLimitsTo: this.options.processEntities.appliesTo,
+        }
+        //postCheck: resolved => resolved
+      });
+    }
 
     // Initialize path matcher for path-expression-matcher
     this.matcher = new Matcher();
@@ -45572,34 +46644,25 @@ class OrderedObjParser {
     this.isCurrentNodeStopNode = false;
 
     // Pre-compile stopNodes expressions
-    if (this.options.stopNodes && this.options.stopNodes.length > 0) {
-      this.stopNodeExpressions = [];
-      for (let i = 0; i < this.options.stopNodes.length; i++) {
-        const stopNodeExp = this.options.stopNodes[i];
+    this.stopNodeExpressionsSet = new ExpressionSet();
+    const stopNodesOpts = this.options.stopNodes;
+    if (stopNodesOpts && stopNodesOpts.length > 0) {
+      for (let i = 0; i < stopNodesOpts.length; i++) {
+        const stopNodeExp = stopNodesOpts[i];
         if (typeof stopNodeExp === 'string') {
           // Convert string to Expression object
-          this.stopNodeExpressions.push(new Expression(stopNodeExp));
+          this.stopNodeExpressionsSet.add(new Expression(stopNodeExp));
         } else if (stopNodeExp instanceof Expression) {
           // Already an Expression object
-          this.stopNodeExpressions.push(stopNodeExp);
+          this.stopNodeExpressionsSet.add(stopNodeExp);
         }
       }
+      this.stopNodeExpressionsSet.seal();
     }
   }
 
 }
 
-function addExternalEntities(externalEntities) {
-  const entKeys = Object.keys(externalEntities);
-  for (let i = 0; i < entKeys.length; i++) {
-    const ent = entKeys[i];
-    const escaped = ent.replace(/[.\-+*:]/g, '\\.');
-    this.lastEntities[ent] = {
-      regex: new RegExp("&" + escaped + ";", "g"),
-      val: externalEntities[ent]
-    };
-  }
-}
 
 /**
  * @param {string} val
@@ -45611,28 +46674,29 @@ function addExternalEntities(externalEntities) {
  * @param {boolean} escapeEntities
  */
 function parseTextData(val, tagName, jPath, dontTrim, hasAttributes, isLeafNode, escapeEntities) {
+  const options = this.options;
   if (val !== undefined) {
-    if (this.options.trimValues && !dontTrim) {
+    if (options.trimValues && !dontTrim) {
       val = val.trim();
     }
     if (val.length > 0) {
       if (!escapeEntities) val = this.replaceEntitiesValue(val, tagName, jPath);
 
       // Pass jPath string or matcher based on options.jPath setting
-      const jPathOrMatcher = this.options.jPath ? jPath.toString() : jPath;
-      const newval = this.options.tagValueProcessor(tagName, val, jPathOrMatcher, hasAttributes, isLeafNode);
+      const jPathOrMatcher = options.jPath ? jPath.toString() : jPath;
+      const newval = options.tagValueProcessor(tagName, val, jPathOrMatcher, hasAttributes, isLeafNode);
       if (newval === null || newval === undefined) {
         //don't parse
         return val;
       } else if (typeof newval !== typeof val || newval !== val) {
         //overwrite
         return newval;
-      } else if (this.options.trimValues) {
-        return parseValue(val, this.options.parseTagValue, this.options.numberParseOptions);
+      } else if (options.trimValues) {
+        return parseValue(val, options.parseTagValue, options.numberParseOptions);
       } else {
         const trimmedVal = val.trim();
         if (trimmedVal === val) {
-          return parseValue(val, this.options.parseTagValue, this.options.numberParseOptions);
+          return parseValue(val, options.parseTagValue, options.numberParseOptions);
         } else {
           return val;
         }
@@ -45659,8 +46723,9 @@ function resolveNameSpace(tagname) {
 //const attrsRegx = new RegExp("([\\w\\-\\.\\:]+)\\s*=\\s*(['\"])((.|\n)*?)\\2","gm");
 const attrsRegx = new RegExp('([^\\s=]+)\\s*(=\\s*([\'"])([\\s\\S]*?)\\3)?', 'gm');
 
-function buildAttributesMap(attrStr, jPath, tagName) {
-  if (this.options.ignoreAttributes !== true && typeof attrStr === 'string') {
+function buildAttributesMap(attrStr, jPath, tagName, force = false) {
+  const options = this.options;
+  if (force === true || (options.ignoreAttributes !== true && typeof attrStr === 'string')) {
     // attrStr = attrStr.replace(/\r?\n/g, ' ');
     //attrStr = attrStr || attrStr.trim();
 
@@ -45668,89 +46733,80 @@ function buildAttributesMap(attrStr, jPath, tagName) {
     const len = matches.length; //don't make it inline
     const attrs = {};
 
-    // First pass: parse all attributes and update matcher with raw values
-    // This ensures the matcher has all attribute values when processors run
+    // Pre-process values once: trim + entity replacement
+    // Reused in both matcher update and second pass
+    const processedVals = new Array(len);
+    let hasRawAttrs = false;
     const rawAttrsForMatcher = {};
+
     for (let i = 0; i < len; i++) {
       const attrName = this.resolveNameSpace(matches[i][1]);
       const oldVal = matches[i][4];
 
       if (attrName.length && oldVal !== undefined) {
-        let parsedVal = oldVal;
-        if (this.options.trimValues) {
-          parsedVal = parsedVal.trim();
-        }
-        parsedVal = this.replaceEntitiesValue(parsedVal, tagName, this.readonlyMatcher);
-        rawAttrsForMatcher[attrName] = parsedVal;
+        let val = oldVal;
+        if (options.trimValues) val = val.trim();
+        val = this.replaceEntitiesValue(val, tagName, this.readonlyMatcher);
+        processedVals[i] = val;
+
+        rawAttrsForMatcher[attrName] = val;
+        hasRawAttrs = true;
       }
     }
 
-    // Update matcher with raw attribute values BEFORE running processors
-    if (Object.keys(rawAttrsForMatcher).length > 0 && typeof jPath === 'object' && jPath.updateCurrent) {
+    // Update matcher ONCE before second pass, if applicable
+    if (hasRawAttrs && typeof jPath === 'object' && jPath.updateCurrent) {
       jPath.updateCurrent(rawAttrsForMatcher);
     }
 
-    // Second pass: now process attributes with matcher having full attribute context
+    // Hoist toString() once — path doesn't change during attribute processing
+    const jPathStr = options.jPath ? jPath.toString() : this.readonlyMatcher;
+
+    // Second pass: apply processors, build final attrs
+    let hasAttrs = false;
     for (let i = 0; i < len; i++) {
       const attrName = this.resolveNameSpace(matches[i][1]);
 
-      // Convert jPath to string if needed for ignoreAttributesFn
-      const jPathStr = this.options.jPath ? jPath.toString() : this.readonlyMatcher;
-      if (this.ignoreAttributesFn(attrName, jPathStr)) {
-        continue
-      }
+      if (this.ignoreAttributesFn(attrName, jPathStr)) continue;
 
-      let oldVal = matches[i][4];
-      let aName = this.options.attributeNamePrefix + attrName;
+      let aName = options.attributeNamePrefix + attrName;
 
       if (attrName.length) {
-        if (this.options.transformAttributeName) {
-          aName = this.options.transformAttributeName(aName);
+        if (options.transformAttributeName) {
+          aName = options.transformAttributeName(aName);
         }
-        //if (aName === "__proto__") aName = "#__proto__";
-        aName = sanitizeName(aName, this.options);
+        aName = sanitizeName(aName, options);
 
-        if (oldVal !== undefined) {
-          if (this.options.trimValues) {
-            oldVal = oldVal.trim();
-          }
-          oldVal = this.replaceEntitiesValue(oldVal, tagName, this.readonlyMatcher);
+        if (matches[i][4] !== undefined) {
+          // Reuse already-processed value — no double entity replacement
+          const oldVal = processedVals[i];
 
-          // Pass jPath string or readonlyMatcher based on options.jPath setting
-          const jPathOrMatcher = this.options.jPath ? jPath.toString() : this.readonlyMatcher;
-          const newVal = this.options.attributeValueProcessor(attrName, oldVal, jPathOrMatcher);
+          const newVal = options.attributeValueProcessor(attrName, oldVal, jPathStr);
           if (newVal === null || newVal === undefined) {
-            //don't parse
             attrs[aName] = oldVal;
           } else if (typeof newVal !== typeof oldVal || newVal !== oldVal) {
-            //overwrite
             attrs[aName] = newVal;
           } else {
-            //parse
-            attrs[aName] = parseValue(
-              oldVal,
-              this.options.parseAttributeValue,
-              this.options.numberParseOptions
-            );
+            attrs[aName] = parseValue(oldVal, options.parseAttributeValue, options.numberParseOptions);
           }
-        } else if (this.options.allowBooleanAttributes) {
+          hasAttrs = true;
+        } else if (options.allowBooleanAttributes) {
           attrs[aName] = true;
+          hasAttrs = true;
         }
       }
     }
 
-    if (!Object.keys(attrs).length) {
-      return;
-    }
-    if (this.options.attributesGroupName) {
+    if (!hasAttrs) return;
+
+    if (options.attributesGroupName) {
       const attrCollection = {};
-      attrCollection[this.options.attributesGroupName] = attrs;
+      attrCollection[options.attributesGroupName] = attrs;
       return attrCollection;
     }
-    return attrs
+    return attrs;
   }
 }
-
 const parseXml = function (xmlData) {
   xmlData = xmlData.replace(/\r\n?/g, "\n"); //TODO: remove this line
   const xmlObj = new XmlNode('!xml');
@@ -45759,29 +46815,32 @@ const parseXml = function (xmlData) {
 
   // Reset matcher for new document
   this.matcher.reset();
+  this.entityDecoder.reset();
 
   // Reset entity expansion counters for this document
   this.entityExpansionCount = 0;
   this.currentExpandedLength = 0;
-
-  const docTypeReader = new DocTypeReader(this.options.processEntities);
-  for (let i = 0; i < xmlData.length; i++) {//for each char in XML data
+  const options = this.options;
+  const docTypeReader = new DocTypeReader(options.processEntities);
+  const xmlLen = xmlData.length;
+  for (let i = 0; i < xmlLen; i++) {//for each char in XML data
     const ch = xmlData[i];
     if (ch === '<') {
       // const nextIndex = i+1;
       // const _2ndChar = xmlData[nextIndex];
-      if (xmlData[i + 1] === '/') {//Closing Tag
+      const c1 = xmlData.charCodeAt(i + 1);
+      if (c1 === 47) {//Closing Tag '/'
         const closeIndex = findClosingIndex(xmlData, ">", i, "Closing Tag is not closed.");
         let tagName = xmlData.substring(i + 2, closeIndex).trim();
 
-        if (this.options.removeNSPrefix) {
+        if (options.removeNSPrefix) {
           const colonIndex = tagName.indexOf(":");
           if (colonIndex !== -1) {
             tagName = tagName.substr(colonIndex + 1);
           }
         }
 
-        tagName = transformTagName(this.options.transformTagName, tagName, "", this.options).tagName;
+        tagName = transformTagName(options.transformTagName, tagName, "", options).tagName;
 
         if (currentNode) {
           textData = this.saveTextToParentTag(textData, currentNode, this.readonlyMatcher);
@@ -45789,10 +46848,10 @@ const parseXml = function (xmlData) {
 
         //check if last tag of nested tag was unpaired tag
         const lastTagName = this.matcher.getCurrentTag();
-        if (tagName && this.options.unpairedTags.indexOf(tagName) !== -1) {
+        if (tagName && options.unpairedTagsSet.has(tagName)) {
           throw new Error(`Unpaired tag can not be used as closing tag: </${tagName}>`);
         }
-        if (lastTagName && this.options.unpairedTags.indexOf(lastTagName) !== -1) {
+        if (lastTagName && options.unpairedTagsSet.has(lastTagName)) {
           // Pop the unpaired tag
           this.matcher.pop();
           this.tagsNodeStack.pop();
@@ -45804,40 +46863,49 @@ const parseXml = function (xmlData) {
         currentNode = this.tagsNodeStack.pop();//avoid recursion, set the parent tag scope
         textData = "";
         i = closeIndex;
-      } else if (xmlData[i + 1] === '?') {
+      } else if (c1 === 63) { //'?'
 
         let tagData = readTagExp(xmlData, i, false, "?>");
         if (!tagData) throw new Error("Pi Tag is not closed.");
 
         textData = this.saveTextToParentTag(textData, currentNode, this.readonlyMatcher);
-        if ((this.options.ignoreDeclaration && tagData.tagName === "?xml") || this.options.ignorePiTags) ; else {
+        const attsMap = this.buildAttributesMap(tagData.tagExp, this.matcher, tagData.tagName, true);
+        if (attsMap) {
+          const ver = attsMap[this.options.attributeNamePrefix + "version"];
+          this.entityDecoder.setXmlVersion(Number(ver) || 1.0);
+        }
+        if ((options.ignoreDeclaration && tagData.tagName === "?xml") || options.ignorePiTags) ; else {
 
           const childNode = new XmlNode(tagData.tagName);
-          childNode.add(this.options.textNodeName, "");
+          childNode.add(options.textNodeName, "");
 
-          if (tagData.tagName !== tagData.tagExp && tagData.attrExpPresent) {
-            childNode[":@"] = this.buildAttributesMap(tagData.tagExp, this.matcher, tagData.tagName);
+          if (tagData.tagName !== tagData.tagExp && tagData.attrExpPresent && options.ignoreAttributes !== true) {
+            childNode[":@"] = attsMap;
           }
           this.addChild(currentNode, childNode, this.readonlyMatcher, i);
         }
 
 
         i = tagData.closeIndex + 1;
-      } else if (xmlData.substr(i + 1, 3) === '!--') {
+      } else if (c1 === 33
+        && xmlData.charCodeAt(i + 2) === 45
+        && xmlData.charCodeAt(i + 3) === 45) { //'!--'
         const endIndex = findClosingIndex(xmlData, "-->", i + 4, "Comment is not closed.");
-        if (this.options.commentPropName) {
+        if (options.commentPropName) {
           const comment = xmlData.substring(i + 4, endIndex - 2);
 
           textData = this.saveTextToParentTag(textData, currentNode, this.readonlyMatcher);
 
-          currentNode.add(this.options.commentPropName, [{ [this.options.textNodeName]: comment }]);
+          currentNode.add(options.commentPropName, [{ [options.textNodeName]: comment }]);
         }
         i = endIndex;
-      } else if (xmlData.substr(i + 1, 2) === '!D') {
+      } else if (c1 === 33
+        && xmlData.charCodeAt(i + 2) === 68) { //'!D'
         const result = docTypeReader.readDocType(xmlData, i);
-        this.docTypeEntities = result.entities;
+        this.entityDecoder.addInputEntities(result.entities);
         i = result.i;
-      } else if (xmlData.substr(i + 1, 2) === '![') {
+      } else if (c1 === 33
+        && xmlData.charCodeAt(i + 2) === 91) { // '!['
         const closeIndex = findClosingIndex(xmlData, "]]>", i, "CDATA is not closed.") - 2;
         const tagExp = xmlData.substring(i + 9, closeIndex);
 
@@ -45847,20 +46915,20 @@ const parseXml = function (xmlData) {
         if (val == undefined) val = "";
 
         //cdata should be set even if it is 0 length string
-        if (this.options.cdataPropName) {
-          currentNode.add(this.options.cdataPropName, [{ [this.options.textNodeName]: tagExp }]);
+        if (options.cdataPropName) {
+          currentNode.add(options.cdataPropName, [{ [options.textNodeName]: tagExp }]);
         } else {
-          currentNode.add(this.options.textNodeName, val);
+          currentNode.add(options.textNodeName, val);
         }
 
         i = closeIndex + 2;
       } else {//Opening tag
-        let result = readTagExp(xmlData, i, this.options.removeNSPrefix);
+        let result = readTagExp(xmlData, i, options.removeNSPrefix);
 
         // Safety check: readTagExp can return undefined
         if (!result) {
           // Log context for debugging
-          const context = xmlData.substring(Math.max(0, i - 50), Math.min(xmlData.length, i + 50));
+          const context = xmlData.substring(Math.max(0, i - 50), Math.min(xmlLen, i + 50));
           throw new Error(`readTagExp returned undefined at position ${i}. Context: "${context}"`);
         }
 
@@ -45870,13 +46938,13 @@ const parseXml = function (xmlData) {
         let attrExpPresent = result.attrExpPresent;
         let closeIndex = result.closeIndex;
 
-        ({ tagName, tagExp } = transformTagName(this.options.transformTagName, tagName, tagExp, this.options));
+        ({ tagName, tagExp } = transformTagName(options.transformTagName, tagName, tagExp, options));
 
-        if (this.options.strictReservedNames &&
-          (tagName === this.options.commentPropName
-            || tagName === this.options.cdataPropName
-            || tagName === this.options.textNodeName
-            || tagName === this.options.attributesGroupName
+        if (options.strictReservedNames &&
+          (tagName === options.commentPropName
+            || tagName === options.cdataPropName
+            || tagName === options.textNodeName
+            || tagName === options.attributesGroupName
           )) {
           throw new Error(`Invalid tag name: ${tagName}`);
         }
@@ -45891,7 +46959,7 @@ const parseXml = function (xmlData) {
 
         //check if last tag was unpaired tag
         const lastTag = currentNode;
-        if (lastTag && this.options.unpairedTags.indexOf(lastTag.tagname) !== -1) {
+        if (lastTag && options.unpairedTagsSet.has(lastTag.tagname)) {
           currentNode = this.tagsNodeStack.pop();
           this.matcher.pop();
         }
@@ -45932,13 +47000,14 @@ const parseXml = function (xmlData) {
 
           if (prefixedAttrs) {
             // Extract raw attributes (without prefix) for our use
-            extractRawAttributes(prefixedAttrs, this.options);
+            //TODO: seems a performance overhead
+            extractRawAttributes(prefixedAttrs, options);
           }
         }
 
         // Now check if this is a stop node (after attributes are set)
         if (tagName !== xmlObj.tagname) {
-          this.isCurrentNodeStopNode = this.isItStopNode(this.stopNodeExpressions, this.matcher);
+          this.isCurrentNodeStopNode = this.isItStopNode();
         }
 
         const startIndex = i;
@@ -45950,7 +47019,7 @@ const parseXml = function (xmlData) {
             i = result.closeIndex;
           }
           //unpaired tag
-          else if (this.options.unpairedTags.indexOf(tagName) !== -1) {
+          else if (options.unpairedTagsSet.has(tagName)) {
             i = result.closeIndex;
           }
           //normal tag
@@ -45969,7 +47038,7 @@ const parseXml = function (xmlData) {
           }
 
           // For stop nodes, store raw content as-is without any processing
-          childNode.add(this.options.textNodeName, tagContent);
+          childNode.add(options.textNodeName, tagContent);
 
           this.matcher.pop(); // Pop the stop node tag
           this.isCurrentNodeStopNode = false; // Reset flag
@@ -45978,7 +47047,7 @@ const parseXml = function (xmlData) {
         } else {
           //selfClosing tag
           if (isSelfClosing) {
-            ({ tagName, tagExp } = transformTagName(this.options.transformTagName, tagName, tagExp, this.options));
+            ({ tagName, tagExp } = transformTagName(options.transformTagName, tagName, tagExp, options));
 
             const childNode = new XmlNode(tagName);
             if (prefixedAttrs) {
@@ -45988,7 +47057,7 @@ const parseXml = function (xmlData) {
             this.matcher.pop(); // Pop self-closing tag
             this.isCurrentNodeStopNode = false; // Reset flag
           }
-          else if (this.options.unpairedTags.indexOf(tagName) !== -1) {//unpaired tag
+          else if (options.unpairedTagsSet.has(tagName)) {//unpaired tag
             const childNode = new XmlNode(tagName);
             if (prefixedAttrs) {
               childNode[":@"] = prefixedAttrs;
@@ -46003,7 +47072,7 @@ const parseXml = function (xmlData) {
           //opening tag
           else {
             const childNode = new XmlNode(tagName);
-            if (this.tagsNodeStack.length > this.options.maxNestedTags) {
+            if (this.tagsNodeStack.length > options.maxNestedTags) {
               throw new Error("Maximum nested tags exceeded");
             }
             this.tagsNodeStack.push(currentNode);
@@ -46072,79 +47141,7 @@ function replaceEntitiesValue$1(val, tagName, jPath) {
     }
   }
 
-  // Replace DOCTYPE entities
-  for (const entityName of Object.keys(this.docTypeEntities)) {
-    const entity = this.docTypeEntities[entityName];
-    const matches = val.match(entity.regx);
-
-    if (matches) {
-      // Track expansions
-      this.entityExpansionCount += matches.length;
-
-      // Check expansion limit
-      if (entityConfig.maxTotalExpansions &&
-        this.entityExpansionCount > entityConfig.maxTotalExpansions) {
-        throw new Error(
-          `Entity expansion limit exceeded: ${this.entityExpansionCount} > ${entityConfig.maxTotalExpansions}`
-        );
-      }
-
-      // Store length before replacement
-      const lengthBefore = val.length;
-      val = val.replace(entity.regx, entity.val);
-
-      // Check expanded length immediately after replacement
-      if (entityConfig.maxExpandedLength) {
-        this.currentExpandedLength += (val.length - lengthBefore);
-
-        if (this.currentExpandedLength > entityConfig.maxExpandedLength) {
-          throw new Error(
-            `Total expanded content size exceeded: ${this.currentExpandedLength} > ${entityConfig.maxExpandedLength}`
-          );
-        }
-      }
-    }
-  }
-  // Replace standard entities
-  for (const entityName of Object.keys(this.lastEntities)) {
-    const entity = this.lastEntities[entityName];
-    const matches = val.match(entity.regex);
-    if (matches) {
-      this.entityExpansionCount += matches.length;
-      if (entityConfig.maxTotalExpansions &&
-        this.entityExpansionCount > entityConfig.maxTotalExpansions) {
-        throw new Error(
-          `Entity expansion limit exceeded: ${this.entityExpansionCount} > ${entityConfig.maxTotalExpansions}`
-        );
-      }
-    }
-    val = val.replace(entity.regex, entity.val);
-  }
-  if (val.indexOf('&') === -1) return val;
-
-  // Replace HTML entities if enabled
-  if (this.options.htmlEntities) {
-    for (const entityName of Object.keys(this.htmlEntities)) {
-      const entity = this.htmlEntities[entityName];
-      const matches = val.match(entity.regex);
-      if (matches) {
-        //console.log(matches);
-        this.entityExpansionCount += matches.length;
-        if (entityConfig.maxTotalExpansions &&
-          this.entityExpansionCount > entityConfig.maxTotalExpansions) {
-          throw new Error(
-            `Entity expansion limit exceeded: ${this.entityExpansionCount} > ${entityConfig.maxTotalExpansions}`
-          );
-        }
-      }
-      val = val.replace(entity.regex, entity.val);
-    }
-  }
-
-  // Replace ampersand entity last
-  val = val.replace(this.ampEntity.regex, this.ampEntity.val);
-
-  return val;
+  return this.entityDecoder.decode(val);
 }
 
 
@@ -46166,20 +47163,14 @@ function saveTextToParentTag(textData, parentNode, matcher, isLeafNode) {
   return textData;
 }
 
-//TODO: use jPath to simplify the logic
 /**
  * @param {Array<Expression>} stopNodeExpressions - Array of compiled Expression objects
  * @param {Matcher} matcher - Current path matcher
  */
-function isItStopNode(stopNodeExpressions, matcher) {
-  if (!stopNodeExpressions || stopNodeExpressions.length === 0) return false;
+function isItStopNode() {
+  if (this.stopNodeExpressionsSet.size === 0) return false;
 
-  for (let i = 0; i < stopNodeExpressions.length; i++) {
-    if (matcher.matches(stopNodeExpressions[i])) {
-      return true;
-    }
-  }
-  return false;
+  return this.matcher.matchesAny(this.stopNodeExpressionsSet);
 }
 
 /**
@@ -46189,32 +47180,33 @@ function isItStopNode(stopNodeExpressions, matcher) {
  * @returns 
  */
 function tagExpWithClosingIndex(xmlData, i, closingChar = ">") {
-  let attrBoundary;
-  let tagExp = "";
-  for (let index = i; index < xmlData.length; index++) {
-    let ch = xmlData[index];
+  let attrBoundary = 0;
+  const chars = [];
+  const len = xmlData.length;
+  const closeCode0 = closingChar.charCodeAt(0);
+  const closeCode1 = closingChar.length > 1 ? closingChar.charCodeAt(1) : -1;
+
+  for (let index = i; index < len; index++) {
+    const code = xmlData.charCodeAt(index);
+
     if (attrBoundary) {
-      if (ch === attrBoundary) attrBoundary = "";//reset
-    } else if (ch === '"' || ch === "'") {
-      attrBoundary = ch;
-    } else if (ch === closingChar[0]) {
-      if (closingChar[1]) {
-        if (xmlData[index + 1] === closingChar[1]) {
-          return {
-            data: tagExp,
-            index: index
-          }
+      if (code === attrBoundary) attrBoundary = 0;
+    } else if (code === 34 || code === 39) { // " or '
+      attrBoundary = code;
+    } else if (code === closeCode0) {
+      if (closeCode1 !== -1) {
+        if (xmlData.charCodeAt(index + 1) === closeCode1) {
+          return { data: String.fromCharCode(...chars), index };
         }
       } else {
-        return {
-          data: tagExp,
-          index: index
-        }
+        return { data: String.fromCharCode(...chars), index };
       }
-    } else if (ch === '\t') {
-      ch = " ";
+    } else if (code === 9) { // \t
+      chars.push(32); // space
+      continue;
     }
-    tagExp += ch;
+
+    chars.push(code);
   }
 }
 
@@ -46225,6 +47217,12 @@ function findClosingIndex(xmlData, str, i, errMsg) {
   } else {
     return closingIndex + str.length - 1;
   }
+}
+
+function findClosingChar(xmlData, char, i, errMsg) {
+  const closingIndex = xmlData.indexOf(char, i);
+  if (closingIndex === -1) throw new Error(errMsg);
+  return closingIndex; // no offset needed
 }
 
 function readTagExp(xmlData, i, removeNSPrefix, closingChar = ">") {
@@ -46268,10 +47266,12 @@ function readStopNodeData(xmlData, tagName, i) {
   // Starting at 1 since we already have an open tag
   let openTagCount = 1;
 
-  for (; i < xmlData.length; i++) {
+  const xmllen = xmlData.length;
+  for (; i < xmllen; i++) {
     if (xmlData[i] === "<") {
-      if (xmlData[i + 1] === "/") {//close tag
-        const closeIndex = findClosingIndex(xmlData, ">", i, `${tagName} is not closed`);
+      const c1 = xmlData.charCodeAt(i + 1);
+      if (c1 === 47) {//close tag '/'
+        const closeIndex = findClosingChar(xmlData, ">", i, `${tagName} is not closed`);
         let closeTagName = xmlData.substring(i + 2, closeIndex).trim();
         if (closeTagName === tagName) {
           openTagCount--;
@@ -46283,13 +47283,16 @@ function readStopNodeData(xmlData, tagName, i) {
           }
         }
         i = closeIndex;
-      } else if (xmlData[i + 1] === '?') {
+      } else if (c1 === 63) { //?
         const closeIndex = findClosingIndex(xmlData, "?>", i + 1, "StopNode is not closed.");
         i = closeIndex;
-      } else if (xmlData.substr(i + 1, 3) === '!--') {
+      } else if (c1 === 33
+        && xmlData.charCodeAt(i + 2) === 45
+        && xmlData.charCodeAt(i + 3) === 45) { // '!--'
         const closeIndex = findClosingIndex(xmlData, "-->", i + 3, "StopNode is not closed.");
         i = closeIndex;
-      } else if (xmlData.substr(i + 1, 2) === '![') {
+      } else if (c1 === 33
+        && xmlData.charCodeAt(i + 2) === 91) { // '!['
         const closeIndex = findClosingIndex(xmlData, "]]>", i, "StopNode is not closed.") - 2;
         i = closeIndex;
       } else {
@@ -46320,16 +47323,6 @@ function parseValue(val, shouldParse, options) {
     } else {
       return '';
     }
-  }
-}
-
-function fromCodePoint(str, base, prefix) {
-  const codePoint = Number.parseInt(str, base);
-
-  if (codePoint >= 0 && codePoint <= 0x10FFFF) {
-    return String.fromCodePoint(codePoint);
-  } else {
-    return prefix + str + ";";
   }
 }
 
@@ -46553,7 +47546,7 @@ class XMLParser {
             }
         }
         const orderedObjParser = new OrderedObjParser(this.options);
-        orderedObjParser.addExternalEntities(this.externalEntities);
+        orderedObjParser.entityDecoder.setExternalEntities(this.externalEntities);
         const orderedResult = orderedObjParser.parseXml(xmlData);
         if (this.options.preserveOrder || orderedResult === undefined) return orderedResult;
         else return prettify(orderedResult, this.options, orderedObjParser.matcher, orderedObjParser.readonlyMatcher);
@@ -46591,17 +47584,194 @@ class XMLParser {
     }
 }
 
+function safeComment(val) {
+  return String(val)
+    .replace(/--/g, '- -')   // -- is illegal anywhere in comment content
+    .replace(/--/g, '- -')   // handle the scenario when 2 consiucative dashes appears 
+    .replace(/-$/, '- ');    // trailing - would form -- with the closing -->
+}
+
+function safeCdata(val) {
+  return String(val).replace(/\]\]>/g, ']]]]><![CDATA[>')
+}
+
+function escapeAttribute(val) {
+  return String(val).replace(/"/g, '&quot;').replace(/'/g, '&apos;')
+}
+
+/**
+ * xml-naming
+ * Validates XML Name productions as defined in the XML 1.0 and 1.1 specifications.
+ * Covers: Name, NCName, QName, NMToken, NMTokens
+ *
+ * XML 1.0 spec: https://www.w3.org/TR/xml/#NT-Name
+ * XML 1.1 spec: https://www.w3.org/TR/xml11/#NT-NameStartChar
+ * XML NS spec:  https://www.w3.org/TR/xml-names/#NT-NCName
+ */
+
+// ---------------------------------------------------------------------------
+// Character class strings — XML 1.0
+//
+// NameStartChar ::= ":" | [A-Z] | "_" | [a-z]
+//   | [#xC0-#xD6]   | [#xD8-#xF6]   | [#xF8-#x2FF]
+//   | [#x370-#x37D] | [#x37F-#x1FFF]    <- split to exclude #x0487
+//   | [#x200C-#x200D]
+//   | [#x2070-#x218F] | [#x2C00-#x2FEF]
+//   | [#x3001-#xD7FF] | [#xF900-#xFDCF] | [#xFDF0-#xFFFD]
+//
+// NameChar ::= NameStartChar | "-" | "." | [0-9]
+//   | #xB7 | [#x0300-#x036F] | [#x203F-#x2040]
+//
+// Note: \u0487 (Combining Cyrillic Millions Sign) was added in Unicode 4.0,
+// after XML 1.0 was defined against Unicode 2.0. It falls inside the range
+// \u037F-\u1FFF but must be excluded. We split that range into
+// \u037F-\u0486 and \u0488-\u1FFF to exclude it explicitly.
+// ---------------------------------------------------------------------------
+
+const nameStartChar10 =
+  ':A-Za-z_' +
+  '\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u02FF' +
+  '\u0370-\u037D' +
+  '\u037F-\u0486\u0488-\u1FFF' +  // split to exclude \u0487
+  '\u200C-\u200D' +
+  '\u2070-\u218F' +
+  '\u2C00-\u2FEF' +
+  '\u3001-\uD7FF' +
+  '\uF900-\uFDCF' +
+  '\uFDF0-\uFFFD';
+
+const nameChar10 =
+  nameStartChar10 +
+  '\\-\\.\\d' +
+  '\u00B7' +
+  '\u0300-\u036F' +
+  '\u203F-\u2040';
+
+// ---------------------------------------------------------------------------
+// Character class strings — XML 1.1
+//
+// Differences from XML 1.0:
+//
+// NameStartChar:
+//   1.0 has split ranges: \u00C0-\u00D6, \u00D8-\u00F6, \u00F8-\u02FF
+//   1.1 merges them into: \u00C0-\u02FF
+//   (\u00D7 x and \u00F7 / are division symbols, excluded in both versions)
+//
+//   1.0 tops out at \uFFFD (BMP only)
+//   1.1 adds \u{10000}-\u{EFFFF} (supplementary planes)
+//   These require the /u flag on the RegExp — see buildRegexes below.
+//
+// NameChar:
+//   1.1 adds \u0487 (Combining Cyrillic Millions Sign, added in Unicode 4.0)
+// ---------------------------------------------------------------------------
+
+const nameStartChar11 =
+  ':A-Za-z_' +
+  '\u00C0-\u02FF' +                    // merged — 1.0 had three split ranges here
+  '\u0370-\u037D' +
+  '\u037F-\u0486\u0488-\u1FFF' +       // split to exclude \u0487 (combining mark, never a NameStartChar)
+  '\u200C-\u200D' +
+  '\u2070-\u218F' +
+  '\u2C00-\u2FEF' +
+  '\u3001-\uD7FF' +
+  '\uF900-\uFDCF' +
+  '\uFDF0-\uFFFD' +
+  '\u{10000}-\u{EFFFF}';     // supplementary planes — REQUIRES /u flag on RegExp
+
+const nameChar11 =
+  nameStartChar11 +
+  '\\-\\.\\d' +
+  '\u00B7' +
+  '\u0300-\u036F' +
+  '\u0487' +                 // Combining Cyrillic Millions Sign — valid in 1.1, not 1.0
+  '\u203F-\u2040';
+
+// ---------------------------------------------------------------------------
+// Regex builders
+//
+// XML 1.0 regexes: no flags — BMP only, standard JS regex behaviour.
+// XML 1.1 regexes: /u flag — required for \u{10000}-\u{EFFFF} to match actual
+//   supplementary code points rather than lone surrogates (which are illegal XML).
+// ---------------------------------------------------------------------------
+
+const buildRegexes = (startChar, char, flags = '') => {
+  const ncStart = startChar.replace(':', '');
+  const ncChar = char.replace(':', '');
+  const ncNamePat = `[${ncStart}][${ncChar}]*`;
+
+  return {
+    name: new RegExp(`^[${startChar}][${char}]*$`, flags),
+    ncName: new RegExp(`^${ncNamePat}$`, flags),
+    qName: new RegExp(`^${ncNamePat}(?::${ncNamePat})?$`, flags),
+    nmToken: new RegExp(`^[${char}]+$`, flags),
+    nmTokens: new RegExp(`^[${char}]+(?:\\s+[${char}]+)*$`, flags),
+  };
+};
+
+const regexes10 = buildRegexes(nameStartChar10, nameChar10);       // no /u — BMP only
+const regexes11 = buildRegexes(nameStartChar11, nameChar11, 'u');  // /u — enables \u{10000}-\u{EFFFF}
+
+const getRegexes = (xmlVersion = '1.0') =>
+  xmlVersion === '1.1' ? regexes11 : regexes10;
+
+/**
+ * Returns true if the string is a valid QName (Qualified Name).
+ * Allows exactly one colon as a prefix separator: prefix:localName.
+ * Used for: element and attribute names in namespace-aware XML/SVG.
+ */
+const qName = (str, { xmlVersion = '1.0' } = {}) =>
+  getRegexes(xmlVersion).qName.test(str);
+
 const EOL = "\n";
 
 /**
- * 
- * @param {array} jArray 
- * @param {any} options 
- * @returns 
+ * Detect XML version from the first element of the ordered array input.
+ * The first element must be a ?xml processing instruction with a version attribute.
+ * Returns '1.0' if not found.
+ *
+ * @param {array}  jArray
+ * @param {object} options
+ */
+function detectXmlVersionFromArray(jArray, options) {
+    if (!Array.isArray(jArray) || jArray.length === 0) return '1.0';
+    const first = jArray[0];
+    const firstKey = propName(first);
+    if (firstKey === '?xml') {
+        const attrs = first[':@'];
+        if (attrs) {
+            const versionKey = options.attributeNamePrefix + 'version';
+            if (attrs[versionKey]) return attrs[versionKey];
+        }
+    }
+    return '1.0';
+}
+
+/**
+ * Resolve a tag or attribute name through sanitizeName if configured.
+ * Validation via xml-naming's qName is performed first; the sanitizeName
+ * callback is invoked only when the name is invalid. If sanitizeName is
+ * false (default), no validation occurs and the name is used as-is.
+ *
+ * @param {string}  name        - raw name from the JS object
+ * @param {boolean} isAttribute - true when resolving an attribute name
+ * @param {object}  options
+ * @param {Matcher} matcher     - current matcher state (readonly from callback perspective)
+ * @param {string}  xmlVersion  - '1.0' or '1.1', forwarded to xml-naming
+ */
+function resolveTagName$1(name, isAttribute, options, matcher, xmlVersion) {
+    if (!options.sanitizeName) return name;
+    if (qName(name, { xmlVersion })) return name;
+    return options.sanitizeName(name, { isAttribute, matcher: matcher.readOnly() });
+}
+
+/**
+ * @param {array} jArray
+ * @param {any} options
+ * @returns
  */
 function toXml(jArray, options) {
     let indentation = "";
-    if (options.format && options.indentBy.length > 0) {
+    if (options.format) {
         indentation = EOL;
     }
 
@@ -46618,13 +47788,16 @@ function toXml(jArray, options) {
         }
     }
 
+    // Detect XML version for use in name validation
+    const xmlVersion = detectXmlVersionFromArray(jArray, options);
+
     // Initialize matcher for path tracking
     const matcher = new Matcher();
 
-    return arrToStr(jArray, options, indentation, matcher, stopNodeExpressions);
+    return arrToStr(jArray, options, indentation, matcher, stopNodeExpressions, xmlVersion);
 }
 
-function arrToStr(arr, options, indentation, matcher, stopNodeExpressions) {
+function arrToStr(arr, options, indentation, matcher, stopNodeExpressions, xmlVersion) {
     let xmlStr = "";
     let isPreviousElementTag = false;
 
@@ -46644,20 +47817,32 @@ function arrToStr(arr, options, indentation, matcher, stopNodeExpressions) {
 
     for (let i = 0; i < arr.length; i++) {
         const tagObj = arr[i];
-        const tagName = propName(tagObj);
-        if (tagName === undefined) continue;
+        const rawTagName = propName(tagObj);
+        if (rawTagName === undefined) continue;
+
+        // Special names are exempt from sanitizeName: internal conventions and PI tags
+        // are not user-supplied XML element names.
+        const isSpecialName = rawTagName === options.textNodeName
+            || rawTagName === options.cdataPropName
+            || rawTagName === options.commentPropName
+            || rawTagName[0] === '?';
+
+        // Resolve tag name (may transform it; may throw for invalid names)
+        const tagName = isSpecialName
+            ? rawTagName
+            : resolveTagName$1(rawTagName, false, options, matcher, xmlVersion);
 
         // Extract attributes from ":@" property
         const attrValues = extractAttributeValues(tagObj[":@"], options);
 
-        // Push tag to matcher WITH attributes
+        // Push resolved tag to matcher WITH attributes
         matcher.push(tagName, attrValues);
 
         // Check if this is a stop node using Expression matching
         const isStopNode = checkStopNode(matcher, stopNodeExpressions);
 
         if (tagName === options.textNodeName) {
-            let tagText = tagObj[tagName];
+            let tagText = tagObj[rawTagName];
             if (!isStopNode) {
                 tagText = options.tagValueProcessor(tagName, tagText);
                 tagText = replaceEntitiesValue(tagText, options);
@@ -46673,21 +47858,25 @@ function arrToStr(arr, options, indentation, matcher, stopNodeExpressions) {
             if (isPreviousElementTag) {
                 xmlStr += indentation;
             }
-            xmlStr += `<![CDATA[${tagObj[tagName][0][options.textNodeName]}]]>`;
+            const val = tagObj[rawTagName][0][options.textNodeName];
+            const safeVal = safeCdata(val);
+            xmlStr += `<![CDATA[${safeVal}]]>`;
             isPreviousElementTag = false;
             matcher.pop();
             continue;
         } else if (tagName === options.commentPropName) {
-            xmlStr += indentation + `<!--${tagObj[tagName][0][options.textNodeName]}-->`;
+            const val = tagObj[rawTagName][0][options.textNodeName];
+            const safeVal = safeComment(val);
+            xmlStr += indentation + `<!--${safeVal}-->`;
             isPreviousElementTag = true;
             matcher.pop();
             continue;
         } else if (tagName[0] === "?") {
-            const attStr = attr_to_str(tagObj[":@"], options, isStopNode);
+            const attStr = attr_to_str(tagObj[":@"], options, isStopNode, matcher, xmlVersion);
             const tempInd = tagName === "?xml" ? "" : indentation;
-            let piTextNodeName = tagObj[tagName][0][options.textNodeName];
-            piTextNodeName = piTextNodeName.length !== 0 ? " " + piTextNodeName : ""; //remove extra spacing
-            xmlStr += tempInd + `<${tagName}${piTextNodeName}${attStr}?>`;
+            // Text node content on PI/XML declaration tags is intentionally ignored.
+            // Only attributes are valid on these tags per the XML spec.
+            xmlStr += tempInd + `<${tagName}${attStr}?>`;
             isPreviousElementTag = true;
             matcher.pop();
             continue;
@@ -46699,16 +47888,15 @@ function arrToStr(arr, options, indentation, matcher, stopNodeExpressions) {
         }
 
         // Pass isStopNode to attr_to_str so attributes are also not processed for stopNodes
-        const attStr = attr_to_str(tagObj[":@"], options, isStopNode);
+        const attStr = attr_to_str(tagObj[":@"], options, isStopNode, matcher, xmlVersion);
         const tagStart = indentation + `<${tagName}${attStr}`;
 
         // If this is a stopNode, get raw content without processing
         let tagValue;
         if (isStopNode) {
-            tagValue = getRawContent(tagObj[tagName], options);
+            tagValue = getRawContent(tagObj[rawTagName], options);
         } else {
-
-            tagValue = arrToStr(tagObj[tagName], options, newIdentation, matcher, stopNodeExpressions);
+            tagValue = arrToStr(tagObj[rawTagName], options, newIdentation, matcher, stopNodeExpressions, xmlVersion);
         }
 
         if (options.unpairedTags.indexOf(tagName) !== -1) {
@@ -46752,7 +47940,7 @@ function extractAttributeValues(attrMap, options) {
         const cleanAttrName = attr.startsWith(options.attributeNamePrefix)
             ? attr.substr(options.attributeNamePrefix.length)
             : attr;
-        attrValues[cleanAttrName] = attrMap[attr];
+        attrValues[cleanAttrName] = escapeAttribute(attrMap[attr]);
         hasAttrs = true;
     }
 
@@ -46790,9 +47978,7 @@ function getRawContent(arr, options) {
             // Processing instruction - skip for stopNodes
             continue;
         } else if (tagName) {
-            // Nested tags within stopNode
-            // Recursively get raw content and reconstruct the tag
-            // For stopNodes, we don't process attributes either
+            // Nested tags within stopNode — no sanitizeName, content is raw
             const attStr = attr_to_str_raw(item[":@"], options);
             const nestedContent = getRawContent(item[tagName], options);
 
@@ -46819,7 +48005,7 @@ function attr_to_str_raw(attrMap, options) {
             if (attrVal === true && options.suppressBooleanAttributes) {
                 attrStr += ` ${attr.substr(options.attributeNamePrefix.length)}`;
             } else {
-                attrStr += ` ${attr.substr(options.attributeNamePrefix.length)}="${attrVal}"`;
+                attrStr += ` ${attr.substr(options.attributeNamePrefix.length)}="${escapeAttribute(attrVal)}"`;
             }
         }
     }
@@ -46835,13 +48021,23 @@ function propName(obj) {
     }
 }
 
-function attr_to_str(attrMap, options, isStopNode) {
+/**
+ * Build attribute string, resolving attribute names through sanitizeName when configured.
+ * Accepts matcher so the callback has path context.
+ */
+function attr_to_str(attrMap, options, isStopNode, matcher, xmlVersion) {
     let attrStr = "";
     if (attrMap && !options.ignoreAttributes) {
         for (let attr in attrMap) {
             if (!Object.prototype.hasOwnProperty.call(attrMap, attr)) continue;
-            let attrVal;
 
+            // Strip prefix to get the clean XML attribute name, then optionally sanitize it
+            const cleanAttrName = attr.substr(options.attributeNamePrefix.length);
+            const resolvedAttrName = isStopNode
+                ? cleanAttrName  // stopNodes are raw — skip sanitizeName for attr names too
+                : resolveTagName$1(cleanAttrName, true, options, matcher, xmlVersion);
+
+            let attrVal;
             if (isStopNode) {
                 // For stopNodes, use raw value without any processing
                 attrVal = attrMap[attr];
@@ -46852,9 +48048,9 @@ function attr_to_str(attrMap, options, isStopNode) {
             }
 
             if (attrVal === true && options.suppressBooleanAttributes) {
-                attrStr += ` ${attr.substr(options.attributeNamePrefix.length)}`;
+                attrStr += ` ${resolvedAttrName}`;
             } else {
-                attrStr += ` ${attr.substr(options.attributeNamePrefix.length)}="${attrVal}"`;
+                attrStr += ` ${resolvedAttrName}="${escapeAttribute(attrVal)}"`;
             }
         }
     }
@@ -46934,7 +48130,11 @@ const defaultOptions = {
   // transformAttributeName: false,
   oneListGroup: false,
   maxNestedTags: 100,
-  jPath: true  // When true, callbacks receive string jPath; when false, receive Matcher instance
+  jPath: true,  // When true, callbacks receive string jPath; when false, receive Matcher instance
+  sanitizeName: false  // false = allow all names as-is (default, backward-compatible).
+  // Set to a function (name, { isAttribute, matcher }) => string to
+  // validate/sanitize tag and attribute names. Throw inside the function
+  // to reject an invalid name.
 };
 
 function Builder(options) {
@@ -46991,6 +48191,44 @@ function Builder(options) {
   }
 }
 
+/**
+ * Detect XML version from the ?xml declaration at the root of a plain-object input.
+ * Checks both attributesGroupName and flat attribute forms.
+ * Returns '1.0' if no declaration is found.
+ */
+function detectXmlVersionFromObj(jObj, options) {
+  const decl = jObj['?xml'];
+  if (decl && typeof decl === 'object') {
+    // attributesGroupName path e.g. { '$$': { '@_version': '1.1' } }
+    if (options.attributesGroupName && decl[options.attributesGroupName]) {
+      const v = decl[options.attributesGroupName][options.attributeNamePrefix + 'version'];
+      if (v) return v;
+    }
+    // flat attribute path e.g. { '@_version': '1.1' }
+    const v = decl[options.attributeNamePrefix + 'version'];
+    if (v) return v;
+  }
+  return '1.0';
+}
+
+/**
+ * Resolve a tag or attribute name through sanitizeName if configured.
+ * Validation via xml-naming's qName is performed first; the sanitizeName
+ * callback is invoked only when the name is invalid. If sanitizeName is
+ * false (default), no validation occurs and the name is used as-is.
+ *
+ * @param {string}  name        - raw name from the JS object
+ * @param {boolean} isAttribute - true when resolving an attribute name
+ * @param {object}  options
+ * @param {Matcher} matcher     - current matcher state (readonly from callback perspective)
+ * @param {string}  xmlVersion  - '1.0' or '1.1', forwarded to xml-naming
+ */
+function resolveTagName(name, isAttribute, options, matcher, xmlVersion) {
+  if (!options.sanitizeName) return name;
+  if (qName(name, { xmlVersion })) return name;
+  return options.sanitizeName(name, { isAttribute, matcher: matcher.readOnly() });
+}
+
 Builder.prototype.build = function (jObj) {
   if (this.options.preserveOrder) {
     return toXml(jObj, this.options);
@@ -47002,11 +48240,12 @@ Builder.prototype.build = function (jObj) {
     }
     // Initialize matcher for path tracking
     const matcher = new Matcher();
-    return this.j2x(jObj, 0, matcher).val;
+    const xmlVersion = detectXmlVersionFromObj(jObj, this.options);
+    return this.j2x(jObj, 0, matcher, xmlVersion).val;
   }
 };
 
-Builder.prototype.j2x = function (jObj, level, matcher) {
+Builder.prototype.j2x = function (jObj, level, matcher, xmlVersion) {
   let attrStr = '';
   let val = '';
   if (this.options.maxNestedTags && matcher.getDepth() >= this.options.maxNestedTags) {
@@ -47020,6 +48259,22 @@ Builder.prototype.j2x = function (jObj, level, matcher) {
 
   for (let key in jObj) {
     if (!Object.prototype.hasOwnProperty.call(jObj, key)) continue;
+
+    // Resolve the key through sanitizeName before any use.
+    // Special keys (textNodeName, cdataPropName, commentPropName, attributeNamePrefix,
+    // attributesGroupName, "?" PI tags) are exempt — they are builder-internal conventions,
+    // not user-supplied XML names.
+    const isSpecialKey = key === this.options.textNodeName
+      || key === this.options.cdataPropName
+      || key === this.options.commentPropName
+      || (this.options.attributesGroupName && key === this.options.attributesGroupName)
+      || this.isAttribute(key)
+      || key[0] === '?';
+
+    const resolvedKey = isSpecialKey
+      ? key
+      : resolveTagName(key, false, this.options, matcher, xmlVersion);
+
     if (typeof jObj[key] === 'undefined') {
       // supress undefined node only if it is not an attribute
       if (this.isAttribute(key)) {
@@ -47029,21 +48284,22 @@ Builder.prototype.j2x = function (jObj, level, matcher) {
       // null attribute should be ignored by the attribute list, but should not cause the tag closing
       if (this.isAttribute(key)) {
         val += '';
-      } else if (key === this.options.cdataPropName) {
+      } else if (resolvedKey === this.options.cdataPropName || resolvedKey === this.options.commentPropName) {
         val += '';
-      } else if (key[0] === '?') {
-        val += this.indentate(level) + '<' + key + '?' + this.tagEndChar;
+      } else if (resolvedKey[0] === '?') {
+        val += this.indentate(level) + '<' + resolvedKey + '?' + this.tagEndChar;
       } else {
-        val += this.indentate(level) + '<' + key + '/' + this.tagEndChar;
+        val += this.indentate(level) + '<' + resolvedKey + '/' + this.tagEndChar;
       }
-      // val += this.indentate(level) + '<' + key + '/' + this.tagEndChar;
     } else if (jObj[key] instanceof Date) {
-      val += this.buildTextValNode(jObj[key], key, '', level, matcher);
+      val += this.buildTextValNode(jObj[key], resolvedKey, '', level, matcher);
     } else if (typeof jObj[key] !== 'object') {
       //premitive type
       const attr = this.isAttribute(key);
       if (attr && !this.ignoreAttributesFn(attr, jPath)) {
-        attrStr += this.buildAttrPairStr(attr, '' + jObj[key], isCurrentStopNode);
+        // Resolve the attribute name through sanitizeName
+        const resolvedAttr = resolveTagName(attr, true, this.options, matcher, xmlVersion);
+        attrStr += this.buildAttrPairStr(resolvedAttr, '' + jObj[key], isCurrentStopNode);
       } else if (!attr) {
         //tag value
         if (key === this.options.textNodeName) {
@@ -47051,7 +48307,7 @@ Builder.prototype.j2x = function (jObj, level, matcher) {
           val += this.replaceEntitiesValue(newval);
         } else {
           // Check if this is a stopNode before building
-          matcher.push(key);
+          matcher.push(resolvedKey);
           const isStopNode = this.checkStopNode(matcher);
           matcher.pop();
 
@@ -47059,12 +48315,12 @@ Builder.prototype.j2x = function (jObj, level, matcher) {
             // Build as raw content without encoding
             const textValue = '' + jObj[key];
             if (textValue === '') {
-              val += this.indentate(level) + '<' + key + this.closeTag(key) + this.tagEndChar;
+              val += this.indentate(level) + '<' + resolvedKey + this.closeTag(resolvedKey) + this.tagEndChar;
             } else {
-              val += this.indentate(level) + '<' + key + '>' + textValue + '</' + key + this.tagEndChar;
+              val += this.indentate(level) + '<' + resolvedKey + '>' + textValue + '</' + resolvedKey + this.tagEndChar;
             }
           } else {
-            val += this.buildTextValNode(jObj[key], key, '', level, matcher);
+            val += this.buildTextValNode(jObj[key], resolvedKey, '', level, matcher);
           }
         }
       }
@@ -47076,14 +48332,13 @@ Builder.prototype.j2x = function (jObj, level, matcher) {
       for (let j = 0; j < arrLen; j++) {
         const item = jObj[key][j];
         if (typeof item === 'undefined') ; else if (item === null) {
-          if (key[0] === "?") val += this.indentate(level) + '<' + key + '?' + this.tagEndChar;
-          else val += this.indentate(level) + '<' + key + '/' + this.tagEndChar;
-          // val += this.indentate(level) + '<' + key + '/' + this.tagEndChar;
+          if (resolvedKey[0] === "?") val += this.indentate(level) + '<' + resolvedKey + '?' + this.tagEndChar;
+          else val += this.indentate(level) + '<' + resolvedKey + '/' + this.tagEndChar;
         } else if (typeof item === 'object') {
           if (this.options.oneListGroup) {
             // Push tag to matcher before recursive call
-            matcher.push(key);
-            const result = this.j2x(item, level + 1, matcher);
+            matcher.push(resolvedKey);
+            const result = this.j2x(item, level + 1, matcher, xmlVersion);
             // Pop tag from matcher after recursive call
             matcher.pop();
 
@@ -47092,16 +48347,16 @@ Builder.prototype.j2x = function (jObj, level, matcher) {
               listTagAttr += result.attrStr;
             }
           } else {
-            listTagVal += this.processTextOrObjNode(item, key, level, matcher);
+            listTagVal += this.processTextOrObjNode(item, resolvedKey, level, matcher, xmlVersion);
           }
         } else {
           if (this.options.oneListGroup) {
-            let textValue = this.options.tagValueProcessor(key, item);
+            let textValue = this.options.tagValueProcessor(resolvedKey, item);
             textValue = this.replaceEntitiesValue(textValue);
             listTagVal += textValue;
           } else {
             // Check if this is a stopNode before building
-            matcher.push(key);
+            matcher.push(resolvedKey);
             const isStopNode = this.checkStopNode(matcher);
             matcher.pop();
 
@@ -47109,18 +48364,18 @@ Builder.prototype.j2x = function (jObj, level, matcher) {
               // Build as raw content without encoding
               const textValue = '' + item;
               if (textValue === '') {
-                listTagVal += this.indentate(level) + '<' + key + this.closeTag(key) + this.tagEndChar;
+                listTagVal += this.indentate(level) + '<' + resolvedKey + this.closeTag(resolvedKey) + this.tagEndChar;
               } else {
-                listTagVal += this.indentate(level) + '<' + key + '>' + textValue + '</' + key + this.tagEndChar;
+                listTagVal += this.indentate(level) + '<' + resolvedKey + '>' + textValue + '</' + resolvedKey + this.tagEndChar;
               }
             } else {
-              listTagVal += this.buildTextValNode(item, key, '', level, matcher);
+              listTagVal += this.buildTextValNode(item, resolvedKey, '', level, matcher);
             }
           }
         }
       }
       if (this.options.oneListGroup) {
-        listTagVal = this.buildObjectNode(listTagVal, key, listTagAttr, level);
+        listTagVal = this.buildObjectNode(listTagVal, resolvedKey, listTagAttr, level);
       }
       val += listTagVal;
     } else {
@@ -47129,10 +48384,12 @@ Builder.prototype.j2x = function (jObj, level, matcher) {
         const Ks = Object.keys(jObj[key]);
         const L = Ks.length;
         for (let j = 0; j < L; j++) {
-          attrStr += this.buildAttrPairStr(Ks[j], '' + jObj[key][Ks[j]], isCurrentStopNode);
+          // Resolve attribute names inside attributesGroupName
+          const resolvedAttr = resolveTagName(Ks[j], true, this.options, matcher, xmlVersion);
+          attrStr += this.buildAttrPairStr(resolvedAttr, '' + jObj[key][Ks[j]], isCurrentStopNode);
         }
       } else {
-        val += this.processTextOrObjNode(jObj[key], key, level, matcher);
+        val += this.processTextOrObjNode(jObj[key], resolvedKey, level, matcher, xmlVersion);
       }
     }
   }
@@ -47146,10 +48403,10 @@ Builder.prototype.buildAttrPairStr = function (attrName, val, isStopNode) {
   }
   if (this.options.suppressBooleanAttributes && val === "true") {
     return ' ' + attrName;
-  } else return ' ' + attrName + '="' + val + '"';
+  } else return ' ' + attrName + '="' + escapeAttribute(val) + '"';
 };
 
-function processTextOrObjNode(object, key, level, matcher) {
+function processTextOrObjNode(object, key, level, matcher, xmlVersion) {
   // Extract attributes to pass to matcher
   const attrValues = this.extractAttributes(object);
 
@@ -47167,11 +48424,15 @@ function processTextOrObjNode(object, key, level, matcher) {
     return this.buildObjectNode(rawContent, key, attrStr, level);
   }
 
-  const result = this.j2x(object, level + 1, matcher);
+  const result = this.j2x(object, level + 1, matcher, xmlVersion);
   // Pop tag from matcher after recursion
   matcher.pop();
 
-  if (object[this.options.textNodeName] !== undefined && Object.keys(object).length === 1) {
+  // PI/XML-declaration tags must never emit text content — route through
+  // buildTextValNode which correctly ignores the text node for "?" tags.
+  if (key[0] === '?') {
+    return this.buildTextValNode('', key, result.attrStr, level, matcher);
+  } else if (object[this.options.textNodeName] !== undefined && Object.keys(object).length === 1) {
     return this.buildTextValNode(object[this.options.textNodeName], key, result.attrStr, level, matcher);
   } else {
     return this.buildObjectNode(result.val, key, result.attrStr, level);
@@ -47194,7 +48455,7 @@ Builder.prototype.extractAttributes = function (obj) {
       const cleanKey = attrKey.startsWith(this.options.attributeNamePrefix)
         ? attrKey.substring(this.options.attributeNamePrefix.length)
         : attrKey;
-      attrValues[cleanKey] = attrGroup[attrKey];
+      attrValues[cleanKey] = escapeAttribute(attrGroup[attrKey]);
       hasAttrs = true;
     }
   } else {
@@ -47203,7 +48464,7 @@ Builder.prototype.extractAttributes = function (obj) {
       if (!Object.prototype.hasOwnProperty.call(obj, key)) continue;
       const attr = this.isAttribute(key);
       if (attr) {
-        attrValues[attr] = obj[key];
+        attrValues[attr] = escapeAttribute(obj[key]);
         hasAttrs = true;
       }
     }
@@ -47320,8 +48581,10 @@ Builder.prototype.buildObjectNode = function (val, key, attrStr, level) {
     else {
       return this.indentate(level) + '<' + key + attrStr + this.closeTag(key) + this.tagEndChar;
     }
+  } else if (key[0] === "?") {
+    // PI/XML-declaration tags never have body content — treat them like empty.
+    return this.indentate(level) + '<' + key + attrStr + '?' + this.tagEndChar;
   } else {
-
     let tagEndExp = '</' + key + this.tagEndChar;
     let piClosingChar = "";
 
@@ -47369,9 +48632,11 @@ Builder.prototype.checkStopNode = function (matcher) {
 
 Builder.prototype.buildTextValNode = function (val, key, attrStr, level, matcher) {
   if (this.options.cdataPropName !== false && key === this.options.cdataPropName) {
-    return this.indentate(level) + `<![CDATA[${val}]]>` + this.newLine;
+    const safeVal = safeCdata(val);
+    return this.indentate(level) + `<![CDATA[${safeVal}]]>` + this.newLine;
   } else if (this.options.commentPropName !== false && key === this.options.commentPropName) {
-    return this.indentate(level) + `<!--${val}-->` + this.newLine;
+    const safeVal = safeComment(val);
+    return this.indentate(level) + `<!--${safeVal}-->` + this.newLine;
   } else if (key[0] === "?") {//PI tag
     return this.indentate(level) + '<' + key + attrStr + '?' + this.tagEndChar;
   } else {
@@ -76326,79 +77591,27 @@ function saveCacheV2(paths_1, key_1, options_1) {
     });
 }
 
-var md5File$1 = {exports: {}};
-
-var hasRequiredMd5File;
-
-function requireMd5File () {
-	if (hasRequiredMd5File) return md5File$1.exports;
-	hasRequiredMd5File = 1;
-	const crypto = crypto__default;
-	const fs = fs__default;
-
-	const BUFFER_SIZE = 8192;
-
-	function md5FileSync (path) {
-	  const fd = fs.openSync(path, 'r');
-	  const hash = crypto.createHash('md5');
-	  const buffer = Buffer.alloc(BUFFER_SIZE);
-
-	  try {
-	    let bytesRead;
-
-	    do {
-	      bytesRead = fs.readSync(fd, buffer, 0, BUFFER_SIZE);
-	      hash.update(buffer.slice(0, bytesRead));
-	    } while (bytesRead === BUFFER_SIZE)
-	  } finally {
-	    fs.closeSync(fd);
-	  }
-
-	  return hash.digest('hex')
-	}
-
-	function md5File (path) {
-	  return new Promise((resolve, reject) => {
-	    const output = crypto.createHash('md5');
-	    const input = fs.createReadStream(path);
-
-	    input.on('error', (err) => {
-	      reject(err);
-	    });
-
-	    output.once('readable', () => {
-	      resolve(output.read().toString('hex'));
-	    });
-
-	    input.pipe(output);
-	  })
-	}
-
-	md5File$1.exports = md5File;
-	md5File$1.exports.sync = md5FileSync;
-	return md5File$1.exports;
-}
-
-var md5FileExports = requireMd5File();
-var md5File = /*@__PURE__*/getDefaultExportFromCjs(md5FileExports);
-
 const gccVersions = {
     '15.2.Rel1': {
         win32: {
             url: 'https://armkeil.blob.core.windows.net/developer/files/downloads/gnu/15.2.rel1/binrel/arm-gnu-toolchain-15.2.rel1-mingw-w64-x86_64-arm-none-eabi.zip',
             md5: '88cce5f8c71445cf54dfa1667b3ae6ab',
+            sha256: '7936cac895611023ffb22a64b8e426098c7104cb689778c1894572ca840b9ece',
         },
         mac_arm64: {
             url: 'https://armkeil.blob.core.windows.net/developer/files/downloads/gnu/15.2.rel1/binrel/arm-gnu-toolchain-15.2.rel1-darwin-arm64-arm-none-eabi.tar.xz',
             md5: 'e91fd6348ba0f3e5ec35eeba1ad7e2b8',
+            sha256: '1938a84b7105c192e3fb4fa5e893ba25f425f7ddab40515ae608cd40f68669a8',
         },
         linux_x86_64: {
             url: 'https://armkeil.blob.core.windows.net/developer/files/downloads/gnu/15.2.rel1/binrel/arm-gnu-toolchain-15.2.rel1-x86_64-arm-none-eabi.tar.xz',
             md5: 'da62bef8821e7fc2a9b5d023871036e0',
+            sha256: '597893282ac8c6ab1a4073977f2362990184599643b4c5ee34870a8215783a16',
         },
         linux_aarch64: {
             url: 'https://armkeil.blob.core.windows.net/developer/files/downloads/gnu/15.2.rel1/binrel/arm-gnu-toolchain-15.2.rel1-aarch64-arm-none-eabi.tar.xz',
             md5: '458c5d9b362726c9ac20c96f1894ae13',
+            sha256: 'd061559d814b205ed30c5b7c577c03317ec447ca51cd5a159d26b12a5bbeb20c',
         },
     },
     '14.3.Rel1': {
@@ -76406,21 +77619,25 @@ const gccVersions = {
             // redirect from https://developer.arm.com/-/media/Files/downloads/gnu/14.3.rel1/binrel/arm-gnu-toolchain-14.3.rel1-mingw-w64-x86_64-arm-none-eabi.zip
             url: 'https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/14.3.rel1/binrel/arm-gnu-toolchain-14.3.rel1-mingw-w64-x86_64-arm-none-eabi.zip',
             md5: 'ab64d0b20882ba164dbca44121c7f216',
+            sha256: '864c0c8815857d68a1bbba2e5e2782255bb922845c71c97636004a3d74f60986',
         },
         mac_arm64: {
             // redirect from https://developer.arm.com/-/media/Files/downloads/gnu/14.3.rel1/binrel/arm-gnu-toolchain-14.3.rel1-darwin-arm64-arm-none-eabi.tar.xz
             url: 'https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/14.3.rel1/binrel/arm-gnu-toolchain-14.3.rel1-darwin-arm64-arm-none-eabi.tar.xz',
             md5: '1c4a092430c167d08de4b55c6840e46b',
+            sha256: '30f4d08b219190a37cded6aa796f4549504902c53cfc3c7e044a8490b6eba1f7',
         },
         linux_x86_64: {
             // redirect from https://developer.arm.com/-/media/Files/downloads/gnu/14.3.rel1/binrel/arm-gnu-toolchain-14.3.rel1-x86_64-arm-none-eabi.tar.xz
             url: 'https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/14.3.rel1/binrel/arm-gnu-toolchain-14.3.rel1-x86_64-arm-none-eabi.tar.xz',
             md5: '17272b6c72d476c82b692a06ada0636c',
+            sha256: '8f6903f8ceb084d9227b9ef991490413014d991874a1e34074443c2a72b14dbd',
         },
         linux_aarch64: {
             // redirect from https://developer.arm.com/-/media/Files/downloads/gnu/14.3.rel1/binrel/arm-gnu-toolchain-14.3.rel1-aarch64-arm-none-eabi.tar.xz
             url: 'https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/14.3.rel1/binrel/arm-gnu-toolchain-14.3.rel1-aarch64-arm-none-eabi.tar.xz',
             md5: '5b44bdd1d983247ec153fe548b4ff8ed',
+            sha256: '2d465847eb1d05f876270494f51034de9ace9abe87a4222d079f3360240184d3',
         },
     },
     '14.2.Rel1': {
@@ -76428,26 +77645,31 @@ const gccVersions = {
             // redirect from https://developer.arm.com/-/media/Files/downloads/gnu/14.2.rel1/binrel/arm-gnu-toolchain-14.2.rel1-mingw-w64-x86_64-arm-none-eabi.zip
             url: 'https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/14.2.rel1/binrel/arm-gnu-toolchain-14.2.rel1-mingw-w64-x86_64-arm-none-eabi.zip',
             md5: '7426b9eec8b576f0a524ede63013c547',
+            sha256: 'f074615953f76036e9a51b87f6577fdb4ed8e77d3322a6f68214e92e7859888f',
         },
         mac_x86_64: {
             // redirect from https://developer.arm.com/-/media/Files/downloads/gnu/14.2.rel1/binrel/arm-gnu-toolchain-14.2.rel1-darwin-x86_64-arm-none-eabi.tar.xz
             url: 'https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/14.2.rel1/binrel/arm-gnu-toolchain-14.2.rel1-darwin-x86_64-arm-none-eabi.tar.xz',
             md5: 'd5fb1ae60e4d67eb2986837dbcd6a066',
+            sha256: '2d9e717dd4f7751d18936ae1365d25916534105ebcb7583039eff1092b824505',
         },
         mac_arm64: {
             // redirect from https://developer.arm.com/-/media/Files/downloads/gnu/14.2.rel1/binrel/arm-gnu-toolchain-14.2.rel1-darwin-arm64-arm-none-eabi.tar.xz
             url: 'https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/14.2.rel1/binrel/arm-gnu-toolchain-14.2.rel1-darwin-arm64-arm-none-eabi.tar.xz',
             md5: '40d1c9208aed7fab08b0f27e5383dcef',
+            sha256: 'c7c78ffab9bebfce91d99d3c24da6bf4b81c01e16cf551eb2ff9f25b9e0a3818',
         },
         linux_x86_64: {
             // redirect from https://developer.arm.com/-/media/Files/downloads/gnu/14.2.rel1/binrel/arm-gnu-toolchain-14.2.rel1-x86_64-arm-none-eabi.tar.xz
             url: 'https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/14.2.rel1/binrel/arm-gnu-toolchain-14.2.rel1-x86_64-arm-none-eabi.tar.xz',
             md5: 'fcdcd7c8d5b22d2d0cc6bf3721686e69',
+            sha256: '62a63b981fe391a9cbad7ef51b17e49aeaa3e7b0d029b36ca1e9c3b2a9b78823',
         },
         linux_aarch64: {
             // redirect from https://developer.arm.com/-/media/Files/downloads/gnu/14.2.rel1/binrel/arm-gnu-toolchain-14.2.rel1-aarch64-arm-none-eabi.tar.xz
             url: 'https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/14.2.rel1/binrel/arm-gnu-toolchain-14.2.rel1-aarch64-arm-none-eabi.tar.xz',
             md5: '342d6d9dc75e6d4c05a748f2cecc96a6',
+            sha256: '87330bab085dd8749d4ed0ad633674b9dc48b237b61069e3b481abd364d0a684',
         },
     },
     '13.3.Rel1': {
@@ -76455,26 +77677,31 @@ const gccVersions = {
             // redirect from https://developer.arm.com/-/media/Files/downloads/gnu/13.3.rel1/binrel/arm-gnu-toolchain-13.3.rel1-mingw-w64-i686-arm-none-eabi.zip
             url: 'https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/13.3.rel1/binrel/arm-gnu-toolchain-13.3.rel1-mingw-w64-i686-arm-none-eabi.zip',
             md5: '39d9882ca0eb475e81170ae826c1435d',
+            sha256: 'e46fda043c0ce83582bc8db4b3ef85f77f4beb7333344c2f4193c17e1167a095',
         },
         mac_x86_64: {
             // redirect from https://developer.arm.com/-/media/Files/downloads/gnu/13.3.rel1/binrel/arm-gnu-toolchain-13.3.rel1-darwin-x86_64-arm-none-eabi.tar.xz
             url: 'https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/13.3.rel1/binrel/arm-gnu-toolchain-13.3.rel1-darwin-x86_64-arm-none-eabi.tar.xz',
             md5: '4bb141e44b831635fde4e8139d470f1f',
+            sha256: '1ab00742d1ed0926e6f227df39d767f8efab46f5250505c29cb81f548222d794',
         },
         mac_arm64: {
             // redirect from https://developer.arm.com/-/media/Files/downloads/gnu/13.3.rel1/binrel/arm-gnu-toolchain-13.3.rel1-darwin-arm64-arm-none-eabi.tar.xz
             url: 'https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/13.3.rel1/binrel/arm-gnu-toolchain-13.3.rel1-darwin-arm64-arm-none-eabi.tar.xz',
             md5: 'f1c18320bb3121fa89dca11399273f4e',
+            sha256: 'fb6921db95d345dc7e5e487dd43b745e3a5b4d5c0c7ca4f707347148760317b4',
         },
         linux_x86_64: {
             // redirect from https://developer.arm.com/-/media/Files/downloads/gnu/13.3.rel1/binrel/arm-gnu-toolchain-13.3.rel1-x86_64-arm-none-eabi.tar.xz
             url: 'https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/13.3.rel1/binrel/arm-gnu-toolchain-13.3.rel1-x86_64-arm-none-eabi.tar.xz',
             md5: '0601a9588bc5b9c99ad2b56133b7f118',
+            sha256: '95c011cee430e64dd6087c75c800f04b9c49832cc1000127a92a97f9c8d83af4',
         },
         linux_aarch64: {
             // redirect from https://developer.arm.com/-/media/Files/downloads/gnu/13.3.rel1/binrel/arm-gnu-toolchain-13.3.rel1-aarch64-arm-none-eabi.tar.xz
             url: 'https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/13.3.rel1/binrel/arm-gnu-toolchain-13.3.rel1-aarch64-arm-none-eabi.tar.xz',
             md5: '303102d97b877ebbeb36b3158994b218',
+            sha256: 'c8824bffd057afce2259f7618254e840715f33523a3d4e4294f471208f976764',
         },
     },
     '13.2.Rel1': {
@@ -76482,26 +77709,31 @@ const gccVersions = {
             // redirect from https://developer.arm.com/-/media/Files/downloads/gnu/13.2.rel1/binrel/arm-gnu-toolchain-13.2.rel1-mingw-w64-i686-arm-none-eabi.zip
             url: 'https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/13.2.rel1/binrel/arm-gnu-toolchain-13.2.rel1-mingw-w64-i686-arm-none-eabi.zip',
             md5: '7fd677088038cdf82f33f149e2e943ee',
+            sha256: '51d933f00578aa28016c5e3c84f94403274ea7915539f8e56c13e2196437d18f',
         },
         mac_x86_64: {
             // redirect from https://developer.arm.com/-/media/Files/downloads/gnu/13.2.rel1/binrel/arm-gnu-toolchain-13.2.rel1-darwin-x86_64-arm-none-eabi.tar.xz
             url: 'https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/13.2.rel1/binrel/arm-gnu-toolchain-13.2.rel1-darwin-x86_64-arm-none-eabi.tar.xz',
             md5: '41d49840b0fc676d2ae35aab21a58693',
+            sha256: '075faa4f3e8eb45e59144858202351a28706f54a6ec17eedd88c9fb9412372cc',
         },
         mac_arm64: {
             // redirect from https://developer.arm.com/-/media/Files/downloads/gnu/13.2.rel1/binrel/arm-gnu-toolchain-13.2.rel1-darwin-arm64-arm-none-eabi.tar.xz
             url: 'https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/13.2.rel1/binrel/arm-gnu-toolchain-13.2.rel1-darwin-arm64-arm-none-eabi.tar.xz',
             md5: '2c43e9d72206c1f81227b0a685df5ea6',
+            sha256: '39c44f8af42695b7b871df42e346c09fee670ea8dfc11f17083e296ea2b0d279',
         },
         linux_x86_64: {
             // redirect from https://developer.arm.com/-/media/Files/downloads/gnu/13.2.rel1/binrel/arm-gnu-toolchain-13.2.rel1-x86_64-arm-none-eabi.tar.xz
             url: 'https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/13.2.rel1/binrel/arm-gnu-toolchain-13.2.rel1-x86_64-arm-none-eabi.tar.xz',
             md5: '791754852f8c18ea04da7139f153a5b7',
+            sha256: '6cd1bbc1d9ae57312bcd169ae283153a9572bd6a8e4eeae2fedfbc33b115fdbb',
         },
         linux_aarch64: {
             // redirect from https://developer.arm.com/-/media/Files/downloads/gnu/13.2.rel1/binrel/arm-gnu-toolchain-13.2.rel1-aarch64-arm-none-eabi.tar.xz
             url: 'https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/13.2.rel1/binrel/arm-gnu-toolchain-13.2.rel1-aarch64-arm-none-eabi.tar.xz',
             md5: '5a08122e6d4caf97c6ccd1d29e62599c',
+            sha256: '8fd8b4a0a8d44ab2e195ccfbeef42223dfb3ede29d80f14dcf2183c34b8d199a',
         },
     },
     '12.3.Rel1': {
@@ -76509,26 +77741,31 @@ const gccVersions = {
             // redirect from https://developer.arm.com/-/media/Files/downloads/gnu/12.3.rel1/binrel/arm-gnu-toolchain-12.3.rel1-mingw-w64-i686-arm-none-eabi.zip
             url: 'https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/12.3.rel1/binrel/arm-gnu-toolchain-12.3.rel1-mingw-w64-i686-arm-none-eabi.zip',
             md5: '36c3f864ae8a4ded4a464e67c74f4973',
+            sha256: 'd52888bf59c5262ebf3e6b19b9f9e6270ecb60fd218cf81a4e793946e805a654',
         },
         mac_x86_64: {
             // redirect from https://developer.arm.com/-/media/Files/downloads/gnu/12.3.rel1/binrel/arm-gnu-toolchain-12.3.rel1-darwin-x86_64-arm-none-eabi.tar.xz
             url: 'https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/12.3.rel1/binrel/arm-gnu-toolchain-12.3.rel1-darwin-x86_64-arm-none-eabi.tar.xz',
             md5: '13ae2cc016564507c91a4fcffb6e3c54',
+            sha256: 'e6ed8bf930fad9ce33e120ab90b36957b1f779fccaa6de6c9ca9a58982c04291',
         },
         mac_arm64: {
             // redirect from https://developer.arm.com/-/media/Files/downloads/gnu/12.3.rel1/binrel/arm-gnu-toolchain-12.3.rel1-darwin-arm64-arm-none-eabi.tar.xz
             url: 'https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/12.3.rel1/binrel/arm-gnu-toolchain-12.3.rel1-darwin-arm64-arm-none-eabi.tar.xz',
             md5: '53d034e9423e7f470acc5ed2a066758e',
+            sha256: '3b2eee0bdf71c1bbeb3c3b7424fbf7bd9d5c3f0f5a3a4a78159c9e3ad219e7bd',
         },
         linux_x86_64: {
             // redirect from https://developer.arm.com/-/media/Files/downloads/gnu/12.3.rel1/binrel/arm-gnu-toolchain-12.3.rel1-x86_64-arm-none-eabi.tar.xz
             url: 'https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/12.3.rel1/binrel/arm-gnu-toolchain-12.3.rel1-x86_64-arm-none-eabi.tar.xz',
             md5: '00ebb1b70b1f88906c61206457eacb61',
+            sha256: '12a2815644318ebcceaf84beabb665d0924b6e79e21048452c5331a56332b309',
         },
         linux_aarch64: {
             // redirect from https://developer.arm.com/-/media/Files/downloads/gnu/12.3.rel1/binrel/arm-gnu-toolchain-12.3.rel1-aarch64-arm-none-eabi.tar.xz
             url: 'https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/12.3.rel1/binrel/arm-gnu-toolchain-12.3.rel1-aarch64-arm-none-eabi.tar.xz',
             md5: '02c9b0d3bb1110575877d8eee1f223f2',
+            sha256: '14c0487d5753f6071d24e568881f7c7e67f80dd83165dec5164b3731394af431',
         },
     },
     '12.2.Rel1': {
@@ -76536,26 +77773,31 @@ const gccVersions = {
             // redirect from https://developer.arm.com/-/media/Files/downloads/gnu/12.2.rel1/binrel/arm-gnu-toolchain-12.2.rel1-mingw-w64-i686-arm-none-eabi.zip
             url: 'https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/12.2.rel1/binrel/arm-gnu-toolchain-12.2.rel1-mingw-w64-i686-arm-none-eabi.zip',
             md5: '0122a821c28b200f251cd23d2edc38c5',
+            sha256: 'ad1427496cde9bbe7604bc448ec6e115c6538e04af1c8275795ebb1c2b7b2830',
         },
         mac_x86_64: {
             // redirect from https://developer.arm.com/-/media/Files/downloads/gnu/12.2.rel1/binrel/arm-gnu-toolchain-12.2.rel1-darwin-x86_64-arm-none-eabi.tar.xz
             url: 'https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/12.2.rel1/binrel/arm-gnu-toolchain-12.2.rel1-darwin-x86_64-arm-none-eabi.tar.xz',
             md5: 'b98c6f58a4ccf64c38f92b456eb3b3d1',
+            sha256: '00c0eeb57ae92332f216151ac66df6ba17d2d3b306dac86f4006006f437b2902',
         },
         mac_arm64: {
             // redirect from https://developer.arm.com/-/media/Files/downloads/gnu/12.2.rel1/binrel/arm-gnu-toolchain-12.2.rel1-darwin-arm64-arm-none-eabi.tar.xz
             url: 'https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/12.2.rel1/binrel/arm-gnu-toolchain-12.2.rel1-darwin-arm64-arm-none-eabi.tar.xz',
             md5: '26329762f802bb53ac73385d85b11646',
+            sha256: '21a9e875250bcb0db8df4cb23dd43c94c00a1d3b98ecba9cdd6ed51586b12248',
         },
         linux_x86_64: {
             // redirect from https://developer.arm.com/-/media/Files/downloads/gnu/12.2.rel1/binrel/arm-gnu-toolchain-12.2.rel1-x86_64-arm-none-eabi.tar.xz
             url: 'https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/12.2.rel1/binrel/arm-gnu-toolchain-12.2.rel1-x86_64-arm-none-eabi.tar.xz',
             md5: 'f3d1d32c8ac58f1e0f9dbe4bc56efa05',
+            sha256: '84be93d0f9e96a15addd490b6e237f588c641c8afdf90e7610a628007fc96867',
         },
         linux_aarch64: {
             // redirect from https://developer.arm.com/-/media/Files/downloads/gnu/12.2.rel1/binrel/arm-gnu-toolchain-12.2.rel1-aarch64-arm-none-eabi.tar.xz
             url: 'https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/12.2.rel1/binrel/arm-gnu-toolchain-12.2.rel1-aarch64-arm-none-eabi.tar.xz',
             md5: '2014a0ebaae3168da555efdcabf03f2a',
+            sha256: '7ee332f7558a984e239e768a13aed86c6c3ac85c90b91d27f4ed38d7ec6b3e8c',
         },
     },
     '11.3.Rel1': {
@@ -76570,16 +77812,19 @@ const gccVersions = {
             // redirect from https://developer.arm.com/-/media/Files/downloads/gnu/11.3.rel1/binrel/arm-gnu-toolchain-11.3.rel1-darwin-x86_64-arm-none-eabi.tar.xz
             url: 'https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/11.3.rel1/binrel/arm-gnu-toolchain-11.3.rel1-darwin-x86_64-arm-none-eabi.tar.xz',
             md5: 'f4a3df0bff51bf872db679c406a9154d',
+            sha256: '826353d45e7fbaa9b87c514e7c758a82f349cb7fc3fd949423687671539b29cf',
         },
         linux_x86_64: {
             // redirect from https://developer.arm.com/-/media/Files/downloads/gnu/11.3.rel1/binrel/arm-gnu-toolchain-11.3.rel1-x86_64-arm-none-eabi.tar.xz
             url: 'https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/11.3.rel1/binrel/arm-gnu-toolchain-11.3.rel1-x86_64-arm-none-eabi.tar.xz',
             md5: '8cb33f7ec29682f2f9cdc0b4e687f9a6',
+            sha256: 'd420d87f68615d9163b99bbb62fe69e85132dc0a8cd69fca04e813597fe06121',
         },
         linux_aarch64: {
             // redirect from https://developer.arm.com/-/media/Files/downloads/gnu/11.3.rel1/binrel/arm-gnu-toolchain-11.3.rel1-aarch64-arm-none-eabi.tar.xz
             url: 'https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/11.3.rel1/binrel/arm-gnu-toolchain-11.3.rel1-aarch64-arm-none-eabi.tar.xz',
             md5: 'f020e29a861c5dbf199dce93643d68cc',
+            sha256: '6c713c11d018dcecc16161f822517484a13af151480bbb722badd732412eb55e',
         },
     },
     '11.2-2022.02': {
@@ -76587,21 +77832,25 @@ const gccVersions = {
             // redirect from https://developer.arm.com/-/media/Files/downloads/gnu/11.2-2022.02/binrel/gcc-arm-11.2-2022.02-mingw-w64-i686-arm-none-eabi.zip
             url: 'https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/11.2-2022.02/binrel/gcc-arm-11.2-2022.02-mingw-w64-i686-arm-none-eabi.zip',
             md5: 'e2bb05445200ed8e8c9140fad6a0afb5',
+            sha256: '585156432d73c9c2c8b4742e342564a75d47886d90ac821f88d2b564c33e6766',
         },
         mac_x86_64: {
             // redirect from https://developer.arm.com/-/media/Files/downloads/gnu/11.2-2022.02/binrel/gcc-arm-11.2-2022.02-darwin-x86_64-arm-none-eabi.tar.xz
             url: 'https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/11.2-2022.02/binrel/gcc-arm-11.2-2022.02-darwin-x86_64-arm-none-eabi.tar.xz',
             md5: 'c51d8257b67d7555047f172698730685',
+            sha256: '31d6d3b400db89e204ab1a7ff3f4bb6230d2cdf5a551514ae9deedeebbb07bac',
         },
         linux_x86_64: {
             // redirect from https://developer.arm.com/-/media/Files/downloads/gnu/11.2-2022.02/binrel/gcc-arm-11.2-2022.02-x86_64-arm-none-eabi.tar.xz
             url: 'https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/11.2-2022.02/binrel/gcc-arm-11.2-2022.02-x86_64-arm-none-eabi.tar.xz',
             md5: 'a48e6f8756be70b071535048a678c481',
+            sha256: '8c5acd5ae567c0100245b0556941c237369f210bceb196edfe5a2e7532c60326',
         },
         linux_aarch64: {
             // redirect from https://developer.arm.com/-/media/Files/downloads/gnu/11.2-2022.02/binrel/gcc-arm-11.2-2022.02-aarch64-arm-none-eabi.tar.xz
             url: 'https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/11.2-2022.02/binrel/gcc-arm-11.2-2022.02-aarch64-arm-none-eabi.tar.xz',
             md5: '746f20d2eb8acad4e7085e1395665219',
+            sha256: 'ef1d82e5894e3908cb7ed49c5485b5b95deefa32872f79c2b5f6f5447cabf55f',
         },
     },
     '10.3-2021.10': {
@@ -77203,6 +78452,7 @@ async function distributionUrl(version, platform, arch) {
         url: resolvedUrl,
         urlOriginal: distData.url,
         md5: distData.md5,
+        sha256: distData.sha256,
     };
 }
 function gccVersionToSemver(gccVersion) {
@@ -77252,14 +78502,32 @@ function gccVersionToSemver(gccVersion) {
     return gccSemver;
 }
 
+async function verifyChecksum(expectedTag, file) {
+    const [algorithm, expected] = expectedTag.split(':');
+    const hash = await new Promise((resolve, reject) => {
+        const h = crypto$1.createHash(algorithm);
+        fs.createReadStream(file)
+            .on('error', reject)
+            .on('data', chunk => h.update(chunk))
+            .on('end', () => resolve(h.digest('hex')));
+    });
+    if (hash !== expected) {
+        throw new Error(`Downloaded GCC ${algorithm} doesn't match expected value: ${hash} != ${expected}`);
+    }
+}
 async function install(release, platform, arch) {
     const toolName = 'gcc-arm-none-eabi';
     // Get the GCC release info
     const distData = await distributionUrl(release, platform, arch);
-    // Convert the GCC version to Semver so that it can be used with the GH cache
+    // Prioritise SHA256 over MD5
+    const checksumTag = distData.sha256 ? `sha256:${distData.sha256}` : distData.md5 ? `md5:${distData.md5}` : null;
+    if (!checksumTag) {
+        throw new Error(`No checksum (sha256 or md5) available for GCC ${release}; refusing to install unverified.`);
+    }
+    // The checksum is part of the cache key, so no need to verify cache hit
     const toolVersion = gccVersionToSemver(release);
-    const cacheKey = `${toolName}-${toolVersion}-${platform}-${arch}`;
-    const installPath = path.join(os.homedir(), cacheKey);
+    const cacheKey = `${toolName}-${toolVersion}-${platform}-${arch}-${checksumTag.replace(':', '-')}`;
+    const installPath = path.join(os.homedir(), `${toolName}-${toolVersion}-${platform}-${arch}`);
     debug(`Cache key: ${cacheKey}`);
     // Try to load the GCC installation from the cache
     let cacheKeyMatched = undefined;
@@ -77271,31 +78539,13 @@ async function install(release, platform, arch) {
         warning(`⚠️ Could not find contents in the cache.\n${err.message}`);
     }
     if (cacheKeyMatched === cacheKey) {
-        info(`Cache found: ${installPath}`);
-        let cacheMd5 = 'MD5 not found in cached installation';
-        try {
-            cacheMd5 = await fs.promises.readFile(path.join(installPath, 'md5.txt'), { encoding: 'utf8' });
-        }
-        catch (err) {
-            warning(`⚠️ Could not read the contents of the cached GCC version MD5.\n${err.message}`);
-        }
-        info(`Cached version MD5: ${cacheMd5}`);
-        if (cacheMd5 !== distData.md5) {
-            warning(`⚠️ Cached version MD5 does not match: ${cacheMd5} != ${distData.md5}`);
-        }
-        else {
-            info('Cached version loaded.');
-            return installPath;
-        }
+        info(`Cached version loaded: ${installPath}`);
+        return installPath;
     }
-    info(`Cache miss, downloading GCC ${release} from ${distData.url} ; MD5 ${distData.md5}`);
+    info(`Cache miss, downloading GCC ${release} from ${distData.url}`);
     const gccDownloadPath = await downloadTool(distData.url);
-    info(`GCC release downloaded, calculating MD5...`);
-    const downloadHash = await md5File(gccDownloadPath);
-    info(`Downloaded file MD5: ${downloadHash}`);
-    if (distData.md5 && downloadHash !== distData.md5) {
-        throw new Error(`Downloaded GCC MD5 doesn't match expected value: ${downloadHash} != ${distData.md5}`);
-    }
+    await verifyChecksum(checksumTag, gccDownloadPath);
+    info(`Downloaded and verified (${checksumTag}).`);
     info(`Extracting ${gccDownloadPath}`);
     let extractedPath = '';
     if (distData.url.endsWith('.zip')) {
@@ -77312,7 +78562,6 @@ async function install(release, platform, arch) {
     }
     // Adding installation to the cache
     info(`Adding to cache: ${extractedPath}`);
-    await fs.promises.writeFile(path.join(extractedPath, 'md5.txt'), downloadHash, { encoding: 'utf8' });
     try {
         await saveCache([extractedPath], cacheKey);
     }

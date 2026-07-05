@@ -34,7 +34,6 @@
     "@actions/cache": "^6.0.0",
     "@actions/core": "^3.0.0",
     "@actions/tool-cache": "^4.0.0",
-    "md5-file": "^5.0.0",
     "semver": "^7.7.4",
     "tslib": "^2.8.1"
   },
