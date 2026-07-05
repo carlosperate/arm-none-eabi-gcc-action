@@ -121,6 +121,21 @@ an input:
   run: echo "The output path is $ARM_NONE_EABI_GCC_PATH"
 ```
 
+By default, this action tries to download a matching `arm-none-eabi-gcc` release from the actions cache, but it can also be configured to use the runner's tool cache if wished.
+
+The order in which available sources are used (when enabled) is *host tool cache* → *action cache* → *external release download*.
+```yaml
+- name: Load only from runner tool cache
+  uses: carlosperate/arm-none-eabi-gcc-action@v1
+  with:
+    use-cache: false
+    use-tool-cache: true
+- name: Load from any available source
+  uses: carlosperate/arm-none-eabi-gcc-action@v1
+  with:
+    use-cache: true
+    use-tool-cache: true
+```
 
 ## Changelog
 
