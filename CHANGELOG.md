@@ -4,13 +4,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## v1.13.0 - unreleased
+## v1.13.0 - (2026-07-06)
 ### Added
 - New `15.3.Rel1` arm-none-eabi-gcc release. From this version Arm hosts the
   toolchain on Arm GitLab (the developer.arm.com downloads page is deprecated).
-
+- Added SHA256 verification for toolchain downloads (#100)
+## Changed
+- Toolchain downloads have been moved to GitLab, which uses ephemeral AWS URLS,
+  so action has been updated to correctly process them.
+- Toolchain downloads page has been moved, so CI scripts have been updated.
 ### Security
-- Security update for third party dependencies (#96, #97, #98)
+- Security update for third party dependencies (#96, #97, #98, #99)
 
 ## v1.12.3 - (2026-04-09)
 ### Fixed
@@ -24,7 +28,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Replace ncc with rollup, for compat with ESM-only dependencies.
 - Updated most of the direct dependencies to their latest version.
-
 ### Security
 - Security update for third party dependencies (#90, #91, #92, #93)
 
@@ -32,7 +35,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Upgraded the running node version from v20 to v24 (#88 thanks @ETSells!)
 - Minor refactor to switch `@actions/http-client` with `fetch` (441583d)
-
 ### Security
 - Security update for third party dependencies (#85)
 
