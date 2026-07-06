@@ -118,7 +118,7 @@ test('install refuses when no checksum is available', async () => {
 });
 
 test('latest points to a known latest release', async () => {
-  const knownLatestRelease = '15.2.Rel1';
+  const knownLatestRelease = '15.3.Rel1';
 
   const latestRelease = gcc.latestGccVersion();
 
@@ -248,8 +248,8 @@ describe('Real install in temp dirs.', () => {
   test('10.3-2021.07 win32', async () => await tmpInstall('10.3-2021.07', 'win32', 'x64'));
   test('14.2.Rel1 darwin x64', async () => await tmpInstall('14.2.Rel1', 'darwin', 'x64'));
 
-  test('15.2.Rel1 linux x64', async () => await tmpInstall('15.2.Rel1', 'linux', 'x64'));
-  test('15.2.Rel1 linux arm64', async () => await tmpInstall('15.2.Rel1', 'linux', 'arm64'));
-  test('15.2.Rel1 darwin arm64', async () => await tmpInstall('15.2.Rel1', 'darwin', 'arm64'));
-  test('15.2.Rel1 win32', async () => await tmpInstall('15.2.Rel1', 'win32', 'x64'));
+  test('15.3.Rel1 linux x64', async () => await tmpInstall('15.3.Rel1', 'linux', 'x64'));
+  test('15.3.Rel1 linux arm64', async () => await tmpInstall('15.3.Rel1', 'linux', 'arm64'));
+  test('15.3.Rel1 darwin arm64', async () => await tmpInstall('15.3.Rel1', 'darwin', 'arm64'));
+  test('15.3.Rel1 win32', async () => await tmpInstall('15.3.Rel1', 'win32', 'x64'));
 });

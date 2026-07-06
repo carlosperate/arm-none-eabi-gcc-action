@@ -1,4 +1,26 @@
 export const gccVersions = {
+    '15.3.Rel1': {
+        win32: {
+            url: 'https://gitlab.arm.com/api/v4/projects/tooling%2Fgnu-toolchains-for-arm/packages/generic/gnu-toolchain/15.3.rel1/arm-gnu-toolchain-15.3.rel1-mingw-w64-x86_64-arm-none-eabi.zip',
+            md5: null,
+            sha256: 'b85669d3408e2ae713b17b0cc59bc4ea26369a7f2bd19108fd11df7095f159e6',
+        },
+        mac_arm64: {
+            url: 'https://gitlab.arm.com/api/v4/projects/tooling%2Fgnu-toolchains-for-arm/packages/generic/gnu-toolchain/15.3.rel1/arm-gnu-toolchain-15.3.rel1-darwin-arm64-arm-none-eabi.tar.xz',
+            md5: null,
+            sha256: '376808a59ca209c1413236f1c6a509e33da4b29857ab28642b9927cf3048af55',
+        },
+        linux_x86_64: {
+            url: 'https://gitlab.arm.com/api/v4/projects/tooling%2Fgnu-toolchains-for-arm/packages/generic/gnu-toolchain/15.3.rel1/arm-gnu-toolchain-15.3.rel1-x86_64-arm-none-eabi.tar.xz',
+            md5: null,
+            sha256: '563bebb2b97d53382b956d6ee1fe61e2cae26699901417234a37df505ef9b5fa',
+        },
+        linux_aarch64: {
+            url: 'https://gitlab.arm.com/api/v4/projects/tooling%2Fgnu-toolchains-for-arm/packages/generic/gnu-toolchain/15.3.rel1/arm-gnu-toolchain-15.3.rel1-aarch64-arm-none-eabi.tar.xz',
+            md5: null,
+            sha256: '06979e0c8171de58e5dc2a2b2019330a290f30930f27728af98a83e1a7369b3a',
+        },
+    },
     '15.2.Rel1': {
         win32: {
             url: 'https://armkeil.blob.core.windows.net/developer/files/downloads/gnu/15.2.rel1/binrel/arm-gnu-toolchain-15.2.rel1-mingw-w64-x86_64-arm-none-eabi.zip',
