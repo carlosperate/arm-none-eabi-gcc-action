@@ -1,9 +1,10 @@
 name: Check there is a new release available
 
-# RELEASE_STRING should be updated when a new release is available
+# Toolchains now on Arm's GitLab. New releases are added to the README
+# so when a release is added we expect a different latest commit in `main`.
 env:
-  RELEASE_URL: 'https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads'
-  RELEASE_STRING: 'Released: December 17, 2025'
+  LATEST_COMMIT_JSON: 'https://gitlab.arm.com/api/v4/projects/tooling%2Fgnu-toolchains-for-arm/repository/commits?ref_name=main&per_page=1'
+  KNOWN_COMMIT: 'e7f7c9a1'
 
 on:
   schedule:
@@ -21,12 +22,17 @@ jobs:
     steps:
     - uses: actions/checkout@v6
     - run: pip install requests
-    - name: Check HTML to see if there is a new release
+    - name: Check if the Arm GitLab main branch has a new commit
       shell: bash
       run: |
         python3 - << EOF
-        import os, requests;
-        html = requests.get(os.environ['RELEASE_URL']).text;
-        string_exists = os.environ['RELEASE_STRING'] in html;
-        exit(0 if string_exists else 1);
+        import os, requests
+
+        known = os.environ['KNOWN_COMMIT']
+        latest = requests.get(os.environ['LATEST_COMMIT_JSON']).json()[0]['short_id']
+
+        if latest != known:
+            print(f'main branch changed: {latest} != known {known} - review the repo')
+            raise SystemExit(1)
+        print(f'No change. Latest commit is still {known}.')
         EOF
