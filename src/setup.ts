@@ -27,11 +27,8 @@ export async function install(release: string, platform: string, arch: string): 
   const toolName = 'gcc-arm-none-eabi';
 
   // Get the GCC release info
-  const distData = await gcc.distributionUrl(release, platform, arch);
-
-  // Download from the resolvedUrl, unless it is a short-lived signed URL (ephemeralUrl) that
-  // expires and is method-locked (retrieved with HEAD, so downloading with GET fails)
-  const downloadUrl = distData.ephemeralUrl ? distData.url : (distData.resolvedUrl ?? distData.url);
+  const distData = gcc.distributionUrl(release, platform, arch);
+  const downloadUrl = distData.url;
 
   // Prioritise SHA256 over MD5
   const checksumTag = distData.sha256 ? `sha256:${distData.sha256}` : distData.md5 ? `md5:${distData.md5}` : null;

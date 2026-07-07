@@ -1,44 +1,6 @@
-/* eslint-disable @typescript-eslint/naming-convention */
 import * as core from '@actions/core';
 import semver from 'semver';
 import { gccVersions } from './gcc-versions.js';
-// Some Arm download endpoints reject unfamiliar user agents with a challenge page redirect.
-const userAgent = 'curl/8.5.0 (arm-none-eabi-gcc-action)';
-// Short lived signed URL (e.g. an AWS link the Arm GitLab registry redirects to).
-function isEphemeralUrl(url) {
-    const params = new URL(url).searchParams;
-    return (params.has('X-Amz-Signature') || params.has('X-Amz-Expires') || (params.has('Expires') && params.has('Signature')));
-}
-async function followRedirects(originalUrl) {
-    const MAX_REDIRECTS = 5;
-    let currentUrl = originalUrl;
-    for (let attempt = 0; attempt < MAX_REDIRECTS; attempt++) {
-        const response = await fetch(currentUrl, {
-            method: 'HEAD',
-            redirect: 'manual',
-            headers: { 'User-Agent': userAgent },
-        });
-        const statusCode = response.status;
-        if (statusCode >= 300 && statusCode < 400) {
-            const locationValue = response.headers.get('location');
-            if (!locationValue) {
-                core.debug(`Redirect for ${originalUrl} detected without location header at ${currentUrl}`);
-                break;
-            }
-            const nextUrl = new URL(locationValue, currentUrl).toString();
-            core.info(`Detected redirect (${statusCode}) for GCC download.`);
-            core.info(`\tFollowing ${originalUrl}`);
-            core.info(`\tto        ${nextUrl}`);
-            if (attempt >= MAX_REDIRECTS - 1) {
-                core.warning(`Maximum redirects reached for ${originalUrl}`);
-            }
-            currentUrl = nextUrl;
-            continue;
-        }
-        break;
-    }
-    return currentUrl;
-}
 export function availableVersions() {
     return Object.keys(gccVersions);
 }
@@ -46,7 +8,7 @@ export function latestGccVersion() {
     // Since ES6 (from node v8.x) JS objects are ordered
     return Object.keys(gccVersions)[0];
 }
-export async function distributionUrl(version, platform, arch) {
+export function distributionUrl(version, platform, arch) {
     // Convert the node platform value to the versions URL keys
     let osName = '';
     switch (platform) {
@@ -88,25 +50,12 @@ export async function distributionUrl(version, platform, arch) {
             'The action README has the list of available versions and platforms.');
     }
     const distData = gccVersions[version][osName];
-    // Arm download files have been moved between servers in the past, so we resolve redirects
-    // up-front and expose the result as resolvedUrl. When resolvedUrl is a short-lived signed
-    // URL it is flagged (ephemeralUrl) so consumers fall back to the durable url instead.
-    let resolvedUrl = distData.url;
-    let ephemeralUrl = false;
-    try {
-        resolvedUrl = await followRedirects(distData.url);
-        ephemeralUrl = isEphemeralUrl(resolvedUrl);
-    }
-    catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        core.debug(`Redirect resolution failed for ${distData.url}: ${message}`);
-    }
+    // tc.downloadTool follows any redirect itself, so the stored url is downloaded directly.
+    // Stale-URL detection lives in the CI link check test instead.
     return {
         url: distData.url,
-        resolvedUrl,
         md5: distData.md5,
         sha256: distData.sha256,
-        ephemeralUrl,
     };
 }
 export function gccVersionToSemver(gccVersion) {

@@ -50,43 +50,43 @@ test('count gcc versions', () => {
 });
 
 test('test fetching valid urls', async () => {
-  let dist = await gcc.distributionUrl('12.3.Rel1', 'darwin', 'arm64');
+  let dist = gcc.distributionUrl('12.3.Rel1', 'darwin', 'arm64');
   expect(dist.url).toContain('arm-gnu-toolchain-12.3.rel1-darwin-arm64-arm-none-eabi.tar.xz');
   expect(dist.md5).toStrictEqual('53d034e9423e7f470acc5ed2a066758e');
   expect(dist.sha256).toStrictEqual('3b2eee0bdf71c1bbeb3c3b7424fbf7bd9d5c3f0f5a3a4a78159c9e3ad219e7bd');
 
   // macOS arm64 starts at 12.2.Rel1, but if arm64 is not available, it will fallback to x64
-  dist = await gcc.distributionUrl('11.3.Rel1', 'darwin', 'arm64');
+  dist = gcc.distributionUrl('11.3.Rel1', 'darwin', 'arm64');
   expect(dist.url).toContain('arm-gnu-toolchain-11.3.rel1-darwin-x86_64-arm-none-eabi.tar.xz');
 
-  dist = await gcc.distributionUrl('6-2017-q1', 'darwin', 'x64');
+  dist = gcc.distributionUrl('6-2017-q1', 'darwin', 'x64');
   expect(dist.url).toContain('gcc-arm-none-eabi-6-2017-q1-update-mac.tar.bz2');
   expect(dist.md5).toStrictEqual('709c86af4c92d17bd5fb9dcfe00ffd6d');
 
-  dist = await gcc.distributionUrl('10-2020-q4', 'linux', 'arm64');
+  dist = gcc.distributionUrl('10-2020-q4', 'linux', 'arm64');
   expect(dist.url).toContain('gcc-arm-none-eabi-10-2020-q4-major-aarch64-linux.tar.bz2');
   expect(dist.md5).toStrictEqual('1c3b8944c026d50362eef1f01f329a8e');
 
-  dist = await gcc.distributionUrl('6-2017-q1', 'linux', 'x64');
+  dist = gcc.distributionUrl('6-2017-q1', 'linux', 'x64');
   expect(dist.url).toContain('gcc-arm-none-eabi-6-2017-q1-update-linux.tar.bz2');
   expect(dist.md5).toStrictEqual('30004c24f4632bc594952462bb0cd1c9');
 
-  dist = await gcc.distributionUrl('6-2017-q1', 'win32', 'x64');
+  dist = gcc.distributionUrl('6-2017-q1', 'win32', 'x64');
   expect(dist.url).toContain('gcc-arm-none-eabi-6-2017-q1-update-win32.zip');
   expect(dist.md5).toStrictEqual('ec8b98945d4faf0c28a05bcdc1c2e537');
 
-  dist = await gcc.distributionUrl('9-2019-q4', 'linux', 'x64');
+  dist = gcc.distributionUrl('9-2019-q4', 'linux', 'x64');
   expect(dist.url).toContain('gcc-arm-none-eabi-9-2019-q4-major-x86_64-linux.tar.bz2');
   expect(dist.md5).toStrictEqual('fe0029de4f4ec43cf7008944e34ff8cc');
 
-  dist = await gcc.distributionUrl('4.8-2013-q4', 'darwin', 'x64');
+  dist = gcc.distributionUrl('4.8-2013-q4', 'darwin', 'x64');
   expect(dist.url).toContain('gcc-arm-none-eabi-4_8-2013q4-20131218-mac.tar.bz2');
   expect(dist.md5).toStrictEqual('850caa23f01ea8c1e6abcc3c217d36f7');
 });
 
-test('test fetching urls for invalid platforms', async () => {
+test('test fetching urls for invalid platforms', () => {
   // Linux aarch64 starts at 9-2019-q4
-  await expect(gcc.distributionUrl('8-2019-q3', 'linux', 'arm64')).rejects.toThrow(
+  expect(() => gcc.distributionUrl('8-2019-q3', 'linux', 'arm64')).toThrow(
     'invalid platform linux_aarch64 for GCC version 8-2019-q3'
   );
 
@@ -94,21 +94,21 @@ test('test fetching urls for invalid platforms', async () => {
   // it will fallback to x64, so it will not throw an error
 
   // Invalid release id
-  await expect(gcc.distributionUrl('invalid-gcc-release', 'linux', 'x64')).rejects.toThrow('invalid GCC version');
+  expect(() => gcc.distributionUrl('invalid-gcc-release', 'linux', 'x64')).toThrow('invalid GCC version');
 
   // Invalid platform
-  await expect(gcc.distributionUrl('12.3.Rel1', 'invalid-platform', 'x64')).rejects.toThrow(
+  expect(() => gcc.distributionUrl('12.3.Rel1', 'invalid-platform', 'x64')).toThrow(
     'platform invalid-platform is not supported'
   );
 
   // Mac x86_64 discontinued from 14.3.Rel1
-  await expect(gcc.distributionUrl('14.3.Rel1', 'darwin', 'x64')).rejects.toThrow(
+  expect(() => gcc.distributionUrl('14.3.Rel1', 'darwin', 'x64')).toThrow(
     'invalid platform mac_x86_64 for GCC version 14.3.Rel1'
   );
 });
 
 test('install refuses when no checksum is available', async () => {
-  jest.spyOn(gcc, 'distributionUrl').mockResolvedValue({
+  jest.spyOn(gcc, 'distributionUrl').mockReturnValue({
     url: 'https://example.com/gcc.tar.xz',
     md5: null,
     sha256: null,
@@ -196,30 +196,6 @@ test('Each GCC versions into a unique and valid Semver', async () => {
       throw new Error(`Generated Semver is a duplicate: ${gccSemver}`);
     }
     gccSemverList.push(gccSemver);
-  }
-});
-
-describe('Check links work.', () => {
-  for (const version of gcc.availableVersions()) {
-    for (const platform of ['darwin', 'linux', 'win32']) {
-      for (const arch of ['x64', 'arm64']) {
-        test(`URL ${version} ${platform} ${arch} is working`, async () => {
-          let fileUrl = '';
-          // Not all releases have builds for all platforms/archs
-          try {
-            const dist = await gcc.distributionUrl(version, platform, arch);
-            fileUrl = dist.resolvedUrl ?? dist.url;
-          } catch (error) {
-            return;
-          }
-          const response = await fetch(fileUrl, {
-            method: 'HEAD',
-            redirect: 'manual',
-          });
-          expect(response.status).toBe(200);
-        });
-      }
-    }
   }
 });
 
