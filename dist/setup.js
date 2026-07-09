@@ -6,11 +6,11 @@ import * as core from '@actions/core';
 import * as tc from '@actions/tool-cache';
 import * as cache from '@actions/cache';
 import * as gcc from './gcc.js';
-async function verifyChecksum(expectedTag, file) {
-    const [algorithm, expected] = expectedTag.split(':');
+async function verifyChecksum(checksumTag, filePath) {
+    const [algorithm, expected] = checksumTag.split(':');
     const hash = await new Promise((resolve, reject) => {
         const h = crypto.createHash(algorithm);
-        fs.createReadStream(file)
+        fs.createReadStream(filePath)
             .on('error', reject)
             .on('data', chunk => h.update(chunk))
             .on('end', () => resolve(h.digest('hex')));
@@ -19,11 +19,27 @@ async function verifyChecksum(expectedTag, file) {
         throw new Error(`Downloaded GCC ${algorithm} doesn't match expected value: ${hash} != ${expected}`);
     }
 }
+async function downloadAndVerify(urls, checksumTag) {
+    for (let i = 0; i < urls.length; i++) {
+        try {
+            core.info(`Downloading from ${urls[i]}`);
+            const file = await tc.downloadTool(urls[i]);
+            await verifyChecksum(checksumTag, file);
+            core.info(`Downloaded and verified (${file}, ${checksumTag}).`);
+            return file;
+        }
+        catch (err) {
+            if (i === urls.length - 1)
+                throw err;
+            core.warning(`⚠️ Download from ${urls[i]} failed, trying mirror URL.\n${err.message}`);
+        }
+    }
+    throw new Error('No download URLs available');
+}
 export async function install(release, platform, arch) {
     const toolName = 'gcc-arm-none-eabi';
     // Get the GCC release info
     const distData = gcc.distributionUrl(release, platform, arch);
-    const downloadUrl = distData.url;
     // Prioritise SHA256 over MD5
     const checksumTag = distData.sha256 ? `sha256:${distData.sha256}` : distData.md5 ? `md5:${distData.md5}` : null;
     if (!checksumTag) {
@@ -47,23 +63,23 @@ export async function install(release, platform, arch) {
         core.info(`Cached version loaded: ${installPath}`);
         return installPath;
     }
-    core.info(`Cache miss, downloading GCC ${release} from ${downloadUrl}`);
-    const gccDownloadPath = await tc.downloadTool(downloadUrl);
-    await verifyChecksum(checksumTag, gccDownloadPath);
-    core.info(`Downloaded and verified (${checksumTag}).`);
+    core.info(`Cache miss, downloading GCC ${release}`);
+    const downloadUrls = [distData.url, ...distData.mirrorUrls];
+    const gccDownloadPath = await downloadAndVerify(downloadUrls, checksumTag);
+    // Candidate urls are mirrors of the same file, so the extension comes from the primary url.
     core.info(`Extracting ${gccDownloadPath}`);
     let extractedPath = '';
-    if (downloadUrl.endsWith('.zip')) {
+    if (distData.url.endsWith('.zip')) {
         extractedPath = await tc.extractZip(gccDownloadPath, installPath);
     }
-    else if (downloadUrl.endsWith('.tar.bz2')) {
+    else if (distData.url.endsWith('.tar.bz2')) {
         extractedPath = await tc.extractTar(gccDownloadPath, installPath, 'xj');
     }
-    else if (downloadUrl.endsWith('.tar.xz')) {
+    else if (distData.url.endsWith('.tar.xz')) {
         extractedPath = await tc.extractTar(gccDownloadPath, installPath, 'xJ');
     }
     else {
-        throw new Error(`Can't decompress ${downloadUrl}`);
+        throw new Error(`Can't decompress ${distData.url}`);
     }
     // Adding installation to the cache
     core.info(`Adding to cache: ${extractedPath}`);

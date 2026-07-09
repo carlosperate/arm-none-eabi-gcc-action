@@ -6,7 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## v1.13.1 - Unreleased
 ### Changed
-- Removed URL redirection detection during action runtime, as its unnecessary,
+- Add optional backup download URLs for GCC the releases.
+- Removed URL redirection detection during action runtime, as it's unnecessary,
   moved to CI checks only.
 
 ## v1.13.0 - (2026-07-06)

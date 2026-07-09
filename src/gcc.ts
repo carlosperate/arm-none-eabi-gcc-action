@@ -55,6 +55,7 @@ export function distributionUrl(version: string, platform: string, arch: string)
   const distData = gccVersions[version][osName];
   return {
     url: distData.url,
+    mirrorUrls: distData.mirrorUrls,
     md5: distData.md5,
     sha256: distData.sha256,
   };

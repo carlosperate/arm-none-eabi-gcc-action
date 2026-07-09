@@ -50,10 +50,9 @@ export function distributionUrl(version, platform, arch) {
             'The action README has the list of available versions and platforms.');
     }
     const distData = gccVersions[version][osName];
-    // tc.downloadTool follows any redirect itself, so the stored url is downloaded directly.
-    // Stale-URL detection lives in the CI link check test instead.
     return {
         url: distData.url,
+        mirrorUrls: distData.mirrorUrls,
         md5: distData.md5,
         sha256: distData.sha256,
     };

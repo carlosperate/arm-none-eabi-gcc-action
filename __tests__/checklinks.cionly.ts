@@ -42,9 +42,12 @@ describe("Check links work and don't redirect.", () => {
       for (const arch of ['x64', 'arm64']) {
         test(`URL ${version} ${platform} ${arch} is working`, async () => {
           let url: string;
+          let mirrorUrls: string[];
           // Not all releases have builds for all platforms/archs
           try {
-            url = gcc.distributionUrl(version, platform, arch).url;
+            const dist = gcc.distributionUrl(version, platform, arch);
+            url = dist.url;
+            mirrorUrls = dist.mirrorUrls;
           } catch (error) {
             return;
           }
@@ -61,6 +64,15 @@ describe("Check links work and don't redirect.", () => {
             throw new Error(
               `Redirect detected: ${url} -> ${finalUrl}. Please update the URL in src/gcc-versions.ts to the resolved URL.`
             );
+          }
+          // Every backup mirror should be reachable as well
+          for (const mirrorUrl of mirrorUrls) {
+            const finalBackupUrl = await followRedirects(mirrorUrl);
+            const backupResponse = await fetch(finalBackupUrl, {
+              method: 'HEAD',
+              headers: {'User-Agent': userAgent},
+            });
+            expect(backupResponse.status).toBe(200);
           }
         });
       }

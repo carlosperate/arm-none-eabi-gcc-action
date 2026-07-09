@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import * as crypto from 'crypto';
 
 import {rimraf, rimrafSync} from 'rimraf';
 import * as semver from 'semver';
@@ -9,6 +10,7 @@ jest.mock('@actions/cache');
 jest.mock('@actions/tool-cache');
 
 import * as os from 'os';
+import * as tc from '@actions/tool-cache';
 import * as gcc from '../src/gcc.js';
 import * as setup from '../src/setup.js';
 
@@ -110,10 +112,40 @@ test('test fetching urls for invalid platforms', () => {
 test('install refuses when no checksum is available', async () => {
   jest.spyOn(gcc, 'distributionUrl').mockReturnValue({
     url: 'https://example.com/gcc.tar.xz',
+    mirrorUrls: [],
     md5: null,
     sha256: null,
   });
   await expect(setup.install('12.3.Rel1', 'linux', 'x64')).rejects.toThrow('refusing to install unverified');
+  jest.restoreAllMocks();
+});
+
+test('install falls back to the mirrorUrl when the primary download fails', async () => {
+  const content = 'fake gcc archive contents';
+  const archive = path.join(TEMP_LOCAL_PATH, 'fake-gcc.tar.xz');
+  fs.writeFileSync(archive, content);
+  const sha256 = crypto.createHash('sha256').update(content).digest('hex');
+
+  jest.spyOn(gcc, 'distributionUrl').mockReturnValue({
+    url: 'https://primary.invalid/gcc.tar.xz',
+    mirrorUrls: ['https://backup.invalid/gcc.tar.xz'],
+    md5: null,
+    sha256,
+  });
+  const downloadSpy = jest
+    .spyOn(tc, 'downloadTool')
+    .mockRejectedValueOnce(new Error('primary unreachable'))
+    .mockResolvedValueOnce(archive);
+  const extractSpy = jest.spyOn(tc, 'extractTar').mockResolvedValue('/extracted/gcc');
+
+  const result = await setup.install('15.3.Rel1', 'linux', 'x64');
+
+  // Primary is tried first, then the mirror once it fails; the mirror's bytes are extracted.
+  expect(downloadSpy).toHaveBeenNthCalledWith(1, 'https://primary.invalid/gcc.tar.xz');
+  expect(downloadSpy).toHaveBeenNthCalledWith(2, 'https://backup.invalid/gcc.tar.xz');
+  expect(extractSpy).toHaveBeenCalledWith(archive, expect.any(String), 'xJ');
+  expect(result).toBe('/extracted/gcc');
+
   jest.restoreAllMocks();
 });
 
