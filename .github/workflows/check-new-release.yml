@@ -4,7 +4,7 @@ name: Check there is a new release available
 # so when a release is added we expect a different latest commit in `main`.
 env:
   LATEST_COMMIT_JSON: 'https://gitlab.arm.com/api/v4/projects/tooling%2Fgnu-toolchains-for-arm/repository/commits?ref_name=main&per_page=1'
-  KNOWN_COMMIT: 'e7f7c9a1'
+  KNOWN_COMMIT: '934029da'
 
 on:
   schedule:
@@ -20,7 +20,7 @@ jobs:
     name: Check for a new release
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - run: pip install requests
     - name: Check if the Arm GitLab main branch has a new commit
       shell: bash

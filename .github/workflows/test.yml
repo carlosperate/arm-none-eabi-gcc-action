@@ -17,7 +17,7 @@ jobs:
     name: Run tests and build Action
     runs-on: ${{ matrix.os }}
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - run: npm install
     - run: npx prettier --version
     - run: npm run format
@@ -34,7 +34,7 @@ jobs:
     name: Test path output and env var
     runs-on: ubuntu-22.04
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - name: Ensure the compiler is not present
       run: '! arm-none-eabi-gcc --version'
     - name: Set up GCC Arm Compiler with environmental variable
@@ -59,7 +59,7 @@ jobs:
     name: Test default options
     runs-on: ubuntu-22.04
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - name: Ensure the compiler is not present
       run: '! arm-none-eabi-gcc --version'
     - name: Set up GCC Arm Compiler with default options
