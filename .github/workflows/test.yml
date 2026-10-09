@@ -67,7 +67,9 @@ jobs:
       id: action-under-test-id
     - name: Print out version
       run: arm-none-eabi-gcc --version
+    # Arm's 15.3.Rel2 binaries report "15.3.Rel1" in --version, only the build number differs
+    # https://community.arm.com/forums/f/compilers-and-libraries-forum/57882/arm-gnu-toolchain-15-3-rel2-arm-none-eabi-gcc---version-reports-15-3-rel1
     - name: Check the version matches
-      run: arm-none-eabi-gcc --version | grep -qi 15.3.Rel2
+      run: arm-none-eabi-gcc --version | grep -q 'Build arm-15.180'
     - name: Check output path is correct
       run: echo "${{ steps.action-under-test-id.outputs.path }}" | grep -q /home/runner/gcc-arm-none-eabi-15.3.2-linux-x64/arm-gnu-toolchain-15.3.rel2-x86_64-arm-none-eabi/bin
