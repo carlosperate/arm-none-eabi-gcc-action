@@ -8,7 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Add optional backup download URLs for GCC the releases.
 - Removed URL redirection detection during action runtime, as it's unnecessary,
-  moved to CI checks only.
+  so moved to CI checks.
+- Improved CI checks and error messages.
 
 ## v1.13.0 - (2026-07-06)
 ### Added
