@@ -6,6 +6,32 @@ export interface GccDownloadInfo {
 }
 
 export const gccVersions: {[gccRelease: string]: {[platform: string]: GccDownloadInfo}} = {
+  '15.3.Rel2': {
+    win32: {
+      url: 'https://gitlab.arm.com/api/v4/projects/tooling%2Fgnu-toolchains-for-arm/packages/generic/gnu-toolchain/15.3.rel2/arm-gnu-toolchain-15.3.rel2-mingw-w64-x86_64-arm-none-eabi.zip',
+      mirrorUrls: [],
+      md5: 'defa3c1aaed28688d0c50d01d85afd68',
+      sha256: '062888d4f8a213f930e367189804910e5215c4e623e5063e64494c302f94b889',
+    },
+    mac_arm64: {
+      url: 'https://gitlab.arm.com/api/v4/projects/tooling%2Fgnu-toolchains-for-arm/packages/generic/gnu-toolchain/15.3.rel2/arm-gnu-toolchain-15.3.rel2-darwin-arm64-arm-none-eabi.tar.xz',
+      mirrorUrls: [],
+      md5: '0d40f39c803fc547d6aac59644e84b8c',
+      sha256: 'b6ccf805aa4fb8c50406256f99cf802385894b86c0cb6c0185dc0e2b5f8288b9',
+    },
+    linux_x86_64: {
+      url: 'https://gitlab.arm.com/api/v4/projects/tooling%2Fgnu-toolchains-for-arm/packages/generic/gnu-toolchain/15.3.rel2/arm-gnu-toolchain-15.3.rel2-x86_64-arm-none-eabi.tar.xz',
+      mirrorUrls: [],
+      md5: '663f7fb71498dfb1dc2f4fee23e35a86',
+      sha256: '0662b2f01e0cd8b951fd110911d339c35b05998c68a12b3530bbbb4bf6c7874e',
+    },
+    linux_aarch64: {
+      url: 'https://gitlab.arm.com/api/v4/projects/tooling%2Fgnu-toolchains-for-arm/packages/generic/gnu-toolchain/15.3.rel2/arm-gnu-toolchain-15.3.rel2-aarch64-arm-none-eabi.tar.xz',
+      mirrorUrls: [],
+      md5: '029a1e00cf25e1edb8dc9bb2683046a7',
+      sha256: '9fc9e6baedf2b6779bd39ce4cc458d3529e200bc92bebe28be18f8942a456ad8',
+    },
+  },
   '15.3.Rel1': {
     win32: {
       url: 'https://gitlab.arm.com/api/v4/projects/tooling%2Fgnu-toolchains-for-arm/packages/generic/gnu-toolchain/15.3.rel1/arm-gnu-toolchain-15.3.rel1-mingw-w64-x86_64-arm-none-eabi.zip',

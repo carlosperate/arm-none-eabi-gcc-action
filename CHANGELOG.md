@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## v1.13.1 - Unreleased
+### Added
+- New `15.3.Rel2` arm-none-eabi-gcc release.
 ### Changed
 - Add optional backup download URLs for GCC the releases.
 - Removed URL redirection detection during action runtime, as it's unnecessary,
