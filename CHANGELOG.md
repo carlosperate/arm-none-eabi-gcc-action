@@ -4,14 +4,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## v1.13.1 - Unreleased
+## v1.14.0 - (2026-10-09)
 ### Added
 - New `15.3.Rel2` arm-none-eabi-gcc release.
 ### Changed
-- Add optional backup download URLs for GCC the releases.
+- Add optional mirror/backup download URLs for the GCC releases.
 - Removed URL redirection detection during action runtime, as it's unnecessary,
   so moved to CI checks.
 - Improved CI checks and error messages.
+### Security
+- Security update for third party dependencies (#101, #103, #105, #106, #107, #108, #109, #110) 
 
 ## v1.13.0 - (2026-07-06)
 ### Added
