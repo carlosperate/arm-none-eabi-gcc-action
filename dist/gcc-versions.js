@@ -1,4 +1,30 @@
 export const gccVersions = {
+    '15.3.Rel2': {
+        win32: {
+            url: 'https://gitlab.arm.com/api/v4/projects/tooling%2Fgnu-toolchains-for-arm/packages/generic/gnu-toolchain/15.3.rel2/arm-gnu-toolchain-15.3.rel2-mingw-w64-x86_64-arm-none-eabi.zip',
+            mirrorUrls: [],
+            md5: '3477d7149529219adcc82d16df85e8e9',
+            sha256: '0daff4141d4f62ad1e9794ca8bd430ef730f07fd78f6d71d2ffdffc21db8cb9e',
+        },
+        mac_arm64: {
+            url: 'https://gitlab.arm.com/api/v4/projects/tooling%2Fgnu-toolchains-for-arm/packages/generic/gnu-toolchain/15.3.rel2/arm-gnu-toolchain-15.3.rel2-darwin-arm64-arm-none-eabi.tar.xz',
+            mirrorUrls: [],
+            md5: 'e694fee147160222d4c697a444af36f9',
+            sha256: 'f011e4832046155f06408dda6b252b21b139a8159c8529802227371f06656c60',
+        },
+        linux_x86_64: {
+            url: 'https://gitlab.arm.com/api/v4/projects/tooling%2Fgnu-toolchains-for-arm/packages/generic/gnu-toolchain/15.3.rel2/arm-gnu-toolchain-15.3.rel2-x86_64-arm-none-eabi.tar.xz',
+            mirrorUrls: [],
+            md5: '210e49083d52ee650eca63d98b640b10',
+            sha256: '463df9665c246fa13bab2102115bbf83440661b6eb70b44f3dfd4712ca30037a',
+        },
+        linux_aarch64: {
+            url: 'https://gitlab.arm.com/api/v4/projects/tooling%2Fgnu-toolchains-for-arm/packages/generic/gnu-toolchain/15.3.rel2/arm-gnu-toolchain-15.3.rel2-aarch64-arm-none-eabi.tar.xz',
+            mirrorUrls: [],
+            md5: 'a587c604334a38cdb53185bc66648d2d',
+            sha256: 'a0dc18893171d39dec82fd8d57eeab3da836fd3df4b61978db3eccbf4a6bb948',
+        },
+    },
     '15.3.Rel1': {
         win32: {
             url: 'https://gitlab.arm.com/api/v4/projects/tooling%2Fgnu-toolchains-for-arm/packages/generic/gnu-toolchain/15.3.rel1/arm-gnu-toolchain-15.3.rel1-mingw-w64-x86_64-arm-none-eabi.zip',
