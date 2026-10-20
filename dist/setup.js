@@ -31,7 +31,8 @@ async function downloadAndVerify(urls, checksumTag) {
         catch (err) {
             if (i === urls.length - 1)
                 throw err;
-            core.warning(`⚠️ Download from ${urls[i]} failed, trying mirror URL.\n${err.message}`);
+            core.warning(`GCC download URL unreachable, trying a mirror instead: ${urls[i]}`);
+            core.debug(`Download error: ${err.message}`);
         }
     }
     throw new Error('No download URLs available');
