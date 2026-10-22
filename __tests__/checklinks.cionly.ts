@@ -36,6 +36,21 @@ async function followRedirects(originalUrl: string): Promise<string> {
   return currentUrl;
 }
 
+// Returns the final URL; failures name the stored URL so it can be retried by hand.
+async function checkReachable(url: string): Promise<string> {
+  try {
+    const finalUrl = await followRedirects(url);
+    const response = await fetch(finalUrl, {
+      method: 'HEAD',
+      headers: {'User-Agent': userAgent},
+    });
+    expect(response.status).toBe(200);
+    return finalUrl;
+  } catch (error) {
+    throw new Error(`Failed to reach ${url}`, {cause: error});
+  }
+}
+
 describe("Check links work and don't redirect.", () => {
   for (const version of gcc.availableVersions()) {
     for (const platform of ['darwin', 'linux', 'win32']) {
@@ -51,13 +66,8 @@ describe("Check links work and don't redirect.", () => {
           } catch (error) {
             return;
           }
-          const finalUrl = await followRedirects(url);
           // The file must be reachable (following any redirects to the final target).
-          const response = await fetch(finalUrl, {
-            method: 'HEAD',
-            headers: {'User-Agent': userAgent},
-          });
-          expect(response.status).toBe(200);
+          const finalUrl = await checkReachable(url);
           // A url that redirects elsewhere is a stale link and the stored url should be
           // updated. Ephemeral urls (GitLab AWS signed links) redirect by design and are ok.
           if (finalUrl !== url && !isEphemeralUrl(finalUrl)) {
@@ -67,12 +77,7 @@ describe("Check links work and don't redirect.", () => {
           }
           // Every backup mirror should be reachable as well
           for (const mirrorUrl of mirrorUrls) {
-            const finalBackupUrl = await followRedirects(mirrorUrl);
-            const backupResponse = await fetch(finalBackupUrl, {
-              method: 'HEAD',
-              headers: {'User-Agent': userAgent},
-            });
-            expect(backupResponse.status).toBe(200);
+            await checkReachable(mirrorUrl);
           }
         });
       }
